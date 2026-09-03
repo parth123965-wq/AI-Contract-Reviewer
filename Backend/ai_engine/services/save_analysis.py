@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from ai_engine.schemas.analysis_result import AnalysisResult
 from app.models.contract import ContractAnalysis, RiskLevel
 from app.repositories.analysis_repository import AnalysisRepository
@@ -8,9 +8,9 @@ class AnalysisService:
     def __init__(self):
         self.analysis_repository = AnalysisRepository()
 
-    def save_analysis(
+    async def save_analysis(
         self,
-        db: Session,
+        db: AsyncSession,
         contract_id: int,
         result: AnalysisResult,
         model_name: str,
@@ -36,7 +36,7 @@ class AnalysisService:
             analysis_version=analysis_version
         )
 
-        return self.analysis_repository.create_analysis(
+        return await self.analysis_repository.create_analysis(
             db=db,
             analysis=analysis
         )

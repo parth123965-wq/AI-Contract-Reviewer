@@ -80,8 +80,8 @@ class ContractNodes:
         state["analysis_result"] = result
         return state
     
-    def save_analysis_node(self,state: ContractState) -> ContractState:
-        self.analysis_service.save_analysis(
+    async def save_analysis_node(self,state: ContractState) -> ContractState:
+        await self.analysis_service.save_analysis(
             db=state["db"],
             contract_id=state["contract_id"],
             result=state["analysis_result"],
