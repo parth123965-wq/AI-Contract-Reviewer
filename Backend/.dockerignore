@@ -1,0 +1,15 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.git/
+.gitignore
+*.db
+uploads/*
+!uploads/.gitkeep
+ai_engine/vector_store/*
+!ai_engine/vector_store/.gitkeep
+tests/
