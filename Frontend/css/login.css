@@ -1,12 +1,12 @@
 /* ==================================================
-   AI Contract Reviewer - Login & Register CSS
-   Theme: Tokyo Night AI SaaS
+   AI Contract Reviewer - Glassmorphic Auth CSS
+   Theme: Midnight Cyber SaaS
 ================================================== */
 
 .login-container {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 1.2fr 440px;
+  grid-template-columns: 1.2fr 460px;
   align-items: center;
   gap: var(--space-10);
   padding: var(--space-8);
@@ -14,49 +14,47 @@
   margin: 0 auto;
 }
 
-/* Brand Section */
 .brand-section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-6);
 }
 
 .brand-logo {
-  width: 68px;
-  height: 68px;
+  width: 72px;
+  height: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-xl);
   background: var(--gradient-primary);
-  color: #ffffff;
-  font-size: var(--font-2xl);
+  color: #05070c;
+  font-size: var(--font-3xl);
   font-weight: var(--weight-extrabold);
-  box-shadow: var(--shadow-glow);
-  letter-spacing: -0.5px;
+  font-family: var(--font-heading);
+  box-shadow: var(--shadow-glow-cyan);
 }
 
 .brand-section h1 {
-  font-size: var(--font-4xl);
-  background: linear-gradient(135deg, #ffffff 0%, var(--color-text-light) 100%);
+  font-size: var(--font-5xl);
+  background: var(--gradient-text);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
 .brand-section p {
   font-size: var(--font-lg);
-  color: var(--color-text);
-  max-width: 520px;
-  line-height: 1.6;
+  color: var(--color-text-muted);
+  max-width: 540px;
+  line-height: 1.7;
 }
 
-/* Feature List */
 .feature-list {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  margin-top: var(--space-4);
+  margin-top: var(--space-2);
 }
 
 .feature-list span {
@@ -65,22 +63,23 @@
   gap: var(--space-3);
   color: var(--color-text-light);
   font-size: var(--font-md);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-semibold);
 }
 
 .check-icon {
-  color: var(--color-success);
-  font-weight: var(--weight-bold);
+  color: var(--color-primary);
+  font-weight: var(--weight-extrabold);
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
 }
 
-/* Login Card */
 .login-card {
   padding: var(--space-8);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg), var(--shadow-glow);
-  animation: login-enter 400ms ease;
+  box-shadow: var(--shadow-lg), var(--shadow-glow-purple);
+  animation: login-enter 500ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .login-header {
@@ -88,7 +87,7 @@
 }
 
 .login-header h2 {
-  font-size: var(--font-2xl);
+  font-size: var(--font-3xl);
   margin-bottom: var(--space-2);
   color: var(--color-text-light);
 }
@@ -98,7 +97,6 @@
   font-size: var(--font-sm);
 }
 
-/* Form Elements */
 #login-form, #registerForm {
   display: flex;
   flex-direction: column;
@@ -117,41 +115,25 @@
   font-weight: var(--weight-semibold);
 }
 
-.auth-link:hover {
-  text-decoration: underline;
-}
-
 @keyframes login-enter {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(30px) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
-/* Responsive Layout */
 @media (max-width: 992px) {
   .login-container {
     grid-template-columns: 1fr;
     max-width: 520px;
     padding: var(--space-6) var(--space-4);
   }
-
   .brand-section {
     text-align: center;
     align-items: center;
-  }
-}
-
-@media (max-width: 576px) {
-  .login-card {
-    padding: var(--space-6);
-  }
-
-  .brand-section h1 {
-    font-size: var(--font-3xl);
   }
 }

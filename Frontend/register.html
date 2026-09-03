@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="./css/theme.css" />
     <link rel="stylesheet" href="./css/components/button.css" />
     <link rel="stylesheet" href="./css/components/card.css" />
+    <link rel="stylesheet" href="./css/components/badge.css" />
     <link rel="stylesheet" href="./css/components/input.css" />
     <link rel="stylesheet" href="./css/login.css" />
   </head>
@@ -21,21 +22,31 @@
     <main class="login-container">
       <!-- Branding Section -->
       <section class="brand-section">
-        <div class="brand-logo" aria-label="AI Logo">AI</div>
-        <h1>AI Contract Reviewer</h1>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div class="brand-logo" aria-label="AI Logo">⚖️</div>
+          <div>
+            <span class="badge badge-primary badge-dot">Autonomous AI v2.4</span>
+          </div>
+        </div>
+
+        <h1>
+          Start Reviewing Contracts <br />
+          <span class="gradient-text">In Seconds</span>
+        </h1>
+
         <p>
-          Join thousands of legal teams and executives automating contract risk analysis in seconds.
+          Join legal professionals and business teams automating contract risk analysis, clause audits, and compliance tracking.
         </p>
 
         <div class="feature-list">
-          <span><strong class="check-icon">✓</strong> Instant Account Setup</span>
-          <span><strong class="check-icon">✓</strong> Unlimited Mock Analysis</span>
-          <span><strong class="check-icon">✓</strong> Enterprise Legal Security</span>
+          <span><strong class="check-icon">✓</strong> Instant Account Provisioning</span>
+          <span><strong class="check-icon">✓</strong> Neural RAG Q&A Vector Engine</span>
+          <span><strong class="check-icon">✓</strong> Multimodal Gemini Vision OCR</span>
         </div>
       </section>
 
       <!-- Register Card -->
-      <section class="card card-glass login-card">
+      <section class="card glass-card login-card">
         <div class="login-header">
           <h2>Create Account</h2>
           <p>Get started with your free contract intelligence workspace</p>
@@ -43,7 +54,7 @@
 
         <form id="registerForm" novalidate>
           <div class="input-group">
-            <label class="input-label" for="username">Full Name</label>
+            <label class="input-label" for="username">Full Name / Username</label>
             <input
               class="input"
               id="username"
@@ -95,8 +106,8 @@
             />
           </div>
 
-          <button type="submit" class="btn btn-primary btn-block" id="registerButton">
-            Create Account
+          <button type="submit" class="btn btn-primary btn-block btn-lg" id="registerButton">
+            Create Account & Get Started
           </button>
 
           <div class="auth-footer">

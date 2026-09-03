@@ -90,17 +90,17 @@ function initDashboardEvents() {
 
     fileDropZone.addEventListener("dragover", (e) => {
       e.preventDefault();
-      fileDropZone.style.borderColor = "var(--color-primary)";
+      fileDropZone.classList.add("drag-over");
     });
 
     fileDropZone.addEventListener("dragleave", () => {
-      fileDropZone.style.borderColor = "var(--color-border)";
+      fileDropZone.classList.remove("drag-over");
     });
 
     fileDropZone.addEventListener("drop", (e) => {
       e.preventDefault();
-      fileDropZone.style.borderColor = "var(--color-border)";
-      if (e.dataTransfer.files.length) {
+      fileDropZone.classList.remove("drag-over");
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
         fileInput.files = e.dataTransfer.files;
         handleFileSelection();
       }

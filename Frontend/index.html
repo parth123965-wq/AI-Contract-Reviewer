@@ -3,48 +3,76 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="AI-powered contract reviewer for intelligent risk detection, clause breakdown, and legal insights." />
-    <title>AI Contract Reviewer - Sign In</title>
+    <meta name="description" content="AI-powered legal contract reviewer for automated risk detection, indemnification audits, and RAG Q&A." />
+    <title>AI Contract Reviewer - Autonomous Legal Intelligence</title>
 
-    <!-- Global Theme & Component Styles -->
+    <!-- Google Fonts & Component CSS -->
     <link rel="stylesheet" href="./css/theme.css" />
     <link rel="stylesheet" href="./css/components/button.css" />
     <link rel="stylesheet" href="./css/components/card.css" />
+    <link rel="stylesheet" href="./css/components/badge.css" />
     <link rel="stylesheet" href="./css/components/input.css" />
     <link rel="stylesheet" href="./css/login.css" />
   </head>
 
   <body>
-    <!-- Toast Notification Container -->
+    <!-- Toast Notifications -->
     <div id="toast-container" class="toast-container"></div>
 
     <main class="login-container">
-      <!-- Branding Section -->
+      <!-- Left Hero Showcase -->
       <section class="brand-section">
-        <div class="brand-logo" aria-label="AI Logo">AI</div>
-        <h1>AI Contract Reviewer</h1>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div class="brand-logo" aria-label="AI Logo">⚖️</div>
+          <div>
+            <span class="badge badge-primary badge-dot">Autonomous AI v2.4</span>
+          </div>
+        </div>
+
+        <h1>
+          Autonomous Legal <br />
+          <span class="gradient-text">Contract Intelligence</span>
+        </h1>
+
         <p>
-          Analyze contracts instantly with deep AI risk scoring, automated indemnification audits, and smart legal summaries.
+          Instantly audit commercial agreements with neural LangGraph RAG workflows, automated indemnification risk scoring, and real-time streaming legal insights.
         </p>
 
         <div class="feature-list">
-          <span><strong class="check-icon">✓</strong> Automated Risk Detection</span>
-          <span><strong class="check-icon">✓</strong> High Exposure Clause Audits</span>
-          <span><strong class="check-icon">✓</strong> Instant Executive Summaries</span>
+          <span><strong class="check-icon">✓</strong> Multimodal Gemini Vision OCR & PDF Extraction</span>
+          <span><strong class="check-icon">✓</strong> Automated High-Exposure Risk Scoring (0–100)</span>
+          <span><strong class="check-icon">✓</strong> Interactive RAG Q&A Streaming Chatbot</span>
+          <span><strong class="check-icon">✓</strong> Enterprise Role-Based Admin Management</span>
+        </div>
+
+        <!-- Live Showcase Metric Cards -->
+        <div style="display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap;">
+          <div class="glass-card" style="padding: 14px 20px; flex: 1; min-width: 140px;">
+            <div style="font-size: var(--font-xs); color: var(--color-text-muted); font-weight: 600;">SCAN ACCURACY</div>
+            <div style="font-size: var(--font-2xl); font-weight: 800; color: #00f0ff;">98.5%</div>
+          </div>
+          <div class="glass-card" style="padding: 14px 20px; flex: 1; min-width: 140px;">
+            <div style="font-size: var(--font-xs); color: var(--color-text-muted); font-weight: 600;">AVG SPEED</div>
+            <div style="font-size: var(--font-2xl); font-weight: 800; color: #00e676;">< 1.5s</div>
+          </div>
+          <div class="glass-card" style="padding: 14px 20px; flex: 1; min-width: 140px;">
+            <div style="font-size: var(--font-xs); color: var(--color-text-muted); font-weight: 600;">VECTOR RAG</div>
+            <div style="font-size: var(--font-2xl); font-weight: 800; color: #7000ff;">ChromaDB</div>
+          </div>
         </div>
       </section>
 
-      <!-- Login Card -->
-      <section class="card card-glass login-card">
+      <!-- Right Glassmorphic Auth Card -->
+      <section class="card glass-card login-card">
         <div class="login-header">
           <h2 id="login-title">Welcome Back</h2>
-          <p id="login-subtitle">Login to access your contract intelligence workspace</p>
+          <p id="login-subtitle">Sign in to access your contract intelligence workspace</p>
         </div>
 
-        <!-- Login Mode Switcher Tabs -->
-        <div class="login-mode-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; background: var(--color-surface); padding: 0.25rem; border-radius: var(--radius-md);">
-          <button type="button" id="userModeBtn" class="btn btn-sm btn-primary" style="flex: 1;">User Login</button>
-          <button type="button" id="adminModeBtn" class="btn btn-sm btn-ghost" style="flex: 1;">🛡️ Admin Login</button>
+        <!-- Role Mode Switcher -->
+        <div style="display: flex; gap: 8px; margin-bottom: 20px; background: rgba(10, 14, 24, 0.6); padding: 4px; border-radius: var(--radius-md); border: 1px solid rgba(255, 255, 255, 0.08);">
+          <button type="button" id="userModeBtn" class="btn btn-sm btn-primary" style="flex: 1;">User Workspace</button>
+          <button type="button" id="adminModeBtn" class="btn btn-sm btn-ghost" style="flex: 1;">🛡️ Admin Portal</button>
         </div>
 
         <form id="login-form" novalidate>
@@ -79,8 +107,8 @@
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary btn-block" id="loginButton">
-            Sign In
+          <button type="submit" class="btn btn-primary btn-block btn-lg" id="loginButton">
+            Sign In to Workspace
           </button>
 
           <div class="auth-footer" id="auth-footer">

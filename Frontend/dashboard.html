@@ -23,21 +23,19 @@
     <div id="uploadModal" class="modal-backdrop">
       <div class="modal-content">
         <div class="card-header">
-          <h2 class="card-title">Upload Legal Contract</h2>
+          <h2 class="card-title">📤 Upload Legal Contract</h2>
           <button id="closeUploadModalBtn" class="btn btn-ghost btn-sm" aria-label="Close modal">✕</button>
         </div>
         <form id="uploadForm">
-          <div class="file-input" id="fileDropZone">
-            <div class="file-drop-content">
-              <span class="file-icon">📄</span>
-              <p><strong>Click to browse</strong> or drag & drop contract file</p>
-              <span class="file-hint">Supports PDF, DOCX, TXT (Max 25MB)</span>
-            </div>
+          <div class="file-dropzone" id="fileDropZone">
+            <div class="file-dropzone-icon">📄</div>
+            <div class="file-dropzone-text">Click to browse or drag & drop contract file</div>
+            <div class="file-dropzone-subtext">Supports PDF, DOCX, TXT (Max 25MB)</div>
             <input type="file" id="contractFileInput" accept=".pdf,.docx,.txt" style="display: none;" />
           </div>
           <div id="selectedFileName" class="selected-file-info" style="display: none;"></div>
 
-          <div class="card-footer" style="padding-top: 1.5rem;">
+          <div class="card-footer">
             <button type="button" id="cancelUploadBtn" class="btn btn-ghost">Cancel</button>
             <button type="submit" id="uploadSubmitBtn" class="btn btn-primary" disabled>Analyze Contract</button>
           </div>
@@ -49,7 +47,7 @@
       <!-- Sidebar -->
       <aside class="sidebar">
         <div class="sidebar-brand">
-          <div class="sidebar-logo">AI</div>
+          <div class="sidebar-logo">⚖️</div>
           <h2 class="sidebar-title">Contract AI</h2>
         </div>
 
@@ -64,10 +62,10 @@
             <span class="nav-icon">📤</span> Upload Contract
           </button>
           <button type="button" class="nav-item" data-tab="analysis">
-            <span class="nav-icon">⚡</span> Analysis
+            <span class="nav-icon">⚡</span> AI Engine Matrix
           </button>
           <button type="button" class="nav-item" data-tab="settings">
-            <span class="nav-icon">⚙️</span> Settings
+            <span class="nav-icon">⚙️</span> Preferences
           </button>
         </nav>
 
@@ -86,15 +84,11 @@
         <!-- Top Navigation Header -->
         <header class="dashboard-header">
           <div class="page-title">
-            <h1 id="page-heading">Dashboard</h1>
-            <p id="page-subheading">Overview of your contract intelligence workspace</p>
+            <h1 id="page-heading">Contract Workspace</h1>
+            <p id="page-subheading">Autonomous Risk Auditing & Document Intelligence</p>
           </div>
 
           <div class="navbar-actions">
-            <button class="notification-btn" title="Notifications" aria-label="Notifications">
-              🔔 <span class="notification-badge"></span>
-            </button>
-
             <div class="user-profile">
               <div class="avatar" id="user-avatar">P</div>
               <span id="username" class="username-text">User</span>
@@ -108,44 +102,47 @@
         <div id="tab-dashboard" class="tab-content active">
           <!-- Stats Overview Cards Grid -->
           <section class="stats-grid">
-            <div class="card stat-card card-hover">
-              <span class="stat-label">Total Contracts</span>
-              <strong id="total-contracts" class="stat-value">--</strong>
+            <div class="stat-card">
+              <div class="stat-icon">📄</div>
+              <div class="stat-info">
+                <span class="stat-label">Total Contracts</span>
+                <strong id="total-contracts" class="stat-value">--</strong>
+              </div>
             </div>
 
-            <div class="card stat-card card-hover">
-              <div class="stat-header">
-                <span class="stat-label">Reviews</span>
-                <span class="badge status-completed">Completed</span>
+            <div class="stat-card">
+              <div class="stat-icon" style="color: #00e676; border-color: rgba(0, 230, 118, 0.3); background: rgba(0, 230, 118, 0.12);">✓</div>
+              <div class="stat-info">
+                <span class="stat-label">Completed Reviews</span>
+                <strong id="completed-reviews" class="stat-value">--</strong>
               </div>
-              <strong id="completed-reviews" class="stat-value">--</strong>
             </div>
 
-            <div class="card stat-card card-hover">
-              <div class="stat-header">
-                <span class="stat-label">Alerts</span>
-                <span class="badge badge-risk-high">High Risk</span>
+            <div class="stat-card">
+              <div class="stat-icon" style="color: #ff1744; border-color: rgba(255, 23, 68, 0.3); background: rgba(255, 23, 68, 0.12);">⚠️</div>
+              <div class="stat-info">
+                <span class="stat-label">High Risk Exposure</span>
+                <strong id="risk-alerts" class="stat-value">--</strong>
               </div>
-              <strong id="risk-alerts" class="stat-value">--</strong>
             </div>
 
-            <div class="card stat-card card-hover">
-              <div class="stat-header">
-                <span class="stat-label">Queue</span>
-                <span class="badge status-processing">Processing</span>
+            <div class="stat-card">
+              <div class="stat-icon" style="color: #ffab00; border-color: rgba(255, 171, 0, 0.3); background: rgba(255, 171, 0, 0.12);">⏳</div>
+              <div class="stat-info">
+                <span class="stat-label">Processing Queue</span>
+                <strong id="processing-contracts" class="stat-value">--</strong>
               </div>
-              <strong id="processing-contracts" class="stat-value">--</strong>
             </div>
           </section>
 
           <!-- Contracts Table Section -->
           <section id="recent-contracts" class="contract-section">
             <div class="section-header">
-              <h2>Recent Contracts</h2>
+              <h2>Workspace Documents</h2>
               <div class="table-actions">
-                <input type="text" id="contractSearch" class="input search-input" placeholder="Search contracts..." />
-                <select id="statusFilter" class="input select" style="width: 150px;">
-                  <option value="all">All Status</option>
+                <input type="text" id="contractSearch" class="input search-input" placeholder="🔍 Search contracts..." style="width: 220px;" />
+                <select id="statusFilter" class="input select" style="width: 160px;">
+                  <option value="all">All Statuses</option>
                   <option value="uploaded">Uploaded</option>
                   <option value="processing">Processing</option>
                   <option value="completed">Completed</option>
@@ -159,10 +156,10 @@
               <table class="contract-table">
                 <thead>
                   <tr>
-                    <th>Contract Name</th>
+                    <th>Contract Document</th>
                     <th>Status</th>
                     <th>Risk Score</th>
-                    <th>Date Added</th>
+                    <th>Date Uploaded</th>
                     <th style="text-align: right;">Actions</th>
                   </tr>
                 </thead>
@@ -181,55 +178,58 @@
         <!-- ANALYSIS TAB VIEW SECTION -->
         <div id="tab-analysis" class="tab-content" style="display: none;">
           <section class="analysis-dashboard-grid">
-            <!-- Engine Status Card -->
-            <article class="card card-glass">
+            <article class="card glass-card">
               <div class="card-header">
-                <h2 class="card-title">⚡ AI Analysis Engine Core</h2>
-                <span class="badge badge-primary">v2.4 Legal Model</span>
+                <h2 class="card-title">⚡ AI Neural Analysis Engine Core</h2>
+                <span class="badge badge-primary badge-dot">Gemini 1.5 Flash + RAG</span>
               </div>
-              <div class="ai-content" style="margin-top: var(--space-4);">
-                <div class="ai-stat-box">
-                  <span class="ai-stat-label">Engine Health</span>
-                  <strong class="ai-stat-value text-success">● 99.8% Online</strong>
+              <div class="ai-content" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px;">
+                <div class="stat-card">
+                  <div class="stat-info">
+                    <span class="stat-label">System Health</span>
+                    <strong class="stat-value" style="color: #00e676;">99.9% Online</strong>
+                  </div>
                 </div>
-                <div class="ai-stat-box">
-                  <span class="ai-stat-label">Avg Scan Speed</span>
-                  <strong class="ai-stat-value">1.4 Seconds / Doc</strong>
+                <div class="stat-card">
+                  <div class="stat-info">
+                    <span class="stat-label">Vector Store</span>
+                    <strong class="stat-value" style="color: #00f0ff;">ChromaDB Active</strong>
+                  </div>
                 </div>
-                <div class="ai-stat-box">
-                  <span class="ai-stat-label">Risk Detection Accuracy</span>
-                  <strong class="ai-stat-value text-success">98.5% Verified</strong>
+                <div class="stat-card">
+                  <div class="stat-info">
+                    <span class="stat-label">Accuracy Score</span>
+                    <strong class="stat-value" style="color: #7000ff;">98.5% Verified</strong>
+                  </div>
                 </div>
               </div>
             </article>
 
-            <!-- Clause Scan Matrix Card -->
-            <article class="card" style="margin-top: var(--space-6);">
+            <article class="card glass-card" style="margin-top: 24px;">
               <div class="card-header">
-                <h2 class="card-title">🔍 Clause Risk Scan Rules & Detection Matrix</h2>
-                <button id="triggerRescanBtn" class="btn btn-outline btn-sm">⚡ Run Workspace Re-Scan</button>
+                <h2 class="card-title">🔍 Legal Risk Detection Rules & Matrix</h2>
               </div>
-              <div class="analysis-rules-list" style="margin-top: var(--space-4);">
-                <div class="rule-row">
-                  <div class="rule-info">
-                    <strong>Indemnification & Third-Party Liability</strong>
-                    <p>Scans for uncapped liabilities, missing indemnity exclusions, and IP infringement terms.</p>
+              <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px;">
+                <div class="glass-card" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
+                  <div>
+                    <strong style="color: #fff;">Indemnification & Third-Party Exposure</strong>
+                    <p style="font-size: 0.85rem; color: var(--color-text-muted);">Scans for uncapped liabilities, missing indemnity exclusions, and IP infringement terms.</p>
                   </div>
-                  <span class="badge badge-risk-high">High Risk Trigger</span>
+                  <span class="badge badge-risk-high">High Trigger</span>
                 </div>
-                <div class="rule-row">
-                  <div class="rule-info">
-                    <strong>Auto-Renewal & Notice Deadlines</strong>
-                    <p>Flags non-cancellable auto-renewals with notice requirements over 60 days.</p>
+                <div class="glass-card" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
+                  <div>
+                    <strong style="color: #fff;">Auto-Renewal & Notice Deadlines</strong>
+                    <p style="font-size: 0.85rem; color: var(--color-text-muted);">Flags non-cancellable auto-renewals with notice requirements over 60 days.</p>
                   </div>
-                  <span class="badge badge-risk-medium">Medium Risk Trigger</span>
+                  <span class="badge badge-risk-medium">Medium Trigger</span>
                 </div>
-                <div class="rule-row">
-                  <div class="rule-info">
-                    <strong>Governing Law & Dispute Jurisdiction</strong>
-                    <p>Checks compliance with US Federal, State, and EU International Commercial law standards.</p>
+                <div class="glass-card" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
+                  <div>
+                    <strong style="color: #fff;">Governing Law & Dispute Jurisdiction</strong>
+                    <p style="font-size: 0.85rem; color: var(--color-text-muted);">Checks compliance with US Federal, State, and EU International Commercial standards.</p>
                   </div>
-                  <span class="badge badge-risk-low">Standard Check</span>
+                  <span class="badge badge-risk-low">Standard</span>
                 </div>
               </div>
             </article>
@@ -238,63 +238,37 @@
 
         <!-- SETTINGS TAB VIEW SECTION -->
         <div id="tab-settings" class="tab-content" style="display: none;">
-          <form id="settingsForm" class="settings-grid">
-            <!-- Profile Settings -->
-            <article class="card">
+          <form id="settingsForm" style="max-width: 800px; display: flex; flex-direction: column; gap: 24px;">
+            <article class="card glass-card">
               <div class="card-header">
-                <h2 class="card-title">👤 Profile & Account</h2>
+                <h2 class="card-title">👤 User Profile</h2>
               </div>
-              <div class="form-group-grid" style="margin-top: var(--space-4); display: grid; gap: var(--space-4);">
-                <div class="form-group">
-                  <label class="info-label" for="settingsUsername">Display Name</label>
+              <div style="display: grid; gap: 16px; margin-top: 12px;">
+                <div class="input-group">
+                  <label class="input-label" for="settingsUsername">Display Name</label>
                   <input type="text" id="settingsUsername" class="input" placeholder="Your Name" />
                 </div>
-                <div class="form-group">
-                  <label class="info-label" for="settingsEmail">Email Address</label>
+                <div class="input-group">
+                  <label class="input-label" for="settingsEmail">Email Address</label>
                   <input type="email" id="settingsEmail" class="input" placeholder="name@company.com" readonly style="opacity: 0.8;" />
                 </div>
               </div>
             </article>
 
-            <!-- Backend API Configuration -->
-            <article class="card" style="margin-top: var(--space-6);">
+            <article class="card glass-card">
               <div class="card-header">
-                <h2 class="card-title">🌐 REST API & Backend Server Configuration</h2>
+                <h2 class="card-title">🌐 REST API Configuration</h2>
               </div>
-              <div class="form-group-grid" style="margin-top: var(--space-4); display: grid; gap: var(--space-4);">
-                <div class="form-group">
-                  <label class="info-label" for="settingsApiUrl">Backend Base URL</label>
+              <div style="display: grid; gap: 16px; margin-top: 12px;">
+                <div class="input-group">
+                  <label class="input-label" for="settingsApiUrl">FastAPI Server URL</label>
                   <input type="text" id="settingsApiUrl" class="input" placeholder="http://127.0.0.1:8000" />
                 </div>
-                <div class="form-group">
-                  <label class="info-label" for="settingsAuthToken">Active Access Token</label>
-                  <input type="text" id="settingsAuthToken" class="input" placeholder="No active token" readonly style="opacity: 0.7;" />
-                </div>
               </div>
             </article>
 
-            <!-- AI Engine Preferences -->
-            <article class="card" style="margin-top: var(--space-6);">
-              <div class="card-header">
-                <h2 class="card-title">⚙️ AI Analysis Preferences</h2>
-              </div>
-              <div class="form-group-grid" style="margin-top: var(--space-4); display: grid; gap: var(--space-4);">
-                <div class="form-group">
-                  <label class="info-label" for="settingsRiskThreshold">High Risk Score Threshold (0 - 100)</label>
-                  <input type="number" id="settingsRiskThreshold" class="input" value="70" min="50" max="95" />
-                </div>
-                <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; padding-top: var(--space-2);">
-                  <div>
-                    <strong>Auto-Analyze On Upload</strong>
-                    <p style="font-size: var(--font-xs); color: var(--color-text-muted);">Trigger AI neural scoring immediately when file is uploaded.</p>
-                  </div>
-                  <input type="checkbox" id="autoAnalyzeToggle" checked style="width: 20px; height: 20px; accent-color: var(--color-primary);" />
-                </div>
-              </div>
-            </article>
-
-            <div style="margin-top: var(--space-6); display: flex; justify-content: flex-end;">
-              <button type="submit" class="btn btn-primary">💾 Save Settings</button>
+            <div style="display: flex; justify-content: flex-end;">
+              <button type="submit" class="btn btn-primary btn-lg">💾 Save Preferences</button>
             </div>
           </form>
         </div>

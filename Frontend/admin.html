@@ -16,19 +16,21 @@
     <style>
       .admin-badge {
         background: var(--gradient-primary);
-        color: #ffffff;
-        padding: 0.2rem 0.6rem;
-        border-radius: var(--radius-sm);
+        color: #05070c;
+        padding: 0.3rem 0.8rem;
+        border-radius: var(--radius-round);
         font-size: var(--font-xs);
-        font-weight: var(--weight-bold);
+        font-weight: var(--weight-extrabold);
         letter-spacing: 0.05em;
         text-transform: uppercase;
+        box-shadow: var(--shadow-glow-cyan);
       }
       .admin-table-container {
         overflow-x: auto;
-        border-radius: var(--radius-md);
-        border: 1px solid var(--color-border);
-        background: var(--color-surface);
+        border-radius: var(--radius-lg);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: var(--glass-bg);
+        backdrop-filter: var(--glass-blur);
       }
       .admin-table {
         width: 100%;
@@ -37,21 +39,23 @@
         font-size: var(--font-sm);
       }
       .admin-table th, .admin-table td {
-        padding: var(--space-4);
-        border-bottom: 1px solid var(--color-border-subtle);
+        padding: var(--space-5);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       }
       .admin-table th {
-        background: var(--color-surface-elevated);
-        color: var(--color-text-light);
-        font-weight: var(--weight-semibold);
+        background: rgba(10, 14, 24, 0.7);
+        color: var(--color-text-muted);
+        font-weight: var(--weight-bold);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
       }
-      .admin-table tr:hover {
-        background: var(--color-surface-hover);
+      .admin-table tr:hover td {
+        background: rgba(0, 240, 255, 0.03);
       }
       .admin-filters {
         display: flex;
         gap: var(--space-4);
-        margin-bottom: var(--space-4);
+        margin-bottom: var(--space-5);
         align-items: center;
         flex-wrap: wrap;
       }
@@ -59,23 +63,13 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-top: var(--space-4);
+        margin-top: var(--space-5);
       }
       .admin-tab-content {
         display: none;
       }
       .admin-tab-content.active {
         display: block;
-      }
-      .modal-detail-row {
-        display: flex;
-        justify-content: space-between;
-        padding: var(--space-2) 0;
-        border-bottom: 1px solid var(--color-border-subtle);
-      }
-      .modal-detail-label {
-        color: var(--color-text-muted);
-        font-weight: var(--weight-medium);
       }
     </style>
   </head>
@@ -94,7 +88,7 @@
         <div id="modalBody" style="padding: 1.5rem 0;">
           <!-- Dynamic Content -->
         </div>
-        <div class="card-footer" style="padding-top: 1rem;">
+        <div class="card-footer">
           <button type="button" id="closeModalFooterBtn" class="btn btn-ghost">Close</button>
         </div>
       </div>
@@ -104,25 +98,25 @@
       <!-- Sidebar -->
       <aside class="sidebar">
         <div class="sidebar-brand">
-          <div class="sidebar-logo">ADM</div>
-          <h2 class="sidebar-title">Admin Panel</h2>
+          <div class="sidebar-logo">🛡️</div>
+          <h2 class="sidebar-title">Admin Control</h2>
         </div>
 
         <nav class="sidebar-nav">
           <button type="button" class="nav-item active" data-admin-tab="dashboard">
-            <span class="nav-icon">📈</span> Dashboard Overview
+            <span class="nav-icon">📈</span> System Overview
           </button>
           <button type="button" class="nav-item" data-admin-tab="users">
-            <span class="nav-icon">👥</span> Manage Users
+            <span class="nav-icon">👥</span> User Management
           </button>
           <button type="button" class="nav-item" data-admin-tab="contracts">
-            <span class="nav-icon">📑</span> Manage Contracts
+            <span class="nav-icon">📑</span> Contract Control
           </button>
         </nav>
 
         <div class="sidebar-footer">
           <a href="dashboard.html" class="btn btn-outline btn-block mb-2" style="margin-bottom: 0.5rem; text-decoration: none; text-align: center; display: block;">
-            👤 User View
+            👤 User Workspace
           </a>
           <button id="adminLogoutBtn" class="btn btn-ghost btn-block">
             🚪 Logout
@@ -135,12 +129,12 @@
         <!-- Top Navigation Header -->
         <header class="dashboard-header">
           <div class="page-title">
-            <h1 id="admin-page-heading">Admin Dashboard</h1>
-            <p id="admin-page-subheading">System statistics and overall platform control</p>
+            <h1 id="admin-page-heading">Platform Administration</h1>
+            <p id="admin-page-subheading">System metrics, active user accounts, and contract queue control</p>
           </div>
 
           <div class="navbar-actions">
-            <span class="admin-badge">SYSTEM ADMIN</span>
+            <span class="admin-badge">SUPER ADMIN</span>
             <div class="user-profile">
               <div class="avatar" id="admin-avatar">A</div>
               <span id="admin-username" class="username-text">Admin</span>
@@ -152,46 +146,34 @@
         <section id="tab-dashboard" class="admin-tab-content active">
           <div class="stats-grid">
             <div class="stat-card">
-              <div class="stat-header">
-                <span class="stat-title">Total Users</span>
-                <span class="stat-icon">👥</span>
-              </div>
-              <div class="stat-value" id="stat-total-users">0</div>
-              <div class="stat-footer">
-                <span id="stat-active-users" class="stat-trend trend-up">0 Active Users</span>
+              <div class="stat-icon">👥</div>
+              <div class="stat-info">
+                <span class="stat-label">Platform Users</span>
+                <strong id="stat-total-users" class="stat-value">0</strong>
               </div>
             </div>
 
             <div class="stat-card">
-              <div class="stat-header">
-                <span class="stat-title">Total Contracts</span>
-                <span class="stat-icon">📄</span>
-              </div>
-              <div class="stat-value" id="stat-total-contracts">0</div>
-              <div class="stat-footer">
-                <span id="stat-completed-contracts" class="stat-trend">0 Analyzed</span>
+              <div class="stat-icon" style="color: #00e676; border-color: rgba(0, 230, 118, 0.3); background: rgba(0, 230, 118, 0.12);">📄</div>
+              <div class="stat-info">
+                <span class="stat-label">Total Contracts</span>
+                <strong id="stat-total-contracts" class="stat-value">0</strong>
               </div>
             </div>
 
             <div class="stat-card">
-              <div class="stat-header">
-                <span class="stat-title">Total Analyses</span>
-                <span class="stat-icon">⚡</span>
-              </div>
-              <div class="stat-value" id="stat-total-analyses">0</div>
-              <div class="stat-footer">
-                <span id="stat-failed-contracts" class="stat-trend trend-down">0 Failed</span>
+              <div class="stat-icon" style="color: #00f0ff; border-color: rgba(0, 240, 255, 0.3); background: rgba(0, 240, 255, 0.12);">⚡</div>
+              <div class="stat-info">
+                <span class="stat-label">Total Analyses</span>
+                <strong id="stat-total-analyses" class="stat-value">0</strong>
               </div>
             </div>
 
             <div class="stat-card">
-              <div class="stat-header">
-                <span class="stat-title">Pending Tasks</span>
-                <span class="stat-icon">⏳</span>
-              </div>
-              <div class="stat-value" id="stat-pending-contracts">0</div>
-              <div class="stat-footer">
-                <span class="stat-trend">Contracts in queue</span>
+              <div class="stat-icon" style="color: #ffab00; border-color: rgba(255, 171, 0, 0.3); background: rgba(255, 171, 0, 0.12);">⏳</div>
+              <div class="stat-info">
+                <span class="stat-label">Queue Pending</span>
+                <strong id="stat-pending-contracts" class="stat-value">0</strong>
               </div>
             </div>
           </div>
@@ -199,10 +181,10 @@
 
         <!-- USERS MANAGEMENT TAB -->
         <section id="tab-users" class="admin-tab-content">
-          <div class="card">
+          <div class="card glass-card">
             <div class="admin-filters">
-              <input type="text" id="userSearchInput" class="input" placeholder="Search by username or email..." style="max-width: 300px;" />
-              <select id="userActiveFilter" class="input" style="max-width: 180px;">
+              <input type="text" id="userSearchInput" class="input" placeholder="🔍 Search username or email..." style="max-width: 320px;" />
+              <select id="userActiveFilter" class="input select" style="max-width: 180px;">
                 <option value="">All Statuses</option>
                 <option value="true">Active Only</option>
                 <option value="false">Inactive Only</option>
@@ -220,18 +202,18 @@
                     <th>Status</th>
                     <th>Role</th>
                     <th>Created</th>
-                    <th>Actions</th>
+                    <th style="text-align: right;">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="usersTableBody">
-                  <tr><td colspan="7" style="text-align: center;">Loading users...</td></tr>
+                  <tr><td colspan="7" style="text-align: center; padding: 30px;">Loading users...</td></tr>
                 </tbody>
               </table>
             </div>
 
             <div class="pagination">
               <button id="prevUsersBtn" class="btn btn-outline btn-sm" disabled>Previous</button>
-              <span id="usersPageInfo" class="text-sm">Page 1</span>
+              <span id="usersPageInfo" style="font-size: var(--font-sm); color: var(--color-text-muted);">Page 1</span>
               <button id="nextUsersBtn" class="btn btn-outline btn-sm" disabled>Next</button>
             </div>
           </div>
@@ -239,10 +221,10 @@
 
         <!-- CONTRACTS MANAGEMENT TAB -->
         <section id="tab-contracts" class="admin-tab-content">
-          <div class="card">
+          <div class="card glass-card">
             <div class="admin-filters">
-              <input type="text" id="contractSearchInput" class="input" placeholder="Search filename..." style="max-width: 250px;" />
-              <select id="contractStatusFilter" class="input" style="max-width: 180px;">
+              <input type="text" id="contractSearchInput" class="input" placeholder="🔍 Search filename..." style="max-width: 280px;" />
+              <select id="contractStatusFilter" class="input select" style="max-width: 180px;">
                 <option value="">All Statuses</option>
                 <option value="uploaded">Uploaded</option>
                 <option value="processing">Processing</option>
@@ -262,18 +244,18 @@
                     <th>Status</th>
                     <th>Size</th>
                     <th>Created</th>
-                    <th>Actions</th>
+                    <th style="text-align: right;">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="contractsTableBody">
-                  <tr><td colspan="7" style="text-align: center;">Loading contracts...</td></tr>
+                  <tr><td colspan="7" style="text-align: center; padding: 30px;">Loading contracts...</td></tr>
                 </tbody>
               </table>
             </div>
 
             <div class="pagination">
               <button id="prevContractsBtn" class="btn btn-outline btn-sm" disabled>Previous</button>
-              <span id="contractsPageInfo" class="text-sm">Page 1</span>
+              <span id="contractsPageInfo" style="font-size: var(--font-sm); color: var(--color-text-muted);">Page 1</span>
               <button id="nextContractsBtn" class="btn btn-outline btn-sm" disabled>Next</button>
             </div>
           </div>

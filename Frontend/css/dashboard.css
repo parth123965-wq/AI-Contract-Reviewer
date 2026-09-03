@@ -1,6 +1,6 @@
 /* ==================================================
-   AI Contract Reviewer - Dashboard Layout CSS
-   Theme: Tokyo Night AI SaaS
+   AI Contract Reviewer - Dashboard Glass Layout
+   Theme: Midnight Cyber SaaS
 ================================================== */
 
 .dashboard {
@@ -9,12 +9,12 @@
   background: var(--color-bg);
 }
 
-/* Sidebar */
 .sidebar {
   width: var(--sidebar-width);
   height: 100vh;
-  background: var(--color-surface);
-  border-right: 1px solid var(--color-border);
+  background: rgba(10, 14, 24, 0.85);
+  backdrop-filter: var(--glass-blur);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
   padding: var(--space-6);
   display: flex;
   flex-direction: column;
@@ -32,22 +32,24 @@
 }
 
 .sidebar-logo {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-md);
   background: var(--gradient-primary);
-  color: #ffffff;
+  color: #05070c;
   font-weight: var(--weight-extrabold);
-  box-shadow: var(--shadow-glow);
+  font-size: 1.3rem;
+  box-shadow: var(--shadow-glow-cyan);
 }
 
 .sidebar-title {
   color: var(--color-text-light);
   font-size: var(--font-lg);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-extrabold);
+  font-family: var(--font-heading);
 }
 
 .sidebar-nav {
@@ -61,39 +63,37 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  padding: 12px var(--space-4);
   border-radius: var(--radius-md);
-  color: var(--color-text);
+  color: var(--color-text-muted);
   font-weight: var(--weight-medium);
   font-size: var(--font-sm);
   transition: all var(--transition-normal);
   width: 100%;
   text-align: left;
-}
-
-.nav-button {
-  border: none;
-  background: none;
-  cursor: pointer;
+  border: 1px solid transparent;
 }
 
 .nav-item:hover {
-  background: var(--color-surface-hover);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--color-text-light);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .nav-item.active {
-  background: var(--color-primary-muted);
+  background: rgba(0, 240, 255, 0.12);
   color: var(--color-primary);
+  border-color: rgba(0, 240, 255, 0.3);
   font-weight: var(--weight-semibold);
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
 }
 
 .sidebar-footer {
   padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Main Area */
+/* Main Content Area */
 .dashboard-main {
   margin-left: var(--sidebar-width);
   width: calc(100% - var(--sidebar-width));
@@ -101,18 +101,17 @@
   min-height: 100vh;
 }
 
-/* Navbar */
 .dashboard-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: var(--space-8);
-  padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--color-border-subtle);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .dashboard-header h1 {
-  font-size: var(--font-3xl);
+  font-size: var(--font-4xl);
   color: var(--color-text-light);
 }
 
@@ -127,50 +126,23 @@
   gap: var(--space-4);
 }
 
-.notification-btn {
-  position: relative;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  font-size: 1.1rem;
-  transition: all var(--transition-fast);
-}
-
-.notification-btn:hover {
-  background: var(--color-surface-hover);
-}
-
-.notification-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-danger);
-}
-
 .user-profile {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: 6px 14px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  padding: 6px 16px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-round);
 }
 
 .avatar {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: var(--gradient-primary);
-  color: #ffffff;
+  color: #000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -192,27 +164,7 @@
   margin-bottom: var(--space-8);
 }
 
-.stat-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.stat-label {
-  color: var(--color-text-muted);
-  font-size: var(--font-sm);
-  font-weight: var(--weight-medium);
-}
-
-.stat-value {
-  color: var(--color-text-light);
-  font-size: var(--font-3xl);
-  font-weight: var(--weight-extrabold);
-  margin-top: var(--space-1);
-}
-
-/* Contract Table Section */
+/* Contract Section */
 .contract-section {
   margin-top: var(--space-6);
 }
@@ -221,7 +173,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-6);
   gap: var(--space-4);
   flex-wrap: wrap;
 }
@@ -235,7 +187,10 @@
 .contract-table-card {
   padding: 0;
   border-radius: var(--radius-lg);
-  overflow-x: auto;
+  overflow: hidden;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
 }
 
 .contract-table {
@@ -245,20 +200,20 @@
 }
 
 .contract-table th {
-  padding: var(--space-4) var(--space-6);
+  padding: var(--space-5) var(--space-6);
   color: var(--color-text-muted);
   font-size: var(--font-xs);
   font-weight: var(--weight-bold);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface-elevated);
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 14, 24, 0.7);
 }
 
 .contract-table td {
-  padding: var(--space-4) var(--space-6);
+  padding: var(--space-5) var(--space-6);
   color: var(--color-text-light);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   font-size: var(--font-sm);
 }
 
@@ -267,157 +222,22 @@
   align-items: center;
   gap: var(--space-2);
   color: var(--color-text-light);
-  text-decoration: none;
   font-weight: var(--weight-semibold);
-  transition: color var(--transition-fast);
+  transition: all var(--transition-fast);
 }
 
 .contract-file-link:hover {
   color: var(--color-primary);
-  text-decoration: underline;
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
 }
 
 .contract-table tr:hover td {
-  background: rgba(122, 162, 247, 0.04);
+  background: rgba(0, 240, 255, 0.03);
 }
 
-.contract-table tr:last-child td {
-  border-bottom: none;
-}
-
-.table-loading {
-  text-align: center;
-  padding: var(--space-8) !important;
-  color: var(--color-text-muted);
-}
-
-/* Action Buttons inside Table */
-.table-action-btns {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-2);
-}
-
-.btn-icon-sm {
-  padding: 6px 12px;
-  font-size: var(--font-xs);
-}
-
-/* AI Engine Panel */
-.ai-panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-}
-
-.ai-content {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-5);
-}
-
-.ai-stat-box {
-  background: var(--color-surface-elevated);
-  padding: var(--space-4) var(--space-5);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-subtle);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.ai-stat-label {
-  font-size: var(--font-xs);
-  color: var(--color-text-muted);
-}
-
-.ai-stat-value {
-  font-size: var(--font-md);
-  color: var(--color-text-light);
-}
-
-.text-success {
-  color: var(--color-success);
-}
-
-/* File Drop Zone Modal */
-.file-drop-content {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.file-icon {
-  font-size: 2.5rem;
-}
-
-.file-hint {
-  font-size: var(--font-xs);
-  color: var(--color-text-muted);
-}
-
-.selected-file-info {
-  margin-top: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-primary-muted);
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-md);
-  color: var(--color-primary-hover);
-  font-size: var(--font-sm);
-  font-weight: var(--weight-medium);
-}
-
-/* Analysis Rules List */
-.analysis-rules-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.rule-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-5);
-  background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-
-.rule-info strong {
-  display: block;
-  color: var(--color-text-light);
-  font-size: var(--font-sm);
-  margin-bottom: 2px;
-}
-
-.rule-info p {
-  font-size: var(--font-xs);
-  color: var(--color-text-muted);
-}
-
-/* Settings Form */
-.settings-grid {
-  max-width: 800px;
-}
-
-.form-group-grid .info-label {
-  display: block;
-  margin-bottom: var(--space-2);
-}
-
-/* Responsive */
 @media (max-width: 1200px) {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-
-  .ai-content {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -425,36 +245,9 @@
   .sidebar {
     display: none;
   }
-
   .dashboard-main {
     margin-left: 0;
     width: 100%;
     padding: var(--space-4);
-  }
-}
-
-@media (max-width: 768px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .dashboard-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-4);
-  }
-
-  .section-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .table-actions {
-    width: 100%;
-    flex-direction: column;
-  }
-
-  .table-actions input, .table-actions select, .table-actions button {
-    width: 100%;
   }
 }
