@@ -66,3 +66,6 @@ class ContractResponse(BaseModel):
 
 class ContractListResponse(BaseModel):
     contracts: List[ContractResponse]
+
+class QuestionRequest(BaseModel):
+    question: str

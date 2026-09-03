@@ -211,6 +211,74 @@ Provide a direct, clear, and natural answer without any generic placeholders or 
 
         return "I could not find specific information matching your question in the uploaded document."
 
+    def ask_question_stream(self, question: str, context_chunks: list[str]):
+        """Streams answers for a user question token-by-token using vector context chunks."""
+        valid_chunks = [
+            c.strip() for c in context_chunks
+            if isinstance(c, str) and len(c.strip()) >= 3 and not (c.strip().isdigit() and len(c.strip()) <= 3)
+        ]
+        context_text = "\n\n".join(valid_chunks) if valid_chunks else "No document text available."
+        prompt = f"""You are a helpful AI contract assistant. Answer the user's question using ONLY the provided document context below.
+
+Context from Document:
+{context_text}
+
+Question: {question}
+
+Provide a direct, clear, and natural answer without any generic placeholders or code snippets:"""
+
+        candidate_models = [self.model_name, "gemini-flash-latest", "gemini-2.5-flash", "gemini-pro-latest", "gemini-2.5-pro", "gemini-1.5-flash"]
+
+        # 1. Try modern genai SDK stream
+        if self.genai_client is not None:
+            for target_model in candidate_models:
+                try:
+                    response_stream = self.genai_client.models.generate_content_stream(
+                        model=target_model,
+                        contents=prompt
+                    )
+                    has_yielded = False
+                    for chunk in response_stream:
+                        if chunk and chunk.text:
+                            has_yielded = True
+                            yield chunk.text
+                    if has_yielded:
+                        return
+                except Exception as exc:
+                    err_str = str(exc)
+                    if "404" not in err_str:
+                        break
+
+        # 2. Try legacy genai SDK stream
+        if legacy_genai is not None:
+            for target_model in candidate_models:
+                try:
+                    g_model = legacy_genai.GenerativeModel(target_model)
+                    res_stream = g_model.generate_content(prompt, stream=True)
+                    has_yielded = False
+                    for chunk in res_stream:
+                        if chunk and chunk.text:
+                            has_yielded = True
+                            yield chunk.text
+                    if has_yielded:
+                        return
+                except Exception as exc:
+                    err_str = str(exc)
+                    if "404" not in err_str:
+                        break
+
+        # 3. Fallback: call ask_question and stream text chunks
+        full_answer = self.ask_question(question=question, context_chunks=context_chunks)
+        words = full_answer.split(" ")
+        buffer = []
+        for w in words:
+            buffer.append(w)
+            if len(buffer) >= 3:
+                yield " ".join(buffer) + " "
+                buffer = []
+        if buffer:
+            yield " ".join(buffer)
+
 
     def _analyze_text_dynamically(self, text: str) -> str:
         """Dynamically analyzes the text of the actual uploaded contract to produce unique metrics and summaries."""

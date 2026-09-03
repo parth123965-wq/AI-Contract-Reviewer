@@ -5,7 +5,7 @@ from app.dependencies.auth import get_current_user
 from app.services.contract_service import contract_service , ContractService
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
-from app.schemas.contract import ContractResponse , ContractListResponse
+from app.schemas.contract import ContractResponse , ContractListResponse, QuestionRequest
 from app.services.ai_analysis_service import AnalysisService , get_analysis_service
 from pydantic import BaseModel
 from ai_engine.services.text_extractor import TextExtractor
@@ -13,6 +13,8 @@ from ai_engine.services.chunk_service import ChunkService
 from ai_engine.services.embedding_service import EmbeddingService
 from ai_engine.services.vector_store_service import VectorStoreService
 from ai_engine.services.llm_service import LLMService
+from fastapi.responses import StreamingResponse
+import json
 
 contract_router = APIRouter(
     prefix="/contracts",
@@ -80,10 +82,6 @@ async def delete_contract(
     )
     return {"status":"success"}
 
-
-class QuestionRequest(BaseModel):
-    question: str
-
 @contract_router.post('/{contract_id}/ask')
 async def ask_question_on_contract(
     contract_id: int,
@@ -128,10 +126,13 @@ async def ask_question_on_contract(
             except Exception:
                 pass
 
-    answer = llm_service.ask_question(question=body.question, context_chunks=chunks)
+    async def event_generator():
+        try:
+            for text_chunk in llm_service.ask_question_stream(question=body.question, context_chunks=chunks):
+                data = json.dumps({"chunk": text_chunk})
+                yield f"data: {data}\n\n"
+        except Exception as err:
+            err_data = json.dumps({"error": str(err)})
+            yield f"data: {err_data}\n\n"
 
-    return {
-        "question": body.question,
-        "answer": answer,
-        "context_retrieved": chunks
-    }
+    return StreamingResponse(event_generator(), media_type="text/event-stream")

@@ -87,15 +87,28 @@ function initDetailEvents(contractId) {
       // Pending Bot Msg
       const botMsgDiv = document.createElement("div");
       botMsgDiv.style.cssText = "padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--color-surface-hover); margin-bottom: 0.5rem;";
-      botMsgDiv.textContent = "🤖 Searching vector store & analyzing context...";
+      botMsgDiv.innerHTML = "🤖 <strong>AI Answer:</strong><br/><span class='stream-content'></span>";
       chatMessages.appendChild(botMsgDiv);
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
+      const streamContentEl = botMsgDiv.querySelector(".stream-content");
+      let fullText = "";
+
       try {
-        const res = await askQuestionOnContract(contractId, question);
-        botMsgDiv.innerHTML = `🤖 <strong>AI Answer:</strong><br/>${escapeHtml(res.answer || "No response generated.")}`;
+        await askQuestionOnContractStream(contractId, question, (chunk) => {
+          fullText += chunk;
+          if (streamContentEl) {
+            streamContentEl.innerHTML = escapeHtml(fullText).replace(/\n/g, "<br/>");
+          }
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+        if (!fullText.trim() && streamContentEl) {
+          streamContentEl.textContent = "No response generated.";
+        }
       } catch (err) {
-        botMsgDiv.innerHTML = `<span style="color: var(--color-danger);">⚠️ Error answering question: ${escapeHtml(err.message)}</span>`;
+        if (!fullText.trim()) {
+          botMsgDiv.innerHTML = `<span style="color: var(--color-danger);">⚠️ Error answering question: ${escapeHtml(err.message)}</span>`;
+        }
       } finally {
         ragSubmitBtn.disabled = false;
         chatMessages.scrollTop = chatMessages.scrollHeight;

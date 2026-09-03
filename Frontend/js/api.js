@@ -272,6 +272,80 @@ async function askQuestionOnContract(contractId, question) {
   return apiPost(`/contracts/${contractId}/ask`, { question });
 }
 
+async function askQuestionOnContractStream(contractId, question, onChunk) {
+  const token = getToken();
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_CONFIG.BASE_URL}/contracts/${contractId}/ask`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ question }),
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    let errData;
+    try {
+      errData = await response.json();
+    } catch {
+      errData = null;
+    }
+    throw new Error(errData?.detail || errData?.message || "Failed to ask question.");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n\n");
+    buffer = lines.pop();
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("data: ")) {
+        const jsonStr = trimmed.slice(6);
+        try {
+          const parsed = JSON.parse(jsonStr);
+          if (parsed.chunk) {
+            onChunk(parsed.chunk);
+          } else if (parsed.error) {
+            throw new Error(parsed.error);
+          }
+        } catch (e) {
+          if (e.message && e.message !== "Unexpected token" && !e.message.includes("JSON")) {
+            throw e;
+          }
+          onChunk(jsonStr);
+        }
+      } else if (trimmed) {
+        onChunk(trimmed);
+      }
+    }
+  }
+
+  if (buffer.trim()) {
+    const trimmed = buffer.trim();
+    if (trimmed.startsWith("data: ")) {
+      try {
+        const parsed = JSON.parse(trimmed.slice(6));
+        if (parsed.chunk) onChunk(parsed.chunk);
+      } catch {
+        onChunk(trimmed.slice(6));
+      }
+    }
+  }
+}
+
 /* Admin API Methods */
 async function adminLogin(email, password) {
   const res = await apiPost("/admin/auth/login", { email, password });
