@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.password import hash_password , verify_password
 from app.schemas.user import UserCreate , UserLogin , LoginResponse , UserResponse
 from app.models.user import User
@@ -11,8 +11,8 @@ class AuthService:
     def __init__(self):
         self.user_repository = UserRepository()
         
-    def register_user(self, db:Session, user: UserCreate) -> User:
-        existing_user = self.user_repository.get_user_by_email(db=db, email=user.email)
+    async def register_user(self, db: AsyncSession, user: UserCreate) -> User:
+        existing_user = await self.user_repository.get_user_by_email(db=db, email=user.email)
         if existing_user is not None:
             raise HTTPException(
                 status_code=400,
@@ -24,14 +24,14 @@ class AuthService:
             email = user.email,
             password_hash = hashed_password
         )
-        saved_user = self.user_repository.create_user(
+        saved_user = await self.user_repository.create_user(
             db=db,
             user=new_user
         )
         return saved_user
     
-    def login_user(self, db: Session, user: UserLogin) -> LoginResponse:
-        existing_user = self.user_repository.get_user_by_email(db=db, email=user.email)
+    async def login_user(self, db: AsyncSession, user: UserLogin) -> LoginResponse:
+        existing_user = await self.user_repository.get_user_by_email(db=db, email=user.email)
         if existing_user is None:
             raise HTTPException(
                 status_code=401,

@@ -1,7 +1,7 @@
 from fastapi import APIRouter , Depends , Response
 from app.database.database import get_db
 from app.services.auth_service import AuthService , auth_service
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
 from app.schemas.user import UserResponse , UserCreate , LoginResponse , UserLogin
 from fastapi.security import OAuth2PasswordRequestForm
@@ -12,25 +12,25 @@ auth_router = APIRouter(
 )
 
 @auth_router.post("/register", response_model=UserResponse,status_code=201)
-def register_user(
-    db: Annotated[Session,Depends(get_db)],
+async def register_user(
+    db: Annotated[AsyncSession,Depends(get_db)],
     auth_services: Annotated[AuthService,Depends(auth_service)],
     user: UserCreate
 ) -> UserResponse:
-    return auth_services.register_user(
+    return await auth_services.register_user(
         db=db,
         user=user
     )
     
 @auth_router.post('/login')
-def login(
+async def login(
     response: Response,
     user: UserLogin,
-    db: Annotated[Session,Depends(get_db)],
+    db: Annotated[AsyncSession,Depends(get_db)],
     service: Annotated[AuthService,Depends(auth_service)]
 ):
 
-    login_response = service.login_user(
+    login_response = await service.login_user(
         db=db,
         user=user
     )
@@ -53,10 +53,10 @@ def login(
     }
     
 @auth_router.post('/token')
-def token(
+async def token(
     response: Response,
     form_data: Annotated[OAuth2PasswordRequestForm,Depends()],
-    db: Annotated[Session,Depends(get_db)],
+    db: Annotated[AsyncSession,Depends(get_db)],
     service: Annotated[AuthService,Depends(auth_service)]
 ):
 
@@ -66,7 +66,7 @@ def token(
     )
 
 
-    login_response = service.login_user(
+    login_response = await service.login_user(
         db=db,
         user=user
     )
@@ -89,7 +89,7 @@ def token(
     }
     
 @auth_router.post("/logout")
-def logout(response: Response):
+async def logout(response: Response):
 
     response.delete_cookie(
         key="ai_contract_session"

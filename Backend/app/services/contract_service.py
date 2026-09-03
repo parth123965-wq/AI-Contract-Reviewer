@@ -1,7 +1,7 @@
 from pathlib import Path
 from uuid import uuid4
 from fastapi import HTTPException , UploadFile , status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.contract import Contract , ContractStatus
 from app.models.user import User
 from app.repositories.contract_repository import ContractRepository
@@ -82,9 +82,9 @@ class ContractService:
             )
         return str(file_path)
     
-    def upload_contract(
+    async def upload_contract(
         self,
-        db: Session,
+        db: AsyncSession,
         current_user: User,
         file: UploadFile
     ) -> ContractResponse:
@@ -107,7 +107,7 @@ class ContractService:
                 content_type = file.content_type,
                 status = ContractStatus.UPLOADED
             )
-            saved_contract = self.contract_repository.create_contract(
+            saved_contract = await self.contract_repository.create_contract(
                 db=db,
                 contract=contract
             )
@@ -115,28 +115,28 @@ class ContractService:
                 saved_contract
             )
         except Exception:
-            db.rollback()
+            await db.rollback()
             if file_path is not None and Path(file_path).exists():
                 Path(file_path).unlink()
             raise
     
-    def get_user_contracts(
+    async def get_user_contracts(
         self,
-        db: Session,
+        db: AsyncSession,
         current_user: User
     ) -> ContractListResponse:
-        return self.contract_repository.get_user_contracts(
+        return await self.contract_repository.get_user_contracts(
             db=db,
             user_id=current_user.id
         )
         
-    def get_contract_by_id(
+    async def get_contract_by_id(
         self,
-        db: Session,
+        db: AsyncSession,
         contract_id: int,
         current_user: User
     ) -> Contract:
-        contract = self.contract_repository.get_contract_by_id(
+        contract = await self.contract_repository.get_contract_by_id(
             db=db,
             contract_id=contract_id,
             user_id=current_user.id
@@ -154,18 +154,18 @@ class ContractService:
         else:
             return contract
         
-    def delete_contract(
+    async def delete_contract(
         self,
-        db: Session,
+        db: AsyncSession,
         contract_id: int,
         current_user: User
     ) -> Contract:
-        contract = self.get_contract_by_id(
+        contract = await self.get_contract_by_id(
             db=db,
             contract_id=contract_id,
             current_user=current_user
         )
-        return self.contract_repository.soft_delete_contract(
+        return await self.contract_repository.soft_delete_contract(
             db=db,
             contract=contract
         )

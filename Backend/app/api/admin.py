@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, Response, Query, status
+from fastapi import APIRouter, Depends, Response, Query, status, HTTPException
 from typing import Annotated, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.database import get_db
 from app.dependencies.auth import get_current_admin
@@ -32,13 +32,13 @@ admin_router = APIRouter(
 # =======================================================
 
 @admin_router.post("/auth/login")
-def admin_login(
+async def admin_login(
     response: Response,
     credentials: AdminLoginRequest,
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     service: Annotated[AdminService, Depends(get_admin_service)]
 ):
-    login_response = service.admin_login(db=db, credentials=credentials)
+    login_response = await service.admin_login(db=db, credentials=credentials)
 
     response.set_cookie(
         key="ai_contract_session",
@@ -61,12 +61,12 @@ def admin_login(
 # =======================================================
 
 @admin_router.get("/dashboard/stats", response_model=AdminDashboardStats)
-def get_dashboard_stats(
+async def get_dashboard_stats(
     admin: Annotated[User, Depends(get_current_admin)],
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     service: Annotated[AdminService, Depends(get_admin_service)]
 ) -> AdminDashboardStats:
-    return service.get_dashboard_stats(db=db)
+    return await service.get_dashboard_stats(db=db)
 
 
 # =======================================================
@@ -74,60 +74,60 @@ def get_dashboard_stats(
 # =======================================================
 
 @admin_router.get("/users", response_model=AdminUserListResponse)
-def list_users(
+async def list_users(
     admin: Annotated[User, Depends(get_current_admin)],
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     service: Annotated[AdminService, Depends(get_admin_service)],
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
     search: Optional[str] = Query(default=None),
     is_active: Optional[bool] = Query(default=None)
 ) -> AdminUserListResponse:
-    return service.list_users(
+    return await service.list_users(
         db=db, page=page, limit=limit, search=search, is_active=is_active
     )
 
 
 @admin_router.get("/users/{user_id}", response_model=UserAdminDetailResponse)
-def get_user_detail(
+async def get_user_detail(
     user_id: int,
     admin: Annotated[User, Depends(get_current_admin)],
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     service: Annotated[AdminService, Depends(get_admin_service)]
 ) -> UserAdminDetailResponse:
-    return service.get_user_detail(db=db, user_id=user_id)
+    return await service.get_user_detail(db=db, user_id=user_id)
 
 
 @admin_router.patch("/users/{user_id}/status", response_model=UserResponse)
-def update_user_status(
+async def update_user_status(
     user_id: int,
     body: UserStatusUpdate,
     admin: Annotated[User, Depends(get_current_admin)],
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     service: Annotated[AdminService, Depends(get_admin_service)]
 ) -> UserResponse:
-    return service.update_user_status(db=db, user_id=user_id, is_active=body.is_active)
+    return await service.update_user_status(db=db, user_id=user_id, is_active=body.is_active)
 
 
 @admin_router.patch("/users/{user_id}/role", response_model=UserResponse)
-def update_user_role(
+async def update_user_role(
     user_id: int,
     body: UserRoleUpdate,
     admin: Annotated[User, Depends(get_current_admin)],
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     service: Annotated[AdminService, Depends(get_admin_service)]
 ) -> UserResponse:
-    return service.update_user_role(db=db, user_id=user_id, is_admin=body.is_admin)
+    return await service.update_user_role(db=db, user_id=user_id, is_admin=body.is_admin)
 
 
 @admin_router.delete("/users/{user_id}")
-def delete_user(
+async def delete_user(
     user_id: int,
     admin: Annotated[User, Depends(get_current_admin)],
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     service: Annotated[AdminService, Depends(get_admin_service)]
 ):
-    return service.delete_user(db=db, user_id=user_id)
+    return await service.delete_user(db=db, user_id=user_id)
 
 
 # =======================================================
@@ -135,9 +135,9 @@ def delete_user(
 # =======================================================
 
 @admin_router.get("/contracts", response_model=AdminContractListResponse)
-def list_contracts(
+async def list_contracts(
     admin: Annotated[User, Depends(get_current_admin)],
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     service: Annotated[AdminService, Depends(get_admin_service)],
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
@@ -152,42 +152,41 @@ def list_contracts(
         except ValueError:
             parsed_status = None
 
-    return service.list_contracts(
+    return await service.list_contracts(
         db=db, page=page, limit=limit, status_filter=parsed_status, user_id=user_id, search=search
     )
 
 
 @admin_router.get("/contracts/{contract_id}", response_model=ContractAdminDetailResponse)
-def get_contract_detail(
+async def get_contract_detail(
     contract_id: int,
     admin: Annotated[User, Depends(get_current_admin)],
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     service: Annotated[AdminService, Depends(get_admin_service)]
 ) -> ContractAdminDetailResponse:
-    return service.get_contract_detail(db=db, contract_id=contract_id)
+    return await service.get_contract_detail(db=db, contract_id=contract_id)
 
 
 @admin_router.patch("/contracts/{contract_id}/status", response_model=ContractResponse)
-def update_contract_status(
+async def update_contract_status(
     contract_id: int,
     body: ContractStatusUpdate,
     admin: Annotated[User, Depends(get_current_admin)],
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     service: Annotated[AdminService, Depends(get_admin_service)]
 ) -> ContractResponse:
     try:
         new_status = ContractStatus(body.status.strip().upper())
     except ValueError:
-        from fastapi import HTTPException
         raise HTTPException(status_code=400, detail=f"Invalid contract status: {body.status}")
-    return service.update_contract_status(db=db, contract_id=contract_id, new_status=new_status)
+    return await service.update_contract_status(db=db, contract_id=contract_id, new_status=new_status)
 
 
 @admin_router.delete("/contracts/{contract_id}")
-def delete_contract(
+async def delete_contract(
     contract_id: int,
     admin: Annotated[User, Depends(get_current_admin)],
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     service: Annotated[AdminService, Depends(get_admin_service)]
 ):
-    return service.delete_contract(db=db, contract_id=contract_id)
+    return await service.delete_contract(db=db, contract_id=contract_id)

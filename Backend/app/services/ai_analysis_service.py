@@ -1,8 +1,7 @@
 import time
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from sqlalchemy.orm import Session
-
-from app.database.database import SessionLocal
+from app.database.database import AsyncSessionLocal
 from app.models.contract import ContractAnalysis , ContractStatus
 from app.repositories.analysis_repository import AnalysisRepository
 from app.repositories.contract_repository import ContractRepository
@@ -20,107 +19,106 @@ class AnalysisService:
         # Compile only once
         self.graph = ContractGraph().compile_graph()
 
-    def analyze_contract(
+    async def analyze_contract(
         self,
         contract_id: int
     ) -> None:
 
-        db: Session = SessionLocal()
-
-        try:
-            contract = self.contract_repository.get_contract_by_id(
-                db=db,
-                contract_id=contract_id
-            )
-
-            if contract is None:
-                raise ValueError("Contract not found.")
-
-            if contract.is_deleted:
-                raise ValueError("Contract has been deleted.")
-
-            version = self.analysis_repository.get_next_analysis_version(
-                db=db,
-                contract_id=contract.id
-            )
-
-            self.contract_repository.update_status(
-                db=db,
-                contract=contract,
-                status=ContractStatus.PROCESSING
-            )
-
-            start_time = time.perf_counter()
-
-            self.graph.invoke(
-                {
-                    "db": db,
-                    "contract_id": contract.id,
-                    "user_id": contract.user_id,
-                    "file_path": contract.file_path,
-                    "analysis_version": version,
-
-                    "status": ContractStatus.PROCESSING,
-                    "error": None,
-
-                    "extracted_text": "",
-                    "chunks": [],
-                    "embeddings": [],
-                    "query_embedding": [],
-                    "retrieved_chunks": [],
-
-                    "summary": "",
-                    "risk_score": 0,
-                    "suggestions": [],
-
-                    "prompt": "",
-                    "llm_response": "",
-                    "analysis_result": None,
-                    "processing_time_ms": 0,
-                }
-            )
-
-            processing_time = (
-                time.perf_counter() - start_time
-            ) * 1000
-
-            self.contract_repository.update_status(
-                db=db,
-                contract=contract,
-                status=ContractStatus.COMPLETED
-            )
-
-            print(
-                f"Analysis completed in {processing_time:.2f} ms"
-            )
-
-        except Exception as exc:
-
-            db.rollback()
-
-            contract = self.contract_repository.get_contract_by_id(
-                db=db,
-                contract_id=contract_id
-            )
-
-            if contract is not None:
-
-                contract.last_error = str(exc)
-
-                self.contract_repository.update_status(
+        async with AsyncSessionLocal() as db:
+            try:
+                contract = await self.contract_repository.get_contract_by_id(
                     db=db,
-                    contract=contract,
-                    status=ContractStatus.FAILED
+                    contract_id=contract_id
                 )
 
-            raise
+                if contract is None:
+                    raise ValueError("Contract not found.")
 
-        finally:
-            db.close()
+                if contract.is_deleted:
+                    raise ValueError("Contract has been deleted.")
 
-    def save_analysis(
+                version = await self.analysis_repository.get_next_analysis_version(
+                    db=db,
+                    contract_id=contract.id
+                )
+
+                await self.contract_repository.update_status(
+                    db=db,
+                    contract=contract,
+                    status=ContractStatus.PROCESSING
+                )
+
+                start_time = time.perf_counter()
+
+                self.graph.invoke(
+                    {
+                        "db": db,
+                        "contract_id": contract.id,
+                        "user_id": contract.user_id,
+                        "file_path": contract.file_path,
+                        "analysis_version": version,
+
+                        "status": ContractStatus.PROCESSING,
+                        "error": None,
+
+                        "extracted_text": "",
+                        "chunks": [],
+                        "embeddings": [],
+                        "query_embedding": [],
+                        "retrieved_chunks": [],
+
+                        "summary": "",
+                        "risk_score": 0,
+                        "suggestions": [],
+
+                        "prompt": "",
+                        "llm_response": "",
+                        "analysis_result": None,
+                        "processing_time_ms": 0,
+                    }
+                )
+
+                processing_time = (
+                    time.perf_counter() - start_time
+                ) * 1000
+
+                await self.contract_repository.update_status(
+                    db=db,
+                    contract=contract,
+                    status=ContractStatus.COMPLETED
+                )
+
+                print(
+                    f"Analysis completed in {processing_time:.2f} ms"
+                )
+
+            except Exception as exc:
+
+                await db.rollback()
+
+                contract = await self.contract_repository.get_contract_by_id(
+                    db=db,
+                    contract_id=contract_id
+                )
+
+                if contract is not None:
+
+                    contract.last_error = str(exc)
+
+                    await self.contract_repository.update_status(
+                        db=db,
+                        contract=contract,
+                        status=ContractStatus.FAILED
+                    )
+
+                raise
+
+            finally:
+                await db.close()
+
+    async def save_analysis(
         self,
-        db: Session,
+        db: AsyncSession,
         contract_id: int,
         version: int,
         result: AnalysisResult,
@@ -140,7 +138,7 @@ class AnalysisService:
             processing_time_ms=int(processing_time)
         )
 
-        return self.analysis_repository.create_analysis(
+        return await self.analysis_repository.create_analysis(
             db=db,
             analysis=analysis
         )

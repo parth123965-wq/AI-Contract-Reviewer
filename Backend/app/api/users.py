@@ -9,5 +9,5 @@ users_router = APIRouter(
 )
 
 @users_router.get('/me')
-def get_profile(current_user: Annotated[User,Depends(get_current_user)]):
+async def get_profile(current_user: Annotated[User,Depends(get_current_user)]):
     return current_user
