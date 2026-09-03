@@ -16,29 +16,12 @@ Cookie:
 
 from fastapi import Depends, HTTPException, status, Request
 from app.database.database import get_db
-from sqlalchemy.orm import Session
-from typing import Annotated
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.jwt import decode_access_token
-from app.repositories.user_repository import UserRepository
-from app.models.user import User
-
-
-
-# =======================================================
-# SECTION 1: CURRENT USER DEPENDENCY
-# =======================================================
-
-
-def get_current_user(
+async def get_current_user(
     request: Request,
-    db: Annotated[Session, Depends(get_db)]
+    db: Annotated[AsyncSession, Depends(get_db)]
 ) -> User:
-
-
-    # ---------------------------------------------------
-    # Extract JWT from HttpOnly Cookie or Authorization Header
-    # ---------------------------------------------------
 
     token = request.cookies.get("ai_contract_session")
 
@@ -54,15 +37,9 @@ def get_current_user(
             detail="Authentication required"
         )
 
-
-    # ---------------------------------------------------
-    # Decode JWT
-    # ---------------------------------------------------
-
     payload = decode_access_token(
         token=token
     )
-
 
     if payload is None:
 
@@ -71,13 +48,7 @@ def get_current_user(
             detail="Invalid authentication credentials"
         )
 
-
-    # ---------------------------------------------------
-    # Extract User ID
-    # ---------------------------------------------------
-
     user_id = payload.get("sub")
-
 
     if user_id is None:
 
@@ -94,15 +65,9 @@ def get_current_user(
             detail="Invalid token payload"
         )
 
-
-    # ---------------------------------------------------
-    # Fetch User
-    # ---------------------------------------------------
-
     user_repository = UserRepository()
 
-
-    user = user_repository.get_user_by_id(
+    user = await user_repository.get_user_by_id(
         db=db,
         user_id=user_id_int
     )
