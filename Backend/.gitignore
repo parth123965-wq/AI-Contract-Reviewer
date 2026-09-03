@@ -7,4 +7,6 @@ logs/
 .pytest_cache/
 .idea/
 .vscode/
-answer.txt
+vector_store/
+.chroma_db/
+test_admin.db
