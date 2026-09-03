@@ -1,0 +1,253 @@
+/*
+==================================================
+
+AI Contract Reviewer
+
+File:
+badge.css
+
+Responsibility:
+Reusable Badge Components
+
+Author:
+OpenAI + Parth
+
+Theme:
+Tokyo Night AI SaaS
+
+==================================================
+*/
+
+/* ==================================================
+   BASE BADGE
+================================================== */
+
+.badge {
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: var(--space-1);
+
+  height: 28px;
+
+  padding: 0 var(--space-3);
+
+  border-radius: var(--radius-round);
+
+  font-size: var(--font-xs);
+
+  font-weight: var(--weight-semibold);
+
+  line-height: 1;
+
+  white-space: nowrap;
+
+  border: 1px solid transparent;
+}
+
+/* ==================================================
+   STATUS BADGES
+================================================== */
+
+/*
+    Completed
+*/
+
+.badge-success {
+  color: var(--color-success);
+
+  background: rgba(158, 206, 106, 0.12);
+
+  border-color: rgba(158, 206, 106, 0.25);
+}
+
+/*
+    Processing
+*/
+
+.badge-warning {
+  color: var(--color-warning);
+
+  background: rgba(224, 175, 104, 0.12);
+
+  border-color: rgba(224, 175, 104, 0.25);
+}
+
+/*
+    Failed
+*/
+
+.badge-danger {
+  color: var(--color-danger);
+
+  background: rgba(247, 118, 142, 0.12);
+
+  border-color: rgba(247, 118, 142, 0.25);
+}
+
+/*
+    Information
+*/
+
+.badge-info {
+  color: var(--color-info);
+
+  background: rgba(125, 207, 255, 0.12);
+
+  border-color: rgba(125, 207, 255, 0.25);
+}
+
+/* ==================================================
+   PRIMARY BADGE
+================================================== */
+
+.badge-primary {
+  color: var(--color-primary);
+
+  background: rgba(122, 162, 247, 0.12);
+
+  border-color: rgba(122, 162, 247, 0.25);
+}
+
+/* ==================================================
+   RISK BADGES
+================================================== */
+
+/*
+   Low Risk
+*/
+
+.badge-risk-low {
+  color: var(--color-success);
+
+  background: rgba(158, 206, 106, 0.15);
+}
+
+/*
+   Medium Risk
+*/
+
+.badge-risk-medium {
+  color: var(--color-warning);
+
+  background: rgba(224, 175, 104, 0.15);
+}
+
+/*
+   High Risk
+*/
+
+.badge-risk-high {
+  color: var(--color-danger);
+
+  background: rgba(247, 118, 142, 0.15);
+}
+
+/* ==================================================
+   DOT BADGE
+================================================== */
+
+.badge-dot {
+  position: relative;
+
+  padding-left: var(--space-5);
+}
+
+.badge-dot::before {
+  content: "";
+
+  width: 7px;
+
+  height: 7px;
+
+  border-radius: 50%;
+
+  position: absolute;
+
+  left: var(--space-2);
+
+  background: currentColor;
+}
+
+/* ==================================================
+   SIZE VARIANTS
+================================================== */
+
+/*
+   Small
+*/
+
+.badge-sm {
+  height: 22px;
+
+  padding: 0 var(--space-2);
+
+  font-size: 0.7rem;
+}
+
+/*
+   Large
+*/
+
+.badge-lg {
+  height: 34px;
+
+  padding: 0 var(--space-4);
+
+  font-size: var(--font-sm);
+}
+
+/* ==================================================
+   OUTLINE BADGE
+================================================== */
+
+.badge-outline {
+  background: transparent;
+}
+
+.badge-outline.badge-primary {
+  border-color: var(--color-primary);
+}
+
+.badge-outline.badge-success {
+  border-color: var(--color-success);
+}
+
+.badge-outline.badge-danger {
+  border-color: var(--color-danger);
+}
+
+/* ==================================================
+   CONTRACT STATUS HELPERS
+================================================== */
+
+.status-processing {
+  color: var(--color-warning);
+
+  background: rgba(224, 175, 104, 0.12);
+}
+
+.status-completed {
+  color: var(--color-success);
+
+  background: rgba(158, 206, 106, 0.12);
+}
+
+.status-failed {
+  color: var(--color-danger);
+
+  background: rgba(247, 118, 142, 0.12);
+}
+
+/* ==================================================
+   RESPONSIVE
+================================================== */
+
+@media (max-width: 768px) {
+  .badge {
+    font-size: 0.7rem;
+  }
+}

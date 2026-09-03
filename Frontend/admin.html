@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="AI Contract Reviewer - Admin Control Panel" />
+    <title>AI Contract Reviewer - Admin Panel</title>
+
+    <!-- Global Theme & Component Styles -->
+    <link rel="stylesheet" href="./css/theme.css" />
+    <link rel="stylesheet" href="./css/components/button.css" />
+    <link rel="stylesheet" href="./css/components/card.css" />
+    <link rel="stylesheet" href="./css/components/badge.css" />
+    <link rel="stylesheet" href="./css/components/input.css" />
+    <link rel="stylesheet" href="./css/dashboard.css" />
+    <style>
+      .admin-badge {
+        background: var(--gradient-primary);
+        color: #ffffff;
+        padding: 0.2rem 0.6rem;
+        border-radius: var(--radius-sm);
+        font-size: var(--font-xs);
+        font-weight: var(--weight-bold);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .admin-table-container {
+        overflow-x: auto;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--color-border);
+        background: var(--color-surface);
+      }
+      .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: var(--font-sm);
+      }
+      .admin-table th, .admin-table td {
+        padding: var(--space-4);
+        border-bottom: 1px solid var(--color-border-subtle);
+      }
+      .admin-table th {
+        background: var(--color-surface-elevated);
+        color: var(--color-text-light);
+        font-weight: var(--weight-semibold);
+      }
+      .admin-table tr:hover {
+        background: var(--color-surface-hover);
+      }
+      .admin-filters {
+        display: flex;
+        gap: var(--space-4);
+        margin-bottom: var(--space-4);
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: var(--space-4);
+      }
+      .admin-tab-content {
+        display: none;
+      }
+      .admin-tab-content.active {
+        display: block;
+      }
+      .modal-detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: var(--space-2) 0;
+        border-bottom: 1px solid var(--color-border-subtle);
+      }
+      .modal-detail-label {
+        color: var(--color-text-muted);
+        font-weight: var(--weight-medium);
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Detail View / Edit Modal -->
+    <div id="adminModal" class="modal-backdrop" style="display: none;">
+      <div class="modal-content" style="max-width: 650px;">
+        <div class="card-header">
+          <h2 id="modalTitle" class="card-title">Details</h2>
+          <button id="closeModalBtn" class="btn btn-ghost btn-sm" aria-label="Close modal">✕</button>
+        </div>
+        <div id="modalBody" style="padding: 1.5rem 0;">
+          <!-- Dynamic Content -->
+        </div>
+        <div class="card-footer" style="padding-top: 1rem;">
+          <button type="button" id="closeModalFooterBtn" class="btn btn-ghost">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <div class="sidebar-logo">ADM</div>
+          <h2 class="sidebar-title">Admin Panel</h2>
+        </div>
+
+        <nav class="sidebar-nav">
+          <button type="button" class="nav-item active" data-admin-tab="dashboard">
+            <span class="nav-icon">📈</span> Dashboard Overview
+          </button>
+          <button type="button" class="nav-item" data-admin-tab="users">
+            <span class="nav-icon">👥</span> Manage Users
+          </button>
+          <button type="button" class="nav-item" data-admin-tab="contracts">
+            <span class="nav-icon">📑</span> Manage Contracts
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <a href="dashboard.html" class="btn btn-outline btn-block mb-2" style="margin-bottom: 0.5rem; text-decoration: none; text-align: center; display: block;">
+            👤 User View
+          </a>
+          <button id="adminLogoutBtn" class="btn btn-ghost btn-block">
+            🚪 Logout
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Admin Content Area -->
+      <main class="dashboard-main">
+        <!-- Top Navigation Header -->
+        <header class="dashboard-header">
+          <div class="page-title">
+            <h1 id="admin-page-heading">Admin Dashboard</h1>
+            <p id="admin-page-subheading">System statistics and overall platform control</p>
+          </div>
+
+          <div class="navbar-actions">
+            <span class="admin-badge">SYSTEM ADMIN</span>
+            <div class="user-profile">
+              <div class="avatar" id="admin-avatar">A</div>
+              <span id="admin-username" class="username-text">Admin</span>
+            </div>
+          </div>
+        </header>
+
+        <!-- DASHBOARD STATS TAB -->
+        <section id="tab-dashboard" class="admin-tab-content active">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Total Users</span>
+                <span class="stat-icon">👥</span>
+              </div>
+              <div class="stat-value" id="stat-total-users">0</div>
+              <div class="stat-footer">
+                <span id="stat-active-users" class="stat-trend trend-up">0 Active Users</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Total Contracts</span>
+                <span class="stat-icon">📄</span>
+              </div>
+              <div class="stat-value" id="stat-total-contracts">0</div>
+              <div class="stat-footer">
+                <span id="stat-completed-contracts" class="stat-trend">0 Analyzed</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Total Analyses</span>
+                <span class="stat-icon">⚡</span>
+              </div>
+              <div class="stat-value" id="stat-total-analyses">0</div>
+              <div class="stat-footer">
+                <span id="stat-failed-contracts" class="stat-trend trend-down">0 Failed</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Pending Tasks</span>
+                <span class="stat-icon">⏳</span>
+              </div>
+              <div class="stat-value" id="stat-pending-contracts">0</div>
+              <div class="stat-footer">
+                <span class="stat-trend">Contracts in queue</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- USERS MANAGEMENT TAB -->
+        <section id="tab-users" class="admin-tab-content">
+          <div class="card">
+            <div class="admin-filters">
+              <input type="text" id="userSearchInput" class="input" placeholder="Search by username or email..." style="max-width: 300px;" />
+              <select id="userActiveFilter" class="input" style="max-width: 180px;">
+                <option value="">All Statuses</option>
+                <option value="true">Active Only</option>
+                <option value="false">Inactive Only</option>
+              </select>
+              <button id="refreshUsersBtn" class="btn btn-secondary btn-sm">🔄 Refresh</button>
+            </div>
+
+            <div class="admin-table-container">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Role</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                  <tr><td colspan="7" style="text-align: center;">Loading users...</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="pagination">
+              <button id="prevUsersBtn" class="btn btn-outline btn-sm" disabled>Previous</button>
+              <span id="usersPageInfo" class="text-sm">Page 1</span>
+              <button id="nextUsersBtn" class="btn btn-outline btn-sm" disabled>Next</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- CONTRACTS MANAGEMENT TAB -->
+        <section id="tab-contracts" class="admin-tab-content">
+          <div class="card">
+            <div class="admin-filters">
+              <input type="text" id="contractSearchInput" class="input" placeholder="Search filename..." style="max-width: 250px;" />
+              <select id="contractStatusFilter" class="input" style="max-width: 180px;">
+                <option value="">All Statuses</option>
+                <option value="uploaded">Uploaded</option>
+                <option value="processing">Processing</option>
+                <option value="completed">Completed</option>
+                <option value="failed">Failed</option>
+              </select>
+              <button id="refreshContractsBtn" class="btn btn-secondary btn-sm">🔄 Refresh</button>
+            </div>
+
+            <div class="admin-table-container">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Filename</th>
+                    <th>User ID</th>
+                    <th>Status</th>
+                    <th>Size</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="contractsTableBody">
+                  <tr><td colspan="7" style="text-align: center;">Loading contracts...</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="pagination">
+              <button id="prevContractsBtn" class="btn btn-outline btn-sm" disabled>Previous</button>
+              <span id="contractsPageInfo" class="text-sm">Page 1</span>
+              <button id="nextContractsBtn" class="btn btn-outline btn-sm" disabled>Next</button>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <!-- API Client & Admin Logic -->
+    <script src="./js/api.js"></script>
+    <script src="./js/admin.js"></script>
+  </body>
+</html>

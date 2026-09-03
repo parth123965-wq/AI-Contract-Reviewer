@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Detailed AI contract analysis, risk breakdown, and indemnification insights." />
+    <title>AI Contract Reviewer - Contract Analysis</title>
+
+    <!-- Theme & Components -->
+    <link rel="stylesheet" href="./css/theme.css" />
+    <link rel="stylesheet" href="./css/components/button.css" />
+    <link rel="stylesheet" href="./css/components/card.css" />
+    <link rel="stylesheet" href="./css/components/badge.css" />
+    <link rel="stylesheet" href="./css/contract-detail.css" />
+  </head>
+
+  <body>
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <main class="contract-page">
+      <!-- Back Navigation Header -->
+      <nav class="page-nav">
+        <a href="dashboard.html" class="btn btn-ghost btn-sm">
+          ← Back to Dashboard
+        </a>
+      </nav>
+
+      <!-- Main Header -->
+      <header class="contract-detail-header">
+        <div class="contract-title-group">
+          <div class="title-with-badge">
+            <h1 id="contract-title">Contract Analysis</h1>
+            <span id="contract-status" class="badge badge-warning">Loading...</span>
+          </div>
+          <p class="contract-subtitle">AI-Powered Clause Breakdown & Risk Assessment</p>
+        </div>
+
+        <div class="contract-actions">
+          <button id="reanalyzeBtn" class="btn btn-outline btn-sm">⚡ Re-analyze</button>
+          <button id="deleteContractBtn" class="btn btn-danger btn-sm">🗑️ Delete</button>
+        </div>
+      </header>
+
+      <!-- Metadata Information Cards Grid -->
+      <section class="contract-info-grid">
+        <div class="card info-card">
+          <span class="info-label">File Size</span>
+          <strong id="contract-size" class="info-value">--</strong>
+        </div>
+
+        <div class="card info-card">
+          <span class="info-label">Date Analyzed</span>
+          <strong id="contract-date" class="info-value">--</strong>
+        </div>
+
+        <div class="card info-card">
+          <span class="info-label">Document Type</span>
+          <strong id="contract-type" class="info-value">Commercial Legal Agreement</strong>
+        </div>
+      </section>
+
+      <!-- Analysis Results Section -->
+      <section class="analysis-grid">
+        <!-- Left Main Content Column -->
+        <div class="analysis-main-column">
+          <!-- Executive Summary Card -->
+          <article class="card card-glass summary-card">
+            <div class="card-header">
+              <h2 class="card-title">📝 Executive Summary</h2>
+              <span class="badge badge-primary">AI Generated</span>
+            </div>
+            <div class="card-body">
+              <p id="contract-summary" class="summary-content">
+                Loading contract insights and summary...
+              </p>
+            </div>
+          </article>
+
+          <!-- Key Findings & High Risk Clauses -->
+          <article class="card findings-section" style="margin-top: var(--space-6);">
+            <div class="card-header">
+              <h2 class="card-title">🔍 Identified Clause Risks & Findings</h2>
+            </div>
+            <div id="findings-list" class="finding-list">
+              <div class="finding-placeholder">Scanning clauses...</div>
+            </div>
+          </article>
+
+          <!-- Actionable AI Recommendations -->
+          <article class="card recommendations-section" style="margin-top: var(--space-6);">
+            <div class="card-header">
+              <h2 class="card-title">💡 Legal Recommendations</h2>
+            </div>
+            <div id="recommendations-list" class="recommendation-list">
+              <div class="recommendation-placeholder">Loading recommendations...</div>
+            </div>
+          </article>
+
+          <!-- Interactive AI Document Q&A (RAG Assistant) -->
+          <article class="card rag-assistant-card" style="margin-top: var(--space-6);">
+            <div class="card-header">
+              <h2 class="card-title">💬 Ask Document AI (RAG Assistant)</h2>
+              <span class="badge badge-primary">Vector Store Active</span>
+            </div>
+            <div class="card-body">
+              <p class="text-muted text-sm mb-4">
+                Ask specific questions about clauses, indemnities, obligations, or timelines in this contract. Our RAG engine searches vector embeddings to answer accurately.
+              </p>
+              <div id="chat-messages" style="max-height: 300px; overflow-y: auto; padding: 0.5rem; background: var(--color-surface-elevated); border-radius: var(--radius-md); margin-bottom: 1rem;">
+                <div class="chat-message assistant-msg" style="padding: 0.5rem 0.75rem; border-radius: 6px; background: var(--color-surface-hover); margin-bottom: 0.5rem;">
+                  🤖 Hello! Ask me any question regarding this uploaded contract.
+                </div>
+              </div>
+              <form id="rag-question-form" style="display: flex; gap: 0.5rem;">
+                <input type="text" id="rag-input" class="input" placeholder="e.g. What is the governing law and notice period for termination?" style="flex: 1;" required />
+                <button type="submit" id="rag-submit-btn" class="btn btn-primary">Ask AI</button>
+              </form>
+            </div>
+          </article>
+        </div>
+
+        <!-- Right Risk Score Gauge Sidebar -->
+        <aside class="analysis-sidebar">
+          <div class="card risk-card">
+            <h3 class="card-title">Overall Risk Score</h3>
+
+            <div class="risk-score-container">
+              <div class="risk-score" id="risk-score-circle">
+                <span id="risk-score-value">--</span>
+              </div>
+            </div>
+
+            <p id="risk-score-label" class="risk-label-text">
+              Evaluating risk level...
+            </p>
+          </div>
+
+          <div class="card compliance-card" style="margin-top: var(--space-5);">
+            <h3 class="card-title" style="font-size: var(--font-md); margin-bottom: var(--space-3);">Compliance Checklist</h3>
+            <ul class="compliance-list" id="compliance-checklist">
+              <li class="check-pass">✓ Data Privacy & GDPR</li>
+              <li class="check-pass">✓ Choice of Law Specified</li>
+              <li class="check-warn">⚠️ Liability Cap Uncapped</li>
+            </ul>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <!-- Scripts -->
+    <script src="./js/contracts.js"></script>
+    <script src="./js/api.js"></script>
+    <script src="./js/contract-detail.js"></script>
+  </body>
+</html>

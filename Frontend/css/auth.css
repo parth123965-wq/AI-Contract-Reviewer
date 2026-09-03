@@ -1,0 +1,141 @@
+/* ==========================================
+   Authentication Layout
+========================================== */
+
+.auth-container {
+  width: 100%;
+
+  min-height: 100vh;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  padding: 2rem;
+}
+
+/* ==========================================
+   Authentication Card
+========================================== */
+
+.auth-card {
+  width: 100%;
+
+  max-width: 450px;
+
+  background: var(--bg-secondary);
+
+  border: 1px solid var(--border-color);
+
+  border-radius: var(--radius-lg);
+
+  padding: 2.5rem;
+
+  box-shadow: var(--shadow);
+
+  transition: var(--transition);
+}
+
+.auth-card:hover {
+  transform: translateY(-4px);
+}
+
+/* ==========================================
+   Header
+========================================== */
+
+.logo-section {
+  text-align: center;
+
+  margin-bottom: 2rem;
+}
+
+.logo-section h1 {
+  color: var(--primary);
+
+  font-size: 2rem;
+
+  margin-bottom: 0.5rem;
+
+  font-weight: 700;
+}
+
+.logo-section p {
+  color: var(--text-secondary);
+
+  font-size: 0.95rem;
+}
+
+/* ==========================================
+   Form
+========================================== */
+
+.auth-form {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 1.2rem;
+}
+
+.form-group {
+  display: flex;
+
+  flex-direction: column;
+}
+
+.form-group label {
+  margin-bottom: 0.5rem;
+
+  color: var(--text-primary);
+
+  font-size: 0.95rem;
+
+  font-weight: 500;
+}
+
+/* ==========================================
+   Button
+========================================== */
+
+.btn-primary {
+  margin-top: 0.5rem;
+}
+
+/* ==========================================
+   Footer
+========================================== */
+
+.auth-footer {
+  text-align: center;
+
+  margin-top: 1.8rem;
+}
+
+.auth-footer p {
+  color: var(--text-secondary);
+}
+
+.auth-footer a {
+  font-weight: 600;
+}
+
+/* ==========================================
+   Responsive
+========================================== */
+
+@media (max-width: 600px) {
+  .auth-container {
+    padding: 1rem;
+  }
+
+  .auth-card {
+    padding: 2rem;
+  }
+
+  .logo-section h1 {
+    font-size: 1.7rem;
+  }
+}

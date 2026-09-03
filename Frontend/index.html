@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="AI-powered contract reviewer for intelligent risk detection, clause breakdown, and legal insights." />
+    <title>AI Contract Reviewer - Sign In</title>
+
+    <!-- Global Theme & Component Styles -->
+    <link rel="stylesheet" href="./css/theme.css" />
+    <link rel="stylesheet" href="./css/components/button.css" />
+    <link rel="stylesheet" href="./css/components/card.css" />
+    <link rel="stylesheet" href="./css/components/input.css" />
+    <link rel="stylesheet" href="./css/login.css" />
+  </head>
+
+  <body>
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <main class="login-container">
+      <!-- Branding Section -->
+      <section class="brand-section">
+        <div class="brand-logo" aria-label="AI Logo">AI</div>
+        <h1>AI Contract Reviewer</h1>
+        <p>
+          Analyze contracts instantly with deep AI risk scoring, automated indemnification audits, and smart legal summaries.
+        </p>
+
+        <div class="feature-list">
+          <span><strong class="check-icon">✓</strong> Automated Risk Detection</span>
+          <span><strong class="check-icon">✓</strong> High Exposure Clause Audits</span>
+          <span><strong class="check-icon">✓</strong> Instant Executive Summaries</span>
+        </div>
+      </section>
+
+      <!-- Login Card -->
+      <section class="card card-glass login-card">
+        <div class="login-header">
+          <h2 id="login-title">Welcome Back</h2>
+          <p id="login-subtitle">Login to access your contract intelligence workspace</p>
+        </div>
+
+        <!-- Login Mode Switcher Tabs -->
+        <div class="login-mode-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; background: var(--color-surface); padding: 0.25rem; border-radius: var(--radius-md);">
+          <button type="button" id="userModeBtn" class="btn btn-sm btn-primary" style="flex: 1;">User Login</button>
+          <button type="button" id="adminModeBtn" class="btn btn-sm btn-ghost" style="flex: 1;">🛡️ Admin Login</button>
+        </div>
+
+        <form id="login-form" novalidate>
+          <div class="input-group">
+            <label class="input-label" for="email">Email Address</label>
+            <div class="input-wrapper">
+              <input
+                class="input"
+                id="email"
+                type="email"
+                placeholder="name@company.com"
+                autocomplete="email"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label" for="password">Password</label>
+            <div class="password-wrapper">
+              <input
+                class="input"
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                autocomplete="current-password"
+                required
+              />
+              <button type="button" class="password-toggle" id="togglePassword" aria-label="Toggle password visibility">
+                👁️
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" id="loginButton">
+            Sign In
+          </button>
+
+          <div class="auth-footer" id="auth-footer">
+            <p>Don't have an account? <a href="register.html" class="auth-link">Create Account</a></p>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <!-- Scripts -->
+    <script src="./js/api.js"></script>
+    <script src="./js/auth.js"></script>
+  </body>
+</html>

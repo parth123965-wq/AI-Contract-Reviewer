@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="AI Contract Reviewer Dashboard - Overview of analyzed legal contracts and risk alerts." />
+    <title>AI Contract Reviewer - Workspace Dashboard</title>
+
+    <!-- Global Theme & Components -->
+    <link rel="stylesheet" href="./css/theme.css" />
+    <link rel="stylesheet" href="./css/components/button.css" />
+    <link rel="stylesheet" href="./css/components/card.css" />
+    <link rel="stylesheet" href="./css/components/badge.css" />
+    <link rel="stylesheet" href="./css/components/input.css" />
+    <link rel="stylesheet" href="./css/dashboard.css" />
+  </head>
+
+  <body>
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Upload Contract Modal -->
+    <div id="uploadModal" class="modal-backdrop">
+      <div class="modal-content">
+        <div class="card-header">
+          <h2 class="card-title">Upload Legal Contract</h2>
+          <button id="closeUploadModalBtn" class="btn btn-ghost btn-sm" aria-label="Close modal">✕</button>
+        </div>
+        <form id="uploadForm">
+          <div class="file-input" id="fileDropZone">
+            <div class="file-drop-content">
+              <span class="file-icon">📄</span>
+              <p><strong>Click to browse</strong> or drag & drop contract file</p>
+              <span class="file-hint">Supports PDF, DOCX, TXT (Max 25MB)</span>
+            </div>
+            <input type="file" id="contractFileInput" accept=".pdf,.docx,.txt" style="display: none;" />
+          </div>
+          <div id="selectedFileName" class="selected-file-info" style="display: none;"></div>
+
+          <div class="card-footer" style="padding-top: 1.5rem;">
+            <button type="button" id="cancelUploadBtn" class="btn btn-ghost">Cancel</button>
+            <button type="submit" id="uploadSubmitBtn" class="btn btn-primary" disabled>Analyze Contract</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="dashboard">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <div class="sidebar-logo">AI</div>
+          <h2 class="sidebar-title">Contract AI</h2>
+        </div>
+
+        <nav class="sidebar-nav">
+          <button type="button" class="nav-item active" data-tab="dashboard">
+            <span class="nav-icon">📊</span> Dashboard
+          </button>
+          <button type="button" class="nav-item" data-tab="contracts">
+            <span class="nav-icon">📁</span> Contracts
+          </button>
+          <button type="button" id="sidebarUploadBtn" class="nav-item nav-button">
+            <span class="nav-icon">📤</span> Upload Contract
+          </button>
+          <button type="button" class="nav-item" data-tab="analysis">
+            <span class="nav-icon">⚡</span> Analysis
+          </button>
+          <button type="button" class="nav-item" data-tab="settings">
+            <span class="nav-icon">⚙️</span> Settings
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <a id="adminPanelLink" href="admin.html" class="btn btn-outline btn-block" style="display: none; margin-bottom: 0.5rem; text-decoration: none; text-align: center;">
+            🛡️ Admin Panel
+          </a>
+          <button id="sidebarLogoutBtn" class="btn btn-ghost btn-block">
+            🚪 Logout
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Workspace -->
+      <main class="dashboard-main">
+        <!-- Top Navigation Header -->
+        <header class="dashboard-header">
+          <div class="page-title">
+            <h1 id="page-heading">Dashboard</h1>
+            <p id="page-subheading">Overview of your contract intelligence workspace</p>
+          </div>
+
+          <div class="navbar-actions">
+            <button class="notification-btn" title="Notifications" aria-label="Notifications">
+              🔔 <span class="notification-badge"></span>
+            </button>
+
+            <div class="user-profile">
+              <div class="avatar" id="user-avatar">P</div>
+              <span id="username" class="username-text">User</span>
+            </div>
+
+            <button id="logoutButton" class="btn btn-outline btn-sm">Logout</button>
+          </div>
+        </header>
+
+        <!-- DASHBOARD & CONTRACTS VIEW SECTION -->
+        <div id="tab-dashboard" class="tab-content active">
+          <!-- Stats Overview Cards Grid -->
+          <section class="stats-grid">
+            <div class="card stat-card card-hover">
+              <span class="stat-label">Total Contracts</span>
+              <strong id="total-contracts" class="stat-value">--</strong>
+            </div>
+
+            <div class="card stat-card card-hover">
+              <div class="stat-header">
+                <span class="stat-label">Reviews</span>
+                <span class="badge status-completed">Completed</span>
+              </div>
+              <strong id="completed-reviews" class="stat-value">--</strong>
+            </div>
+
+            <div class="card stat-card card-hover">
+              <div class="stat-header">
+                <span class="stat-label">Alerts</span>
+                <span class="badge badge-risk-high">High Risk</span>
+              </div>
+              <strong id="risk-alerts" class="stat-value">--</strong>
+            </div>
+
+            <div class="card stat-card card-hover">
+              <div class="stat-header">
+                <span class="stat-label">Queue</span>
+                <span class="badge status-processing">Processing</span>
+              </div>
+              <strong id="processing-contracts" class="stat-value">--</strong>
+            </div>
+          </section>
+
+          <!-- Contracts Table Section -->
+          <section id="recent-contracts" class="contract-section">
+            <div class="section-header">
+              <h2>Recent Contracts</h2>
+              <div class="table-actions">
+                <input type="text" id="contractSearch" class="input search-input" placeholder="Search contracts..." />
+                <select id="statusFilter" class="input select" style="width: 150px;">
+                  <option value="all">All Status</option>
+                  <option value="uploaded">Uploaded</option>
+                  <option value="processing">Processing</option>
+                  <option value="completed">Completed</option>
+                  <option value="failed">Failed</option>
+                </select>
+                <button id="openUploadBtn" class="btn btn-primary btn-sm">+ New Upload</button>
+              </div>
+            </div>
+
+            <div class="card contract-table-card">
+              <table class="contract-table">
+                <thead>
+                  <tr>
+                    <th>Contract Name</th>
+                    <th>Status</th>
+                    <th>Risk Score</th>
+                    <th>Date Added</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="contract-table-body">
+                  <tr>
+                    <td colspan="5" class="table-loading">
+                      Loading workspace contracts...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <!-- ANALYSIS TAB VIEW SECTION -->
+        <div id="tab-analysis" class="tab-content" style="display: none;">
+          <section class="analysis-dashboard-grid">
+            <!-- Engine Status Card -->
+            <article class="card card-glass">
+              <div class="card-header">
+                <h2 class="card-title">⚡ AI Analysis Engine Core</h2>
+                <span class="badge badge-primary">v2.4 Legal Model</span>
+              </div>
+              <div class="ai-content" style="margin-top: var(--space-4);">
+                <div class="ai-stat-box">
+                  <span class="ai-stat-label">Engine Health</span>
+                  <strong class="ai-stat-value text-success">● 99.8% Online</strong>
+                </div>
+                <div class="ai-stat-box">
+                  <span class="ai-stat-label">Avg Scan Speed</span>
+                  <strong class="ai-stat-value">1.4 Seconds / Doc</strong>
+                </div>
+                <div class="ai-stat-box">
+                  <span class="ai-stat-label">Risk Detection Accuracy</span>
+                  <strong class="ai-stat-value text-success">98.5% Verified</strong>
+                </div>
+              </div>
+            </article>
+
+            <!-- Clause Scan Matrix Card -->
+            <article class="card" style="margin-top: var(--space-6);">
+              <div class="card-header">
+                <h2 class="card-title">🔍 Clause Risk Scan Rules & Detection Matrix</h2>
+                <button id="triggerRescanBtn" class="btn btn-outline btn-sm">⚡ Run Workspace Re-Scan</button>
+              </div>
+              <div class="analysis-rules-list" style="margin-top: var(--space-4);">
+                <div class="rule-row">
+                  <div class="rule-info">
+                    <strong>Indemnification & Third-Party Liability</strong>
+                    <p>Scans for uncapped liabilities, missing indemnity exclusions, and IP infringement terms.</p>
+                  </div>
+                  <span class="badge badge-risk-high">High Risk Trigger</span>
+                </div>
+                <div class="rule-row">
+                  <div class="rule-info">
+                    <strong>Auto-Renewal & Notice Deadlines</strong>
+                    <p>Flags non-cancellable auto-renewals with notice requirements over 60 days.</p>
+                  </div>
+                  <span class="badge badge-risk-medium">Medium Risk Trigger</span>
+                </div>
+                <div class="rule-row">
+                  <div class="rule-info">
+                    <strong>Governing Law & Dispute Jurisdiction</strong>
+                    <p>Checks compliance with US Federal, State, and EU International Commercial law standards.</p>
+                  </div>
+                  <span class="badge badge-risk-low">Standard Check</span>
+                </div>
+              </div>
+            </article>
+          </section>
+        </div>
+
+        <!-- SETTINGS TAB VIEW SECTION -->
+        <div id="tab-settings" class="tab-content" style="display: none;">
+          <form id="settingsForm" class="settings-grid">
+            <!-- Profile Settings -->
+            <article class="card">
+              <div class="card-header">
+                <h2 class="card-title">👤 Profile & Account</h2>
+              </div>
+              <div class="form-group-grid" style="margin-top: var(--space-4); display: grid; gap: var(--space-4);">
+                <div class="form-group">
+                  <label class="info-label" for="settingsUsername">Display Name</label>
+                  <input type="text" id="settingsUsername" class="input" placeholder="Your Name" />
+                </div>
+                <div class="form-group">
+                  <label class="info-label" for="settingsEmail">Email Address</label>
+                  <input type="email" id="settingsEmail" class="input" placeholder="name@company.com" readonly style="opacity: 0.8;" />
+                </div>
+              </div>
+            </article>
+
+            <!-- Backend API Configuration -->
+            <article class="card" style="margin-top: var(--space-6);">
+              <div class="card-header">
+                <h2 class="card-title">🌐 REST API & Backend Server Configuration</h2>
+              </div>
+              <div class="form-group-grid" style="margin-top: var(--space-4); display: grid; gap: var(--space-4);">
+                <div class="form-group">
+                  <label class="info-label" for="settingsApiUrl">Backend Base URL</label>
+                  <input type="text" id="settingsApiUrl" class="input" placeholder="http://127.0.0.1:8000" />
+                </div>
+                <div class="form-group">
+                  <label class="info-label" for="settingsAuthToken">Active Access Token</label>
+                  <input type="text" id="settingsAuthToken" class="input" placeholder="No active token" readonly style="opacity: 0.7;" />
+                </div>
+              </div>
+            </article>
+
+            <!-- AI Engine Preferences -->
+            <article class="card" style="margin-top: var(--space-6);">
+              <div class="card-header">
+                <h2 class="card-title">⚙️ AI Analysis Preferences</h2>
+              </div>
+              <div class="form-group-grid" style="margin-top: var(--space-4); display: grid; gap: var(--space-4);">
+                <div class="form-group">
+                  <label class="info-label" for="settingsRiskThreshold">High Risk Score Threshold (0 - 100)</label>
+                  <input type="number" id="settingsRiskThreshold" class="input" value="70" min="50" max="95" />
+                </div>
+                <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; padding-top: var(--space-2);">
+                  <div>
+                    <strong>Auto-Analyze On Upload</strong>
+                    <p style="font-size: var(--font-xs); color: var(--color-text-muted);">Trigger AI neural scoring immediately when file is uploaded.</p>
+                  </div>
+                  <input type="checkbox" id="autoAnalyzeToggle" checked style="width: 20px; height: 20px; accent-color: var(--color-primary);" />
+                </div>
+              </div>
+            </article>
+
+            <div style="margin-top: var(--space-6); display: flex; justify-content: flex-end;">
+              <button type="submit" class="btn btn-primary">💾 Save Settings</button>
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="./js/contracts.js"></script>
+    <script src="./js/api.js"></script>
+    <script src="./js/dashboard.js"></script>
+  </body>
+</html>

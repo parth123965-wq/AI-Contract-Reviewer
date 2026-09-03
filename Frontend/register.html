@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Create an account on AI Contract Reviewer to analyze legal documents, detect risks, and automate contract reviews." />
+    <title>AI Contract Reviewer - Create Account</title>
+
+    <!-- Global Theme & Component Styles -->
+    <link rel="stylesheet" href="./css/theme.css" />
+    <link rel="stylesheet" href="./css/components/button.css" />
+    <link rel="stylesheet" href="./css/components/card.css" />
+    <link rel="stylesheet" href="./css/components/input.css" />
+    <link rel="stylesheet" href="./css/login.css" />
+  </head>
+
+  <body>
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <main class="login-container">
+      <!-- Branding Section -->
+      <section class="brand-section">
+        <div class="brand-logo" aria-label="AI Logo">AI</div>
+        <h1>AI Contract Reviewer</h1>
+        <p>
+          Join thousands of legal teams and executives automating contract risk analysis in seconds.
+        </p>
+
+        <div class="feature-list">
+          <span><strong class="check-icon">✓</strong> Instant Account Setup</span>
+          <span><strong class="check-icon">✓</strong> Unlimited Mock Analysis</span>
+          <span><strong class="check-icon">✓</strong> Enterprise Legal Security</span>
+        </div>
+      </section>
+
+      <!-- Register Card -->
+      <section class="card card-glass login-card">
+        <div class="login-header">
+          <h2>Create Account</h2>
+          <p>Get started with your free contract intelligence workspace</p>
+        </div>
+
+        <form id="registerForm" novalidate>
+          <div class="input-group">
+            <label class="input-label" for="username">Full Name</label>
+            <input
+              class="input"
+              id="username"
+              type="text"
+              placeholder="Parth Sharma"
+              autocomplete="name"
+              required
+            />
+          </div>
+
+          <div class="input-group">
+            <label class="input-label" for="register-email">Email Address</label>
+            <input
+              class="input"
+              id="register-email"
+              type="email"
+              placeholder="name@company.com"
+              autocomplete="email"
+              required
+            />
+          </div>
+
+          <div class="input-group">
+            <label class="input-label" for="register-password">Password</label>
+            <div class="password-wrapper">
+              <input
+                class="input"
+                id="register-password"
+                type="password"
+                placeholder="Minimum 8 characters"
+                autocomplete="new-password"
+                required
+              />
+              <button type="button" class="password-toggle" id="toggleRegPassword" aria-label="Toggle password visibility">
+                👁️
+              </button>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label" for="confirm-password">Confirm Password</label>
+            <input
+              class="input"
+              id="confirm-password"
+              type="password"
+              placeholder="Re-enter your password"
+              autocomplete="new-password"
+              required
+            />
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" id="registerButton">
+            Create Account
+          </button>
+
+          <div class="auth-footer">
+            <p>Already have an account? <a href="index.html" class="auth-link">Sign In</a></p>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <!-- Scripts -->
+    <script src="./js/api.js"></script>
+    <script src="./js/auth.js"></script>
+  </body>
+</html>

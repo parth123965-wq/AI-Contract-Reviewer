@@ -1,0 +1,157 @@
+/* ==================================================
+   AI Contract Reviewer - Login & Register CSS
+   Theme: Tokyo Night AI SaaS
+================================================== */
+
+.login-container {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.2fr 440px;
+  align-items: center;
+  gap: var(--space-10);
+  padding: var(--space-8);
+  max-width: var(--container-width);
+  margin: 0 auto;
+}
+
+/* Brand Section */
+.brand-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.brand-logo {
+  width: 68px;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xl);
+  background: var(--gradient-primary);
+  color: #ffffff;
+  font-size: var(--font-2xl);
+  font-weight: var(--weight-extrabold);
+  box-shadow: var(--shadow-glow);
+  letter-spacing: -0.5px;
+}
+
+.brand-section h1 {
+  font-size: var(--font-4xl);
+  background: linear-gradient(135deg, #ffffff 0%, var(--color-text-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
+}
+
+.brand-section p {
+  font-size: var(--font-lg);
+  color: var(--color-text);
+  max-width: 520px;
+  line-height: 1.6;
+}
+
+/* Feature List */
+.feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.feature-list span {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-light);
+  font-size: var(--font-md);
+  font-weight: var(--weight-medium);
+}
+
+.check-icon {
+  color: var(--color-success);
+  font-weight: var(--weight-bold);
+}
+
+/* Login Card */
+.login-card {
+  padding: var(--space-8);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  animation: login-enter 400ms ease;
+}
+
+.login-header {
+  margin-bottom: var(--space-6);
+}
+
+.login-header h2 {
+  font-size: var(--font-2xl);
+  margin-bottom: var(--space-2);
+  color: var(--color-text-light);
+}
+
+.login-header p {
+  color: var(--color-text-muted);
+  font-size: var(--font-sm);
+}
+
+/* Form Elements */
+#login-form, #registerForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.auth-footer {
+  text-align: center;
+  margin-top: var(--space-3);
+  font-size: var(--font-sm);
+  color: var(--color-text-muted);
+}
+
+.auth-link {
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+
+@keyframes login-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Layout */
+@media (max-width: 992px) {
+  .login-container {
+    grid-template-columns: 1fr;
+    max-width: 520px;
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .brand-section {
+    text-align: center;
+    align-items: center;
+  }
+}
+
+@media (max-width: 576px) {
+  .login-card {
+    padding: var(--space-6);
+  }
+
+  .brand-section h1 {
+    font-size: var(--font-3xl);
+  }
+}
