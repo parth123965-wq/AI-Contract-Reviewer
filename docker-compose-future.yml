@@ -8,7 +8,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_PASSWORD: parth
       POSTGRES_DB: contract_reviewers
     ports:
       - "5432:5432"
@@ -43,7 +43,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgrespassword@db:5432/contract_reviewers
+      - DATABASE_URL=postgresql://postgres:parth@db:5432/contract_reviewers
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -65,7 +65,7 @@ services:
     command: celery -A app.core.celery_app worker --loglevel=info
     restart: always
     environment:
-      - DATABASE_URL=postgresql://postgres:postgrespassword@db:5432/contract_reviewers
+      - DATABASE_URL=postgresql://postgres:parth@db:5432/contract_reviewers
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
