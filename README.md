@@ -8,7 +8,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
-An enterprise-grade, full-stack AI platform for automated legal contract ingestion, risk detection, indemnification exposure scoring, interactive RAG Q&A, and complete platform administration.
+An enterprise-grade, full-stack AI platform for automated legal contract ingestion, risk detection, indemnification exposure scoring, real-time streaming RAG Q&A (ChatGPT/Gemini style), and complete platform administration.
 
 ---
 
@@ -20,9 +20,12 @@ An enterprise-grade, full-stack AI platform for automated legal contract ingesti
   - Multi-node stateful workflow orchestrated via **LangGraph**.
   - Risk exposure scoring (0–100), clause summarization, and key risk findings via **Google Gemini API**.
 
-- 💬 **Interactive RAG Q&A**:
-  - Context-aware contract Q&A endpoint (`POST /contracts/{id}/ask`).
-  - Queries vectorized clause chunks in ChromaDB with keyword sentence fallback ranking for precise legal answers.
+- ⚡ **Real-Time Token Streaming RAG Q&A**:
+  - Real-time token streaming Q&A endpoint (`POST /contracts/{id}/ask`).
+  - Streams answers token-by-token using FastAPI `StreamingResponse` (Server-Sent Events / SSE) and frontend `ReadableStream` reader without blocking or page freezes.
+
+- 🎨 **College Showcase Glassmorphic UI**:
+  - Ultra-premium midnight dark cyber theme with frosted glassmorphism (`backdrop-filter: blur`), Google Fonts (`Outfit` & `Inter`), glowing neon accents, drag-and-drop dropzone, and interactive radial SVG risk gauges.
 
 - 🛡️ **Role-Based Authentication & Admin Management Portal**:
   - Secure JWT authentication with HttpOnly session cookies and Bearer tokens.
@@ -38,11 +41,12 @@ An enterprise-grade, full-stack AI platform for automated legal contract ingesti
 ```mermaid
 graph TD
     User([User / Browser]) -->|HTTP Port 80| Frontend[Frontend: Nginx]
-    Frontend -->|REST API Port 8000| Backend[Backend: FastAPI REST API]
+    Frontend -->|REST API & SSE Stream Port 8000| Backend[Backend: FastAPI REST API]
     
     subgraph Backend Service
         Backend --> DB[(PostgreSQL Database)]
         Backend --> LangGraph[LangGraph AI Pipeline]
+        Backend --> SSE[Real-Time Token SSE Stream]
     end
     
     subgraph AI Engine & RAG
@@ -62,7 +66,7 @@ ai-contract-reviewer/
 ├── Backend/                         # FastAPI REST API & Neural AI Engine
 │   ├── ai_engine/                   # LangGraph DAG workflow, RAG pipeline & ChromaDB
 │   │   ├── graph/                   # LangGraph state & node execution graph
-│   │   ├── services/                # Text extraction, chunking, embeddings, LLM & vector store
+│   │   ├── services/                # Text extraction, chunking, embeddings, LLM streaming & vector store
 │   │   └── vector_store/            # Persistent ChromaDB vector index storage
 │   ├── app/                         # FastAPI Application Core
 │   │   ├── api/                     # Routers (Auth, Users, Contracts, Admin)
@@ -76,10 +80,10 @@ ai-contract-reviewer/
 │
 ├── Frontend/                        # Client Web Application
 │   ├── css/                         # Custom styling & glassmorphism UI theme
-│   ├── js/                          # Unified API service layer & interaction scripts
+│   ├── js/                          # Unified API service layer, streaming reader & interaction scripts
 │   ├── index.html                   # Landing page & Authentication (Login/Register)
 │   ├── dashboard.html               # User contracts dashboard & file upload modal
-│   ├── contract-detail.html         # Contract analysis report & interactive RAG Q&A
+│   ├── contract-detail.html         # Contract analysis report & real-time RAG Q&A stream
 │   ├── admin.html                   # Administrator management control panel
 │   └── Dockerfile                   # Nginx alpine web server container definition
 │
@@ -103,90 +107,22 @@ git clone https://github.com/parth123965-wq/AI-Contract-Reviewer.git
 cd AI-Contract-Reviewer
 ```
 
-Set your Gemini API key in your environment or update `docker-compose.yml`:
-
+Set your Gemini API key:
 ```bash
-export GEMINI_API_KEY="your_actual_gemini_api_key"
+# Windows PowerShell
+$env:GEMINI_API_KEY="your_actual_gemini_api_key_here"
+
+# Linux / macOS
+export GEMINI_API_KEY="your_actual_gemini_api_key_here"
 ```
 
-### 2. Launch Services
-
-Start all services in detached mode:
+### 2. Launch Docker Services
 
 ```bash
-docker compose up --build -d
+docker-compose up -d --build
 ```
 
-### 3. Access Application Services
-
-- 🌐 **Web Application (Frontend)**: [http://localhost](http://localhost)
-- 🔌 **FastAPI REST API Docs (Swagger UI)**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- 📖 **ReDoc Documentation**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
-
----
-
-## 🛠️ Local Manual Development Setup
-
-If you prefer to run services individually outside Docker:
-
-### 1. Backend Setup
-
-```bash
-cd Backend
-
-# Create virtual environment
-python -m venv .venv
-
-# Activate virtual environment (Windows)
-.venv\Scripts\activate
-
-# Activate virtual environment (Linux/macOS)
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Configure .env file
-# Ensure DATABASE_URL and GEMINI_API_KEY are configured in Backend/.env
-
-# Run database migrations
-alembic upgrade head
-
-# Start FastAPI dev server
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-### 2. Frontend Setup
-
-Open `Frontend/index.html` in a web browser or serve using VS Code Live Server / static file server:
-
-```bash
-# Example static server using Python
-cd Frontend
-python -m http.server 5500
-```
-
-Access at `http://127.0.0.1:5500`.
-
----
-
-## 🔌 API Summary
-
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/auth/register` | User account registration | No |
-| `POST` | `/auth/login` | User login & JWT token retrieval | No |
-| `GET` | `/users/me` | Fetch active user profile | Yes |
-| `POST` | `/contracts/upload` | Ingest PDF contract & start AI graph | Yes |
-| `GET` | `/contracts` | List user's contracts | Yes |
-| `GET` | `/contracts/{id}` | Fetch detailed contract analysis | Yes |
-| `POST` | `/contracts/{id}/ask` | Ask interactive RAG question on document | Yes |
-| `GET` | `/admin/dashboard/stats`| Platform statistics analytics dashboard | Admin |
-| `GET` | `/admin/users` | List platform users (paginated) | Admin |
-| `GET` | `/admin/contracts` | List all user contracts across platform | Admin |
-
----
-
-## 🛡️ License
-
-Distributed under the **MIT License**. See `LICENSE` for details.
+Access the application in your browser:
+- 🌐 **Frontend Web App**: `http://localhost`
+- ⚡ **Backend REST API**: `http://localhost:8000`
+- 📚 **Interactive Swagger API Docs**: `http://localhost:8000/docs`
