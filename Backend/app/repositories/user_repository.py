@@ -79,6 +79,14 @@ class UserRepository:
             await db.refresh(user)
         return user
 
+    async def mark_user_verified(self, db: AsyncSession, user_id: int) -> Optional[User]:
+        user = await self.get_user_by_id(db=db, user_id=user_id)
+        if user:
+            user.is_verified = True
+            await db.commit()
+            await db.refresh(user)
+        return user
+
     async def delete_user(self, db: AsyncSession, user_id: int) -> bool:
         user = await self.get_user_by_id(db=db, user_id=user_id)
         if user:

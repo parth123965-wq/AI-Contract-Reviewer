@@ -3,7 +3,7 @@ from app.database.database import get_db
 from app.services.auth_service import AuthService , auth_service
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
-from app.schemas.user import UserResponse , UserCreate , LoginResponse , UserLogin
+from app.schemas.user import UserResponse , UserCreate , LoginResponse , UserLogin , VerifyRegistrationRequest , ResendOTPRequest
 from fastapi.security import OAuth2PasswordRequestForm
 
 auth_router = APIRouter(
@@ -11,17 +11,48 @@ auth_router = APIRouter(
     tags=["Authentication"]
 )
 
-@auth_router.post("/register", response_model=UserResponse,status_code=201)
+@auth_router.post("/register", status_code=201)
 async def register_user(
     db: Annotated[AsyncSession,Depends(get_db)],
     auth_services: Annotated[AuthService,Depends(auth_service)],
     user: UserCreate
-) -> UserResponse:
-    return await auth_services.register_user(
+):
+    saved_user = await auth_services.register_user(
         db=db,
         user=user
     )
-    
+    return {
+        "message": "Registration successful. Verification OTP sent to your email.",
+        "user": UserResponse.model_validate(saved_user)
+    }
+
+@auth_router.post("/verify-registration", response_model=UserResponse)
+async def verify_registration(
+    data: VerifyRegistrationRequest,
+    db: Annotated[AsyncSession,Depends(get_db)],
+    auth_services: Annotated[AuthService,Depends(auth_service)]
+) -> UserResponse:
+    verified_user = await auth_services.verify_registration(
+        db=db,
+        email=data.email,
+        otp_code=data.otp_code
+    )
+    return UserResponse.model_validate(verified_user)
+
+@auth_router.post("/resend-otp")
+async def resend_otp(
+    data: ResendOTPRequest,
+    db: Annotated[AsyncSession,Depends(get_db)],
+    auth_services: Annotated[AuthService,Depends(auth_service)]
+):
+    await auth_services.resend_registration_otp(
+        db=db,
+        email=data.email
+    )
+    return {
+        "message": "Verification OTP has been resent to your email."
+    }
+
 @auth_router.post('/login')
 async def login(
     response: Response,

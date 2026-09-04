@@ -17,6 +17,7 @@ class UserResponse(BaseModel):
     username : str
     is_active : bool
     is_admin : bool = False
+    is_verified : bool = False
     email : EmailStr
     created_at : datetime
     model_config = ConfigDict(
@@ -34,3 +35,13 @@ class LoginResponse(BaseModel):
     access_token: str
     token_type: str
     user: UserResponse
+
+class VerifyRegistrationRequest(BaseModel):
+    email: EmailStr
+    otp_code: str = Field(
+        min_length=6,
+        max_length=6
+    )
+
+class ResendOTPRequest(BaseModel):
+    email: EmailStr
