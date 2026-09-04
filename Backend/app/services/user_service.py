@@ -4,7 +4,14 @@ from fastapi import HTTPException, status
 from app.auth.password import hash_password, verify_password
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
-from app.schemas.user import UserResponse, UpdateUsernameRequest, UpdateEmailRequest, ChangePasswordRequest
+from app.services.otp_service import otp_service
+from app.schemas.user import (
+    UserResponse,
+    UpdateUsernameRequest,
+    RequestEmailChangeRequest,
+    VerifyEmailChangeRequest,
+    VerifyPasswordChangeRequest
+)
 
 class UserService:
     def __init__(self):
@@ -28,12 +35,15 @@ class UserService:
         updated_user = await self.user_repository.update_user(db=db, user=current_user)
         return UserResponse.model_validate(updated_user)
 
-    async def update_email(
-        self, db: AsyncSession, current_user: User, request: UpdateEmailRequest
-    ) -> UserResponse:
-        new_email = request.email.lower().strip()
+    async def request_email_change(
+        self, db: AsyncSession, current_user: User, request: RequestEmailChangeRequest
+    ) -> dict:
+        new_email = request.new_email.lower().strip()
         if new_email == current_user.email:
-            return UserResponse.model_validate(current_user)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New email must be different from current email."
+            )
 
         existing_user = await self.user_repository.get_user_by_email(db=db, email=new_email)
         if existing_user and existing_user.id != current_user.id:
@@ -42,12 +52,36 @@ class UserService:
                 detail="Email is already registered by another account."
             )
 
+        otp_code = await otp_service.generate_otp(purpose="email_change", identifier=new_email)
+        await otp_service.send_otp_email(email=new_email, otp_code=otp_code, purpose="email_change")
+        return {"message": f"Verification OTP sent to {new_email}."}
+
+    async def confirm_email_change(
+        self, db: AsyncSession, current_user: User, request: VerifyEmailChangeRequest
+    ) -> UserResponse:
+        new_email = request.new_email.lower().strip()
+        existing_user = await self.user_repository.get_user_by_email(db=db, email=new_email)
+        if existing_user and existing_user.id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email is already registered by another account."
+            )
+
+        await otp_service.verify_otp(purpose="email_change", identifier=new_email, input_otp=request.otp_code)
+
         current_user.email = new_email
         updated_user = await self.user_repository.update_user(db=db, user=current_user)
         return UserResponse.model_validate(updated_user)
 
-    async def change_password(
-        self, db: AsyncSession, current_user: User, request: ChangePasswordRequest
+    async def request_password_change(
+        self, db: AsyncSession, current_user: User
+    ) -> dict:
+        otp_code = await otp_service.generate_otp(purpose="password_change", identifier=current_user.email)
+        await otp_service.send_otp_email(email=current_user.email, otp_code=otp_code, purpose="password_change")
+        return {"message": f"Verification OTP sent to {current_user.email}."}
+
+    async def confirm_password_change(
+        self, db: AsyncSession, current_user: User, request: VerifyPasswordChangeRequest
     ) -> dict:
         if not verify_password(password=request.current_password, password_hash_value=current_user.password_hash):
             raise HTTPException(
@@ -61,9 +95,12 @@ class UserService:
                 detail="New password must be different from current password."
             )
 
+        await otp_service.verify_otp(purpose="password_change", identifier=current_user.email, input_otp=request.otp_code)
+
         current_user.password_hash = hash_password(password=request.new_password)
         await self.user_repository.update_user(db=db, user=current_user)
         return {"message": "Password changed successfully."}
 
 def get_user_service() -> UserService:
     return UserService()
+

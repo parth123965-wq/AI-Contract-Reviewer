@@ -55,6 +55,16 @@ class UpdateUsernameRequest(BaseModel):
 class UpdateEmailRequest(BaseModel):
     email: EmailStr
 
+class RequestEmailChangeRequest(BaseModel):
+    new_email: EmailStr
+
+class VerifyEmailChangeRequest(BaseModel):
+    new_email: EmailStr
+    otp_code: str = Field(
+        min_length=6,
+        max_length=6
+    )
+
 class ChangePasswordRequest(BaseModel):
     current_password: str = Field(
         min_length=8,
@@ -64,4 +74,19 @@ class ChangePasswordRequest(BaseModel):
         min_length=8,
         max_length=128
     )
+
+class VerifyPasswordChangeRequest(BaseModel):
+    current_password: str = Field(
+        min_length=8,
+        max_length=128
+    )
+    new_password: str = Field(
+        min_length=8,
+        max_length=128
+    )
+    otp_code: str = Field(
+        min_length=6,
+        max_length=6
+    )
+
 
