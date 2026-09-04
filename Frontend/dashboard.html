@@ -238,39 +238,107 @@
 
         <!-- SETTINGS TAB VIEW SECTION -->
         <div id="tab-settings" class="tab-content" style="display: none;">
-          <form id="settingsForm" style="max-width: 800px; display: flex; flex-direction: column; gap: 24px;">
+          <div style="max-width: 800px; display: flex; flex-direction: column; gap: 24px;">
+            
+            <!-- Card 1: Display Name -->
             <article class="card glass-card">
               <div class="card-header">
                 <h2 class="card-title">👤 User Profile</h2>
               </div>
+              <form id="updateUsernameForm" style="display: grid; gap: 16px; margin-top: 12px;">
+                <div class="input-group">
+                  <label class="input-label" for="settingsUsername">Display Name / Username</label>
+                  <input type="text" id="settingsUsername" class="input" placeholder="Your Name" required />
+                </div>
+                <div style="display: flex; justify-content: flex-end;">
+                  <button type="submit" id="saveUsernameBtn" class="btn btn-primary">💾 Update Display Name</button>
+                </div>
+              </form>
+            </article>
+
+            <!-- Card 2: Email Change -->
+            <article class="card glass-card">
+              <div class="card-header">
+                <h2 class="card-title">✉️ Update Email Address</h2>
+              </div>
               <div style="display: grid; gap: 16px; margin-top: 12px;">
                 <div class="input-group">
-                  <label class="input-label" for="settingsUsername">Display Name</label>
-                  <input type="text" id="settingsUsername" class="input" placeholder="Your Name" />
+                  <label class="input-label" for="settingsEmail">Current Email Address</label>
+                  <input type="email" id="settingsEmail" class="input" readonly style="opacity: 0.7;" />
                 </div>
-                <div class="input-group">
-                  <label class="input-label" for="settingsEmail">Email Address</label>
-                  <input type="email" id="settingsEmail" class="input" placeholder="name@company.com" readonly style="opacity: 0.8;" />
-                </div>
+
+                <form id="requestEmailChangeForm" style="display: flex; gap: 12px; align-items: flex-end;">
+                  <div class="input-group" style="flex: 1;">
+                    <label class="input-label" for="newEmailInput">New Email Address</label>
+                    <input type="email" id="newEmailInput" class="input" placeholder="newemail@company.com" required />
+                  </div>
+                  <button type="submit" id="requestEmailOtpBtn" class="btn btn-outline">📩 Send OTP</button>
+                </form>
+
+                <form id="confirmEmailChangeForm" style="display: none; background: rgba(0, 240, 255, 0.05); padding: 16px; border-radius: var(--radius-md); border: 1px solid rgba(0, 240, 255, 0.2); flex-direction: column; gap: 12px;">
+                  <span style="font-size: 0.875rem; color: var(--color-primary); font-weight: 600;">🔐 Verification OTP sent to new email</span>
+                  <div class="input-group">
+                    <label class="input-label" for="emailOtpInput">Enter 6-Digit OTP Code</label>
+                    <input type="text" id="emailOtpInput" class="input" maxlength="6" placeholder="123456" style="text-align: center; letter-spacing: 3px; font-family: var(--font-mono);" required />
+                  </div>
+                  <div style="display: flex; justify-content: flex-end;">
+                    <button type="submit" id="confirmEmailBtn" class="btn btn-primary">✓ Confirm Email Change</button>
+                  </div>
+                </form>
               </div>
             </article>
 
+            <!-- Card 3: Password & Security -->
+            <article class="card glass-card">
+              <div class="card-header">
+                <h2 class="card-title">🔑 Change Password</h2>
+              </div>
+              <div style="display: grid; gap: 16px; margin-top: 12px;">
+                <p style="font-size: 0.875rem; color: var(--color-text-muted);">
+                  To change your password, request a security OTP code sent to your active email.
+                </p>
+                <div>
+                  <button type="button" id="requestPasswordOtpBtn" class="btn btn-outline">📩 Request Password Reset OTP</button>
+                </div>
+
+                <form id="confirmPasswordChangeForm" style="display: none; background: rgba(112, 0, 255, 0.05); padding: 16px; border-radius: var(--radius-md); border: 1px solid rgba(112, 0, 255, 0.2); display: flex; flex-direction: column; gap: 12px;">
+                  <span style="font-size: 0.875rem; color: #a5b4fc; font-weight: 600;">🔐 OTP Sent to Your Email</span>
+                  <div class="input-group">
+                    <label class="input-label" for="passwordOtpInput">6-Digit Verification OTP Code</label>
+                    <input type="text" id="passwordOtpInput" class="input" maxlength="6" placeholder="123456" style="text-align: center; letter-spacing: 3px; font-family: var(--font-mono);" required />
+                  </div>
+                  <div class="input-group">
+                    <label class="input-label" for="newPasswordInput">New Password (Min 8 characters)</label>
+                    <input type="password" id="newPasswordInput" class="input" placeholder="••••••••" required />
+                  </div>
+                  <div class="input-group">
+                    <label class="input-label" for="confirmNewPasswordInput">Confirm New Password</label>
+                    <input type="password" id="confirmNewPasswordInput" class="input" placeholder="••••••••" required />
+                  </div>
+                  <div style="display: flex; justify-content: flex-end;">
+                    <button type="submit" id="confirmPasswordBtn" class="btn btn-primary">✓ Set New Password</button>
+                  </div>
+                </form>
+              </div>
+            </article>
+
+            <!-- Card 4: REST API Configuration -->
             <article class="card glass-card">
               <div class="card-header">
                 <h2 class="card-title">🌐 REST API Configuration</h2>
               </div>
-              <div style="display: grid; gap: 16px; margin-top: 12px;">
+              <form id="apiConfigForm" style="display: grid; gap: 16px; margin-top: 12px;">
                 <div class="input-group">
                   <label class="input-label" for="settingsApiUrl">FastAPI Server URL</label>
                   <input type="text" id="settingsApiUrl" class="input" placeholder="http://127.0.0.1:8000" />
                 </div>
-              </div>
+                <div style="display: flex; justify-content: flex-end;">
+                  <button type="submit" class="btn btn-outline">💾 Save Server Config</button>
+                </div>
+              </form>
             </article>
 
-            <div style="display: flex; justify-content: flex-end;">
-              <button type="submit" class="btn btn-primary btn-lg">💾 Save Preferences</button>
-            </div>
-          </form>
+          </div>
         </div>
       </main>
     </div>

@@ -191,14 +191,19 @@ async function login(email, password) {
 
 async function register(email, password, username) {
   const res = await apiPost("/auth/register", { email, password, username });
-  if (res && res.access_token) {
-    saveToken(res.access_token);
-  } else {
-    // If registration succeeds without automatic login token, perform login
-    const loginRes = await login(email, password);
-    return loginRes;
+  return res;
+}
+
+async function verifyRegistration(email, otpCode) {
+  const res = await apiPost("/auth/verify-registration", { email, otp_code: otpCode });
+  if (res && res.id) {
+    localStorage.setItem(API_CONFIG.USER_KEY, JSON.stringify(res));
   }
   return res;
+}
+
+async function resendOTP(email) {
+  return apiPost("/auth/resend-otp", { email });
 }
 
 async function logout() {
@@ -218,6 +223,37 @@ async function getCurrentUser() {
     localStorage.setItem(API_CONFIG.USER_KEY, JSON.stringify(user));
   }
   return user;
+}
+
+async function updateUsername(username) {
+  const updatedUser = await apiRequest("/users/me/username", {
+    method: "PATCH",
+    body: JSON.stringify({ username })
+  });
+  if (updatedUser) {
+    localStorage.setItem(API_CONFIG.USER_KEY, JSON.stringify(updatedUser));
+  }
+  return updatedUser;
+}
+
+async function requestEmailChange(newEmail) {
+  return apiPost("/users/me/email/request", { new_email: newEmail });
+}
+
+async function confirmEmailChange(newEmail, otpCode) {
+  const updatedUser = await apiPost("/users/me/email/confirm", { new_email: newEmail, otp_code: otpCode });
+  if (updatedUser) {
+    localStorage.setItem(API_CONFIG.USER_KEY, JSON.stringify(updatedUser));
+  }
+  return updatedUser;
+}
+
+async function requestPasswordChange() {
+  return apiPost("/users/me/password/request", {});
+}
+
+async function confirmPasswordChange(otpCode, newPassword) {
+  return apiPost("/users/me/password/confirm", { otp_code: otpCode, new_password: newPassword });
 }
 
 async function getContracts() {

@@ -170,6 +170,9 @@ async function handleLoginSubmit(event) {
   }
 }
 
+let pendingRegisterEmail = "";
+let pendingRegisterPassword = "";
+
 /* Register Submit Handler */
 async function handleRegisterSubmit(event) {
   event.preventDefault();
@@ -211,17 +214,110 @@ async function handleRegisterSubmit(event) {
       submitBtn.textContent = "Creating Account...";
     }
 
-    await register(email, password, username);
-    showToast("Account created successfully! Redirecting...", "success");
+    const res = await register(email, password, username);
+    pendingRegisterEmail = email;
+    pendingRegisterPassword = password;
 
-    setTimeout(() => {
-      window.location.href = "dashboard.html";
-    }, 600);
+    showToast(res.message || "Registration successful! OTP code sent to your email.", "success");
+    openOtpModal(email);
+
   } catch (error) {
     showToast(error.message || "Registration failed. Please try again.", "error");
+  } finally {
     if (submitBtn) {
       submitBtn.disabled = false;
-      submitBtn.textContent = "Create Account";
+      submitBtn.textContent = "Create Account & Get Started";
     }
   }
 }
+
+/* OTP Modal Event Listeners */
+function openOtpModal(email) {
+  const modal = document.getElementById("otpModal");
+  const targetEmailEl = document.getElementById("otpEmailTarget");
+  if (targetEmailEl) targetEmailEl.textContent = email;
+  if (modal) modal.classList.add("active");
+}
+
+function closeOtpModal() {
+  const modal = document.getElementById("otpModal");
+  if (modal) modal.classList.remove("active");
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const closeBtn = document.getElementById("closeOtpModalBtn");
+  if (closeBtn) closeBtn.addEventListener("click", closeOtpModal);
+
+  const otpForm = document.getElementById("otpForm");
+  if (otpForm) otpForm.addEventListener("submit", handleOtpSubmit);
+
+  const resendBtn = document.getElementById("resendOtpBtn");
+  if (resendBtn) resendBtn.addEventListener("click", handleResendOtp);
+});
+
+async function handleOtpSubmit(e) {
+  e.preventDefault();
+  const otpInput = document.getElementById("otpCodeInput");
+  const submitBtn = document.getElementById("submitOtpBtn");
+  const otpCode = otpInput ? otpInput.value.trim() : "";
+
+  if (!otpCode || otpCode.length < 4) {
+    showToast("Please enter a valid OTP code.", "error");
+    return;
+  }
+
+  try {
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Verifying...";
+    }
+
+    await verifyRegistration(pendingRegisterEmail, otpCode);
+    showToast("Account verified successfully! Logging you in...", "success");
+
+    // Perform auto-login with pending credentials
+    if (pendingRegisterEmail && pendingRegisterPassword) {
+      try {
+        await login(pendingRegisterEmail, pendingRegisterPassword);
+      } catch (err) {
+        // Ignore auto-login error if cookie was already set
+      }
+    }
+
+    setTimeout(() => {
+      window.location.href = "dashboard.html";
+    }, 800);
+
+  } catch (error) {
+    showToast(error.message || "Invalid OTP code. Please try again.", "error");
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Verify Account";
+    }
+  }
+}
+
+async function handleResendOtp() {
+  const resendBtn = document.getElementById("resendOtpBtn");
+  if (!pendingRegisterEmail) {
+    showToast("No email associated with pending registration.", "error");
+    return;
+  }
+
+  try {
+    if (resendBtn) {
+      resendBtn.disabled = true;
+      resendBtn.textContent = "Sending...";
+    }
+    const res = await resendOTP(pendingRegisterEmail);
+    showToast(res.message || "Verification OTP has been resent to your email.", "info");
+  } catch (error) {
+    showToast(error.message || "Failed to resend OTP.", "error");
+  } finally {
+    if (resendBtn) {
+      resendBtn.disabled = false;
+      resendBtn.textContent = "📩 Resend OTP";
+    }
+  }
+}
+

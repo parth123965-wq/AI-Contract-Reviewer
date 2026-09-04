@@ -144,24 +144,192 @@ function initDashboardEvents() {
     });
   }
 
-  // Settings Form Handler
-  const settingsForm = document.getElementById("settingsForm");
-  if (settingsForm) {
-    settingsForm.addEventListener("submit", (e) => {
+  // 1. Update Username Form Handler
+  const updateUsernameForm = document.getElementById("updateUsernameForm");
+  if (updateUsernameForm) {
+    updateUsernameForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const usernameInput = document.getElementById("settingsUsername");
+      const saveBtn = document.getElementById("saveUsernameBtn");
+      const newUsername = usernameInput ? usernameInput.value.trim() : "";
+
+      if (!newUsername) {
+        showToast("Please enter a valid display name.", "error");
+        return;
+      }
+
+      try {
+        if (saveBtn) {
+          saveBtn.disabled = true;
+          saveBtn.textContent = "Updating...";
+        }
+        const updatedUser = await updateUsername(newUsername);
+        renderUserInfo(updatedUser);
+        showToast("Display name updated successfully!", "success");
+      } catch (err) {
+        showToast(err.message || "Failed to update display name.", "error");
+      } finally {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = "💾 Update Display Name";
+        }
+      }
+    });
+  }
+
+  // 2. Email Change Request Form Handler
+  let pendingNewEmail = "";
+  const requestEmailChangeForm = document.getElementById("requestEmailChangeForm");
+  if (requestEmailChangeForm) {
+    requestEmailChangeForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const newEmailInput = document.getElementById("newEmailInput");
+      const requestBtn = document.getElementById("requestEmailOtpBtn");
+      const confirmForm = document.getElementById("confirmEmailChangeForm");
+      const newEmail = newEmailInput ? newEmailInput.value.trim() : "";
+
+      if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+        showToast("Please enter a valid email address.", "error");
+        return;
+      }
+
+      try {
+        if (requestBtn) {
+          requestBtn.disabled = true;
+          requestBtn.textContent = "Sending OTP...";
+        }
+        const res = await requestEmailChange(newEmail);
+        pendingNewEmail = newEmail;
+        if (confirmForm) confirmForm.style.display = "flex";
+        showToast(res.message || "Verification OTP sent to your new email address.", "info");
+      } catch (err) {
+        showToast(err.message || "Failed to request email change.", "error");
+      } finally {
+        if (requestBtn) {
+          requestBtn.disabled = false;
+          requestBtn.textContent = "📩 Send OTP";
+        }
+      }
+    });
+  }
+
+  // Confirm Email Change Form Handler
+  const confirmEmailChangeForm = document.getElementById("confirmEmailChangeForm");
+  if (confirmEmailChangeForm) {
+    confirmEmailChangeForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const otpInput = document.getElementById("emailOtpInput");
+      const confirmBtn = document.getElementById("confirmEmailBtn");
+      const otpCode = otpInput ? otpInput.value.trim() : "";
+
+      if (!pendingNewEmail || !otpCode) {
+        showToast("Please enter the 6-digit OTP code.", "error");
+        return;
+      }
+
+      try {
+        if (confirmBtn) {
+          confirmBtn.disabled = true;
+          confirmBtn.textContent = "Verifying...";
+        }
+        const updatedUser = await confirmEmailChange(pendingNewEmail, otpCode);
+        renderUserInfo(updatedUser);
+        confirmEmailChangeForm.style.display = "none";
+        const newEmailInput = document.getElementById("newEmailInput");
+        if (newEmailInput) newEmailInput.value = "";
+        if (otpInput) otpInput.value = "";
+        showToast("Email address updated successfully!", "success");
+      } catch (err) {
+        showToast(err.message || "Failed to confirm email change.", "error");
+      } finally {
+        if (confirmBtn) {
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = "✓ Confirm Email Change";
+        }
+      }
+    });
+  }
+
+  // 3. Request Password OTP Handler
+  const requestPasswordOtpBtn = document.getElementById("requestPasswordOtpBtn");
+  const confirmPasswordChangeForm = document.getElementById("confirmPasswordChangeForm");
+  if (requestPasswordOtpBtn) {
+    requestPasswordOtpBtn.addEventListener("click", async () => {
+      try {
+        requestPasswordOtpBtn.disabled = true;
+        requestPasswordOtpBtn.textContent = "Sending Security OTP...";
+        const res = await requestPasswordChange();
+        if (confirmPasswordChangeForm) confirmPasswordChangeForm.style.display = "flex";
+        showToast(res.message || "Security OTP has been sent to your email address.", "info");
+      } catch (err) {
+        showToast(err.message || "Failed to request password reset OTP.", "error");
+      } finally {
+        requestPasswordOtpBtn.disabled = false;
+        requestPasswordOtpBtn.textContent = "📩 Request Password Reset OTP";
+      }
+    });
+  }
+
+  // Confirm Password Change Form Handler
+  if (confirmPasswordChangeForm) {
+    confirmPasswordChangeForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const otpInput = document.getElementById("passwordOtpInput");
+      const newPassInput = document.getElementById("newPasswordInput");
+      const confirmPassInput = document.getElementById("confirmNewPasswordInput");
+      const confirmBtn = document.getElementById("confirmPasswordBtn");
+
+      const otpCode = otpInput ? otpInput.value.trim() : "";
+      const newPassword = newPassInput ? newPassInput.value : "";
+      const confirmPassword = confirmPassInput ? confirmPassInput.value : "";
+
+      if (!otpCode || !newPassword || !confirmPassword) {
+        showToast("Please fill in all password reset fields.", "error");
+        return;
+      }
+
+      if (newPassword.length < 8) {
+        showToast("New password must be at least 8 characters long.", "error");
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        showToast("New passwords do not match.", "error");
+        return;
+      }
+
+      try {
+        if (confirmBtn) {
+          confirmBtn.disabled = true;
+          confirmBtn.textContent = "Updating Password...";
+        }
+        const res = await confirmPasswordChange(otpCode, newPassword);
+        showToast(res.message || "Password updated successfully!", "success");
+        confirmPasswordChangeForm.style.display = "none";
+        if (otpInput) otpInput.value = "";
+        if (newPassInput) newPassInput.value = "";
+        if (confirmPassInput) confirmPassInput.value = "";
+      } catch (err) {
+        showToast(err.message || "Failed to update password.", "error");
+      } finally {
+        if (confirmBtn) {
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = "✓ Set New Password";
+        }
+      }
+    });
+  }
+
+  // 4. API Config Form Handler
+  const apiConfigForm = document.getElementById("apiConfigForm");
+  if (apiConfigForm) {
+    apiConfigForm.addEventListener("submit", (e) => {
+      e.preventDefault();
       const apiUrlInput = document.getElementById("settingsApiUrl");
       if (apiUrlInput && apiUrlInput.value.trim()) {
         API_CONFIG.BASE_URL = apiUrlInput.value.trim();
+        showToast("FastAPI Server URL updated to " + API_CONFIG.BASE_URL, "success");
       }
-      if (usernameInput && usernameInput.value.trim()) {
-        const usernameEl = document.getElementById("username");
-        const avatarEl = document.getElementById("user-avatar");
-        const nameVal = usernameInput.value.trim();
-        if (usernameEl) usernameEl.textContent = nameVal;
-        if (avatarEl) avatarEl.textContent = nameVal.charAt(0).toUpperCase();
-      }
-      showToast("Settings saved successfully!", "success");
     });
   }
 }
