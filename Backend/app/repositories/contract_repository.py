@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
+from sqlalchemy.orm import selectinload
 from typing import Optional
 from app.models.contract import Contract, ContractAnalysis, ContractStatus
 from datetime import datetime, timezone
@@ -29,7 +30,10 @@ class ContractRepository:
         ]
         if user_id is not None:
             conditions.append(Contract.user_id == user_id)
-        statement = select(Contract).where(*conditions)
+        statement = select(Contract).options(
+            selectinload(Contract.user),
+            selectinload(Contract.analyses)
+        ).where(*conditions)
         result = await db.execute(statement=statement)
         return result.scalar_one_or_none()
     
@@ -38,7 +42,10 @@ class ContractRepository:
         db: AsyncSession,
         user_id: int
     ) -> list[Contract]:
-        statement = select(Contract).where(
+        statement = select(Contract).options(
+            selectinload(Contract.user),
+            selectinload(Contract.analyses)
+        ).where(
             Contract.user_id == user_id, 
             Contract.is_deleted.is_(False)
         )
@@ -102,7 +109,11 @@ class ContractRepository:
         user_id: Optional[int] = None,
         search: Optional[str] = None
     ) -> list[Contract]:
-        statement = select(Contract).outerjoin(User, Contract.user_id == User.id).where(Contract.is_deleted.is_(False))
+        statement = select(Contract).options(
+            selectinload(Contract.user),
+            selectinload(Contract.analyses)
+        ).outerjoin(User, Contract.user_id == User.id).where(Contract.is_deleted.is_(False))
+
         if status:
             statement = statement.where(Contract.status == status)
         if user_id:

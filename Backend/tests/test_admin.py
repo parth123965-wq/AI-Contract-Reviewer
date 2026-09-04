@@ -32,21 +32,21 @@ async def override_get_db():
         yield session
 
 
-app.dependency_overrides[get_db] = override_get_db
-
-
 @pytest_asyncio.fixture(autouse=True)
 async def setup_db():
+    app.dependency_overrides[get_db] = override_get_db
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
     async with TestingSessionLocal() as db:
+
         # Create non-admin user
         normal_user = User(
             username="normaluser",
             email="user@example.com",
             password_hash=hash_password("password123"),
             is_active=True,
+            is_verified=True,
             is_admin=False
         )
         # Create admin user
@@ -55,10 +55,12 @@ async def setup_db():
             email="admin@example.com",
             password_hash=hash_password("adminpassword123"),
             is_active=True,
+            is_verified=True,
             is_admin=True
         )
         db.add(normal_user)
         db.add(admin_user)
+
         await db.commit()
         await db.refresh(normal_user)
         await db.refresh(admin_user)
