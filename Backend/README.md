@@ -17,15 +17,18 @@ An enterprise-grade, asynchronous backend service and neural AI pipeline designe
   - `POST /contracts/{contract_id}/ask`: Streams answers token-by-token using FastAPI `StreamingResponse` (`text/event-stream`).
   - Utilizes `genai_client.models.generate_content_stream` to stream output without waiting for full generation.
 
-- 🔐 **Authentication & Role-Based Access Control**:
-  - Secure JWT authentication via HttpOnly cookies (`ai_contract_session`) and `Authorization: Bearer <token>` headers.
-  - Role-based authorization distinguishing regular users from platform Administrators (`is_admin`).
-  - Dedicated Admin authentication (`/admin/auth/login`).
+- 👤 **User Profile Management & OTP Security**:
+  - **Unique Username Constraint**: Guaranteed unique username indexing across all registered accounts.
+  - **OTP-Verified Sensitive Actions**:
+    - **Email Change**: `POST /users/me/email/request` dispatches a 6-digit OTP code to the new target email, and `POST /users/me/email/confirm` validates the OTP to update the email address.
+    - **Password Change**: `POST /users/me/password/request` dispatches a 6-digit OTP code to the user's registered email, and `POST /users/me/password/confirm` verifies current password + OTP to safely update the password hash.
+  - `PATCH /users/me/username` for updating user profile handle.
 
 - 🛠️ **Admin Control Panel & Management APIs**:
   - **User Management**: Paginated search, status activation/deactivation, admin role promotion/demotion, and user deletion.
   - **Contract Management**: View, filter by status, search across filenames/users, update processing status, and delete contracts across all platform users.
   - **Analytics Dashboard**: Real-time stats on user counts, contract processing status queues, and risk level breakdowns.
+
 
 - 📄 **Asynchronous Contract Upload & OCR**:
   - Ingestion of contract documents with validation and file storage management.
@@ -64,5 +67,5 @@ Backend/
 │   ├── models/                   # SQLAlchemy Database Models (User, Contract, Analysis)
 │   ├── repositories/             # Async Database Repository Layer
 │   ├── schemas/                  # Pydantic Request & Response Schemas
-│   └── services/                 # Business Logic Controllers
+│   └── services/                 # Business Logic Controllers (user_service, auth_service, otp_service, admin_service)
 ```
