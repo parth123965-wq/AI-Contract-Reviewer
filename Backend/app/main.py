@@ -1,14 +1,35 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.core.config import settings
+from app.core.redis_setup import initialize_redis, close_redis
+from app.core.email_setup import initialize_email, close_email
 from app.api.auth import auth_router
 from app.api.users import users_router
 from app.api.contracts import contract_router
 from app.api.admin import admin_router
 from fastapi.middleware.cors import CORSMiddleware
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: initialize services
+    try:
+        await initialize_redis()
+    except Exception as e:
+        print(f"Redis initialization warning: {e}")
+    await initialize_email()
+
+    yield
+
+    # Shutdown: close services
+    await close_redis()
+    await close_email()
+
+
 app = FastAPI(
     title=settings.APP_NAME,
-    version=settings.APP_VERSION
+    version=settings.APP_VERSION,
+    lifespan=lifespan
 )
 
 app.add_middleware(

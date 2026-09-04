@@ -14,9 +14,13 @@ Cookie:
 """
 
 
+from typing import Annotated
 from fastapi import Depends, HTTPException, status, Request
 from app.database.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.models.user import User
+from app.auth.jwt import decode_access_token
+from app.repositories.user_repository import UserRepository
 
 async def get_current_user(
     request: Request,

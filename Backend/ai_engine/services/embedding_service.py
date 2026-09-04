@@ -2,13 +2,21 @@ import os
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-from sentence_transformers import SentenceTransformer
+try:
+    from sentence_transformers import SentenceTransformer
+    HAS_SENTENCE_TRANSFORMERS = True
+except ImportError:
+    HAS_SENTENCE_TRANSFORMERS = False
+
 from app.core.config import settings
 
 class EmbeddingService:
     
     def __init__(self):
-        self.model = SentenceTransformer(settings.MODEL_NAME)
+        if HAS_SENTENCE_TRANSFORMERS:
+            self.model = SentenceTransformer(settings.MODEL_NAME)
+        else:
+            self.model = None
         
     def _validate_chunks(
         self,

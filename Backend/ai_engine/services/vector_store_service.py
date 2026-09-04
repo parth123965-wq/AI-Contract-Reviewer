@@ -1,14 +1,22 @@
 from app.core.config import settings
-import chromadb
+try:
+    import chromadb
+    HAS_CHROMADB = True
+except ImportError:
+    HAS_CHROMADB = False
 
 class VectorStoreService:
     
     
     def __init__(self):
-        self.client = chromadb.PersistentClient(
-            path=settings.CHROMA_DB_PATH
-        )
-        self.collection = self.client.get_or_create_collection(settings.COLLECTION_NAME)
+        if HAS_CHROMADB:
+            self.client = chromadb.PersistentClient(
+                path=settings.CHROMA_DB_PATH
+            )
+            self.collection = self.client.get_or_create_collection(settings.COLLECTION_NAME)
+        else:
+            self.client = None
+            self.collection = None
         
     def _validate_store_input(
         self,
