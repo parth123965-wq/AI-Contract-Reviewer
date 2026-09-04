@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     MAIL_FROM_NAME: str | None = None
     MAIL_STARTTLS: bool = True
     MAIL_SSL_TLS: bool = False
+    OTP_LENGTH: int
+    OTP_EXPIRE_SECONDS: int
+    OTP_COOLDOWN_SECONDS: int
+    OTP_MAX_ATTEMPTS: int
     model_config = SettingsConfigDict(
         env_file='.env',
         extra='ignore'
