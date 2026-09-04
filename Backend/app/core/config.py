@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     AI_MODEL_NAME: str
     GEMINI_API_KEY: str | None = None
     GOOGLE_API_KEY: str | None = None
+    REDIS_URL: str
     model_config = SettingsConfigDict(
         env_file='.env',
         extra='ignore'
