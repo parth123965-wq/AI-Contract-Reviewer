@@ -1,6 +1,6 @@
 # Core FastAPI & Web Server
 fastapi>=0.100.0
-uvicorn[standard]>=0.20.0
+uvicorn>=0.20.0
 pydantic>=2.0.0
 pydantic-settings>=2.0.0
 python-multipart>=0.0.6
@@ -9,7 +9,7 @@ python-dotenv>=1.0.0
 # Database, Caching & Migrations
 SQLAlchemy>=2.0.0
 alembic>=1.10.0
-psycopg2-binary>=2.9.0
+psycopg[binary]>=3.1.0; python_version < "3.14"
 asyncpg>=0.28.0
 redis>=5.0.0
 fastapi-mail>=1.4.0
@@ -21,14 +21,15 @@ bcrypt>=4.0.0
 python-jose[cryptography]>=3.3.0
 
 # AI Engine, RAG & Vector Database
-chromadb>=0.4.0
-sentence-transformers>=2.2.0
-langchain>=0.1.0
-langchain-core>=0.1.0
-langchain-google-genai>=1.0.0
-langgraph>=0.0.20
+chromadb>=0.4.0; python_version < "3.14"
+sentence-transformers>=2.2.0; python_version < "3.14"
+langchain>=0.1.0; python_version < "3.14"
+langchain-core>=0.1.0; python_version < "3.14"
+langchain-google-genai>=1.0.0; python_version < "3.14"
+langgraph>=0.0.20; python_version < "3.14"
 google-genai>=0.1.0
-pymupdf>=1.23.0
+pypdf>=4.0.0
+pymupdf>=1.23.0; python_version < "3.14"
 
 # Testing & Utilities
 pytest>=7.0.0

@@ -1,5 +1,10 @@
-from pathlib import Path
-import fitz
+try:
+    import fitz
+    HAS_FITZ = True
+except ImportError:
+    HAS_FITZ = False
+
+from pypdf import PdfReader
 from typing import Any
 import os
 from app.core.config import settings
@@ -19,22 +24,34 @@ class TextExtractor:
         file_path: str
     ):
         pdf_path = Path(file_path)
-        doc = fitz.open(pdf_path)
-        return doc
+        if HAS_FITZ:
+            return ("fitz", fitz.open(pdf_path))
+        else:
+            return ("pypdf", PdfReader(pdf_path))
 
     def _extract_text(
         self,
-        doc: Any
+        doc_tuple: Any
     ) -> list[str]:
+        engine, doc = doc_tuple
         text_list = []
-        for page_number, page in enumerate(doc, start=1):
-            text = page.get_text()
-            if text and len(text.strip()) > 5:
-                text_list.append(text.strip())
+        if engine == "fitz":
+            for page_number, page in enumerate(doc, start=1):
+                text = page.get_text()
+                if text and len(text.strip()) > 5:
+                    text_list.append(text.strip())
+        else:
+            for page in doc.pages:
+                text = page.extract_text()
+                if text and len(text.strip()) > 5:
+                    text_list.append(text.strip())
         return text_list
 
-    def _ocr_extract_pdf(self, doc: Any) -> str:
+    def _ocr_extract_pdf(self, doc_tuple: Any) -> str:
         """Extracts text from scanned/image-based PDFs using Gemini Vision OCR."""
+        engine, doc = doc_tuple
+        if engine != "fitz":
+            return ""
         ocr_texts = []
         try:
             from google import genai
@@ -73,13 +90,13 @@ class TextExtractor:
         file_path: str
     ) -> str:
         self._validate_file(file_path=file_path)
-        doc = self._open_pdf(file_path=file_path)
-        text_list = self._extract_text(doc=doc)
+        doc_tuple = self._open_pdf(file_path=file_path)
+        text_list = self._extract_text(doc_tuple=doc_tuple)
         single_string = " ".join(text_list).strip()
 
         # If vector font extraction returned very little or no text (< 20 chars), use Gemini Vision OCR
         if len(single_string) < 20:
-            ocr_text = self._ocr_extract_pdf(doc=doc)
+            ocr_text = self._ocr_extract_pdf(doc_tuple=doc_tuple)
             if ocr_text:
                 single_string = ocr_text
 
