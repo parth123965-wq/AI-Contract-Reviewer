@@ -7,6 +7,7 @@ from fastapi_mail import MessageSchema, MessageType
 from app.core.config import settings
 from app.core.redis_setup import get_redis
 from app.core.email_setup import get_email
+from app.services.email_service import email_service
 
 logger = logging.getLogger(__name__)
 
@@ -104,30 +105,9 @@ class OTPService:
 
     async def send_otp_email(self, email: str, otp_code: str, purpose: str = "verification") -> None:
         """
-        Dispatch the OTP code to the target email address using FastMail.
+        Dispatch the OTP code to the target email address using EmailService template rendering.
         """
-        try:
-            fastmail = get_email()
-            message = MessageSchema(
-                subject=f"Your {settings.APP_NAME} OTP Code - {purpose.capitalize()}",
-                recipients=[email],
-                body=f"""
-                <h2>Your Verification Code</h2>
-                <p>Use the following OTP code to complete your request for <strong>{purpose}</strong>:</p>
-                <h1 style="font-size: 32px; letter-spacing: 4px; color: #4F46E5;">{otp_code}</h1>
-                <p>This code will expire in {settings.OTP_EXPIRE_SECONDS // 60} minutes.</p>
-                <p>If you did not request this code, please ignore this email.</p>
-                """,
-                subtype=MessageType.html
-            )
-            await fastmail.send_message(message)
-            logger.info(f"OTP email sent to {email}")
-        except Exception as e:
-            logger.error(f"Failed to send OTP email to {email}: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to send OTP email."
-            )
+        await email_service.send_otp_email(email=email, otp_code=otp_code, purpose=purpose)
 
 
 # Default service instance
