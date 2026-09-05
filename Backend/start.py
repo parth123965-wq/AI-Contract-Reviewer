@@ -62,8 +62,8 @@ def main():
     # DEFAULT: Docker Mode (unless --local is explicitly requested)
     if not use_local:
         if docker_bin and DOCKER_COMPOSE_FILE.exists():
-            print("🐋 Defaulting to Docker Mode: Launching full stack (Backend, DB, Redis)...")
-            cmd = docker_bin + ["-f", str(DOCKER_COMPOSE_FILE), "up", "--build", "backend", "db", "redis"]
+            print("🐋 Defaulting to Docker Mode: Launching full stack (Backend, Frontend, DB, Redis)...")
+            cmd = docker_bin + ["-f", str(DOCKER_COMPOSE_FILE), "up", "--build"]
             run_command(cmd, cwd=PROJECT_ROOT, check=True)
             return
         else:
