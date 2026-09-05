@@ -5,6 +5,7 @@ from app.auth.password import hash_password, verify_password
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.services.otp_service import otp_service
+from app.services.email_service import email_service
 from app.schemas.user import (
     UserResponse,
     UpdateUsernameRequest,
@@ -69,8 +70,20 @@ class UserService:
 
         await otp_service.verify_otp(purpose="email_change", identifier=new_email, input_otp=request.otp_code)
 
+        old_email = current_user.email
         current_user.email = new_email
         updated_user = await self.user_repository.update_user(db=db, user=current_user)
+
+        # Notify user about email change (sent to new email address)
+        try:
+            await email_service.send_email_changed_notification(
+                email=new_email,
+                username=current_user.username,
+                new_email=new_email
+            )
+        except Exception:
+            pass
+
         return UserResponse.model_validate(updated_user)
 
     async def request_password_change(
@@ -99,6 +112,16 @@ class UserService:
 
         current_user.password_hash = hash_password(password=request.new_password)
         await self.user_repository.update_user(db=db, user=current_user)
+
+        # Notify user about password change
+        try:
+            await email_service.send_password_changed_notification(
+                email=current_user.email,
+                username=current_user.username
+            )
+        except Exception:
+            pass
+
         return {"message": "Password changed successfully."}
 
 def get_user_service() -> UserService:

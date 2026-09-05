@@ -90,6 +90,34 @@ class EmailService:
         subject = f"Reset Your Password - {settings.APP_NAME}"
         await self.send_email(recipients=[email], subject=subject, body_html=html_content)
 
+    async def send_email_changed_notification(self, email: str, username: str, new_email: str) -> None:
+        """
+        Send email change notification email using app/templates/email_changed.html.
+        """
+        html_content = self._render_template(
+            "email_changed.html",
+            {
+                "username": username,
+                "new_email": new_email
+            }
+        )
+        subject = f"Your {settings.APP_NAME} Email Address Has Been Changed"
+        await self.send_email(recipients=[email], subject=subject, body_html=html_content)
+
+    async def send_password_changed_notification(self, email: str, username: str) -> None:
+        """
+        Send password changed notification email using app/templates/password_changed.html.
+        """
+        html_content = self._render_template(
+            "password_changed.html",
+            {
+                "username": username
+            }
+        )
+        subject = f"Your {settings.APP_NAME} Password Has Been Changed"
+        await self.send_email(recipients=[email], subject=subject, body_html=html_content)
+
 
 # Default service instance
 email_service = EmailService()
+
