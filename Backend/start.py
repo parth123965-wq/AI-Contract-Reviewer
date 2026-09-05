@@ -42,30 +42,43 @@ def main():
     print("🤖 AI Contract Reviewer Backend Startup")
     print("=" * 60)
 
-    # 1. Start Docker containers (PostgreSQL & Redis)
-    docker_cmd = None
-    if DOCKER_COMPOSE_FILE.exists():
-        # Check docker-compose or docker compose
+    use_local = "--local" in sys.argv or "-l" in sys.argv
+
+    # Check for docker compose binary
+    docker_bin = None
+    try:
+        if subprocess.run(["docker", "compose", "version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+            docker_bin = ["docker", "compose"]
+    except FileNotFoundError:
+        pass
+
+    if not docker_bin:
         try:
-            res_compose = subprocess.run(["docker-compose", "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            if res_compose.returncode == 0:
-                docker_cmd = ["docker-compose", "-f", str(DOCKER_COMPOSE_FILE), "up", "-d", "db", "redis"]
+            if subprocess.run(["docker-compose", "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+                docker_bin = ["docker-compose"]
         except FileNotFoundError:
             pass
 
-        if not docker_cmd:
-            try:
-                res_dock = subprocess.run(["docker", "compose", "version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                if res_dock.returncode == 0:
-                    docker_cmd = ["docker", "compose", "-f", str(DOCKER_COMPOSE_FILE), "up", "-d", "db", "redis"]
-            except FileNotFoundError:
-                pass
+    # DEFAULT: Docker Mode (unless --local is explicitly requested)
+    if not use_local:
+        if docker_bin and DOCKER_COMPOSE_FILE.exists():
+            print("🐋 Defaulting to Docker Mode: Launching full stack (Backend, DB, Redis)...")
+            cmd = docker_bin + ["-f", str(DOCKER_COMPOSE_FILE), "up", "--build", "backend", "db", "redis"]
+            run_command(cmd, cwd=PROJECT_ROOT, check=True)
+            return
+        else:
+            print("⚠️ Docker Compose not found or not running. Falling back to Local Runner mode...")
 
-    if docker_cmd:
-        print("🐋 Launching PostgreSQL and Redis containers via Docker Compose...")
-        run_command(docker_cmd, cwd=PROJECT_ROOT, check=False)
+    # SECONDARY / FALLBACK: Local Runner Mode
+    print("💻 Starting in Local Runner Mode...")
+
+    # 1. Start Docker DB & Redis containers if possible
+    if docker_bin and DOCKER_COMPOSE_FILE.exists():
+        print("🐋 Starting DB and Redis background containers...")
+        cmd = docker_bin + ["-f", str(DOCKER_COMPOSE_FILE), "up", "-d", "db", "redis"]
+        run_command(cmd, cwd=PROJECT_ROOT, check=False)
     else:
-        print("ℹ️ docker-compose not found or not in PATH. Assuming local PostgreSQL & Redis instances are active.")
+        print("ℹ️ Assuming local PostgreSQL & Redis instances are running.")
 
     # 2. Wait for DB and Redis ports
     wait_for_port("127.0.0.1", 5432, "PostgreSQL Database", timeout=15)

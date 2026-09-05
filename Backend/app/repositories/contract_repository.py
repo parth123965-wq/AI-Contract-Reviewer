@@ -15,8 +15,7 @@ class ContractRepository:
     ) -> Contract:
         db.add(contract)
         await db.commit()
-        await db.refresh(contract)
-        return contract
+        return await self.get_contract_by_id(db=db, contract_id=contract.id)
     
     async def get_contract_by_id(
         self,

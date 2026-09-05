@@ -1,4 +1,7 @@
-from pydantic_settings import BaseSettings , SettingsConfigDict
+from pathlib import Path
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+ENV_PATH = Path(__file__).resolve().parent.parent.parent / ".env"
 
 class Settings(BaseSettings):
     APP_NAME: str
@@ -30,7 +33,7 @@ class Settings(BaseSettings):
     OTP_COOLDOWN_SECONDS: int
     OTP_MAX_ATTEMPTS: int
     model_config = SettingsConfigDict(
-        env_file='.env',
+        env_file=ENV_PATH,
         extra='ignore'
     )
     
