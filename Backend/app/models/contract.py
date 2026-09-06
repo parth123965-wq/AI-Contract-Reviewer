@@ -35,6 +35,8 @@ class Contract(Base):
     __table_args__ = (
         Index("ix_contracts_user_id_is_deleted", "user_id", "is_deleted"),
         Index("ix_contracts_status_is_deleted", "status", "is_deleted"),
+        Index("ix_contracts_user_created_at", "user_id", "created_at"),
+        Index("ix_contracts_status_created_at", "status", "created_at"),
     )
     id: Mapped[int] = mapped_column(
         primary_key=True,
@@ -111,6 +113,8 @@ class ContractAnalysis(Base):
     __table_args__ = (
         Index("ix_contract_analyses_contract_version", "contract_id", "analysis_version"),
         Index("ix_contract_analyses_risk_level", "risk_level"),
+        Index("ix_contract_analyses_risk_score", "risk_score"),
+        Index("ix_contract_analyses_created_at", "created_at"),
     )
     id: Mapped[int] = mapped_column(
         primary_key=True,

@@ -55,22 +55,23 @@ class AdminService:
         )
 
     async def get_dashboard_stats(self, db: AsyncSession) -> AdminDashboardStats:
-        total_users = await self.user_repository.count_users(db=db)
-        active_users = await self.user_repository.count_users(db=db, is_active=True)
+        import asyncio
+        user_stats_task = self.user_repository.get_user_summary_stats(db=db)
+        total_contracts_task = self.contract_repository.count_all_contracts(db=db)
+        status_stats_task = self.contract_repository.count_contracts_by_status(db=db)
+        risk_stats_task = self.contract_repository.count_analyses_by_risk(db=db)
 
-        result = await db.execute(
-            select(func.count(User.id)).where(User.is_admin.is_(True))
+        user_stats, total_contracts, contracts_by_status, analyses_by_risk = await asyncio.gather(
+            user_stats_task,
+            total_contracts_task,
+            status_stats_task,
+            risk_stats_task
         )
-        admin_users_count = result.scalar() or 0
-
-        total_contracts = await self.contract_repository.count_all_contracts(db=db)
-        contracts_by_status = await self.contract_repository.count_contracts_by_status(db=db)
-        analyses_by_risk = await self.contract_repository.count_analyses_by_risk(db=db)
 
         return AdminDashboardStats(
-            total_users=total_users,
-            active_users=active_users,
-            admin_users=admin_users_count,
+            total_users=user_stats["total_users"],
+            active_users=user_stats["active_users"],
+            admin_users=user_stats["admin_users"],
             total_contracts=total_contracts,
             contracts_by_status=contracts_by_status,
             analyses_by_risk=analyses_by_risk
@@ -90,21 +91,22 @@ class AdminService:
         )
         total = await self.user_repository.count_users(db=db, search=search, is_active=is_active)
 
-        user_details = []
-        for user in users:
-            contract_count = await self.contract_repository.count_all_contracts(db=db, user_id=user.id)
-            user_details.append(
-                UserAdminDetailResponse(
-                    id=user.id,
-                    username=user.username,
-                    email=user.email,
-                    is_active=user.is_active,
-                    is_admin=user.is_admin,
-                    created_at=user.created_at,
-                    updated_at=user.updated_at,
-                    total_contracts=contract_count
-                )
+        user_ids = [user.id for user in users]
+        contract_counts_map = await self.contract_repository.get_contract_counts_by_user_ids(db=db, user_ids=user_ids)
+
+        user_details = [
+            UserAdminDetailResponse(
+                id=user.id,
+                username=user.username,
+                email=user.email,
+                is_active=user.is_active,
+                is_admin=user.is_admin,
+                created_at=user.created_at,
+                updated_at=user.updated_at,
+                total_contracts=contract_counts_map.get(user.id, 0)
             )
+            for user in users
+        ]
 
         pages = max(1, (total + limit - 1) // limit) if limit > 0 else 1
         return AdminUserListResponse(

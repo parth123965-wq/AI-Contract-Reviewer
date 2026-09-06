@@ -105,3 +105,20 @@ class UserRepository:
             await db.commit()
             return True
         return False
+
+    async def get_user_summary_stats(self, db: AsyncSession) -> dict[str, int]:
+        """Calculates total_users, active_users, and admin_users in a single SQL query."""
+        statement = select(
+            func.count(User.id).label("total_users"),
+            func.sum(func.cast(User.is_active, sa_Integer if hasattr(sa, 'Integer') else func.type_coerce(User.is_active, func.Integer))).label("active_users") if False else func.count(func.nullif(User.is_active, False)).label("active_users"),
+            func.count(func.nullif(User.is_admin, False)).label("admin_users")
+        )
+        result = await db.execute(statement)
+        row = result.one_or_none()
+        if not row:
+            return {"total_users": 0, "active_users": 0, "admin_users": 0}
+        return {
+            "total_users": row.total_users or 0,
+            "active_users": row.active_users or 0,
+            "admin_users": row.admin_users or 0
+        }

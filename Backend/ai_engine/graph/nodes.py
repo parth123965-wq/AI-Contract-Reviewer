@@ -142,11 +142,19 @@ class ContractNodes:
             state["status"] = ContractStatus.FAILED
         return state
     
-    async def save_analysis_node(self, state: ContractState) -> ContractState:
+    def save_analysis_node(self, state: ContractState) -> ContractState:
         if self._should_skip(state):
             return state
+        if not state.get("db"):
+            return state
         try:
-            await self.analysis_service.save_analysis(
+            import asyncio
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            
+            coro = self.analysis_service.save_analysis(
                 db=state["db"],
                 contract_id=state["contract_id"],
                 result=state["analysis_result"],
@@ -154,6 +162,10 @@ class ContractNodes:
                 processing_time_ms=state.get("processing_time_ms", 0),
                 analysis_version=state.get("analysis_version", 1)
             )
+            if loop and loop.is_running():
+                loop.create_task(coro)
+            else:
+                asyncio.run(coro)
         except Exception as exc:
             logger.error(f"Error in save_analysis_node: {exc}", exc_info=True)
             state["error"] = str(exc)
