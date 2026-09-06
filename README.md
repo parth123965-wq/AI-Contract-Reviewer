@@ -27,6 +27,14 @@ An enterprise-grade, full-stack AI platform for automated legal contract ingesti
 - 🎨 **College Showcase Glassmorphic UI**:
   - Ultra-premium midnight dark cyber theme with frosted glassmorphism (`backdrop-filter: blur`), Google Fonts (`Outfit` & `Inter`), glowing neon accents, drag-and-drop dropzone, and interactive radial SVG risk gauges.
 
+- 🛡️ **Template-Based Prompt Engineering & Injection Hardening**:
+  - `PromptService` template-based prompt engineering (`string.Template` structures) isolating untrusted document context and questions from core security directives.
+  - Multi-layered input sanitization neutralizing zero-width spaces, bidirectional text overrides (`\u202a-\u202e`), model control tokens (`<|im_start|>`), adversarial instructions, and image exfiltration URLs.
+
+- 📊 **Real-Time System Telemetry & Monitoring Dashboard**:
+  - Interactive HTML dashboard (`/admin/monitoring/dashboard`) built with glassmorphic dark theme and live 5-second polling.
+  - Monitors system resources (CPU, RAM, Disk), process execution metrics (PID, RSS, active threads), service connection health (PostgreSQL, Redis), and performance telemetry (HTTP latency histograms, P95 response times, LLM API call tracking, vector search speeds).
+
 - 🛡️ **Role-Based Authentication & Admin Management Portal**:
   - Secure JWT authentication with HttpOnly session cookies and Bearer tokens.
   - Admin dashboard for user role promotion/demotion, contract status updates, search pagination, and system analytics.

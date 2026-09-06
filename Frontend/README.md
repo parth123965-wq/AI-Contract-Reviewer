@@ -32,8 +32,9 @@ A responsive, high-performance web interface for the **AI Contract Reviewer** ec
 - 🔑 **Authentication & Role Management**:
   - Dual-mode login (User Workspace vs. Admin Portal) connecting to `/auth/login` and `/admin/auth/login`.
 
-- 🛡️ **Full Admin Control Panel**:
+- 🛡️ **Full Admin Control Panel & Monitoring Dashboard**:
   - Dedicated administrative interface (`admin.html`) with real-time stats counters, user role management, status toggles, and contract overview controls.
+  - Interactive visual System Monitoring Dashboard (`/admin/monitoring/dashboard`) rendering live CPU, memory, database/redis latencies, and HTTP response histograms.
 
 - 📊 **Interactive Workspace Dashboard**:
   - Stat cards displaying total contracts, completed reviews, high-risk exposure alerts, and processing queues.

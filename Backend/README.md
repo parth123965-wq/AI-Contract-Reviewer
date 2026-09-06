@@ -30,6 +30,14 @@ An enterprise-grade, asynchronous backend service and neural AI pipeline designe
   - **Analytics Dashboard**: Real-time stats on user counts, contract processing status queues, and risk level breakdowns.
 
 
+- 📊 **Real-Time System Telemetry & Admin Monitoring GUI Dashboard**:
+  - `GET /admin/monitoring/system`: Returns CPU, RAM, Disk usage, process runtime metrics, DB/Redis health, and in-memory performance telemetry (HTTP latency histograms, P95 metrics, LLM call stats, vector search speeds).
+  - `GET /admin/monitoring/dashboard`: Interactive glassmorphic HTML dashboard UI rendering real-time operational health and latency statistics.
+
+- 🛡️ **Template-Based Prompt Engineering & Injection Hardening**:
+  - Secure template-based prompt generation (`string.Template` structures) isolating context/question inputs from core system instructions.
+  - Multi-layer sanitization filtering zero-width spaces, bidirectional text override characters (`\u202a-\u202e`), model tokens, adversarial override patterns, and markdown exfiltration payloads.
+
 - 📄 **Asynchronous Contract Upload & OCR**:
   - Ingestion of contract documents with validation and file storage management.
   - **Multimodal Gemini Vision OCR Fallback**: Automatic image-rendering and OCR text extraction for scanned photo/image-based PDFs.
