@@ -53,7 +53,7 @@ class AnalysisService:
 
                 start_time = time.perf_counter()
 
-                self.graph.invoke(
+                final_state = self.graph.invoke(
                     {
                         "db": db,
                         "contract_id": contract.id,
@@ -80,6 +80,16 @@ class AnalysisService:
                         "processing_time_ms": 0,
                     }
                 )
+
+                if final_state and (final_state.get("error") or final_state.get("status") == ContractStatus.FAILED):
+                    err_msg = final_state.get("error") or "AI pipeline analysis failed."
+                    contract.last_error = err_msg
+                    await self.contract_repository.update_status(
+                        db=db,
+                        contract=contract,
+                        status=ContractStatus.FAILED
+                    )
+                    raise RuntimeError(err_msg)
 
                 processing_time = (
                     time.perf_counter() - start_time

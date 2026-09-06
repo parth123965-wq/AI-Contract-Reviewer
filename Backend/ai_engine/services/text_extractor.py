@@ -5,6 +5,7 @@ except ImportError:
     HAS_FITZ = False
 
 from pypdf import PdfReader
+from pathlib import Path
 from typing import Any
 import os
 from app.core.config import settings
