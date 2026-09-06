@@ -41,9 +41,66 @@ async def lifespan(app: FastAPI):
     main_logger.info("Services closed successfully.")
 
 
+openapi_tags = [
+    {
+        "name": "System",
+        "description": "Health check and application operational status endpoints."
+    },
+    {
+        "name": "Authentication",
+        "description": "User registration, OTP verification, login, logout, and password management."
+    },
+    {
+        "name": "Users",
+        "description": "User profile retrieval, display name updates, email change workflows, and self-service management."
+    },
+    {
+        "name": "Contracts",
+        "description": "Contract PDF document upload, AI risk score calculation, automated summaries, and interactive RAG clause Q&A."
+    },
+    {
+        "name": "Admin",
+        "description": "Administrative metrics dashboard, user account management, and contract oversight."
+    }
+]
+
+app_description = """
+# 🤖 AI Contract Reviewer REST API
+
+The **AI Contract Reviewer API** provides automated legal document analysis, contract clause risk scoring, RAG-based natural language document Q&A, and administrative management.
+
+## 🔑 Security & Authentication
+- **Protocol**: End-to-End TLS / HTTPS Encryption.
+- **Authentication**: JWT (JSON Web Tokens) passed via `Authorization: Bearer <token>` header.
+- **Rate Limiting**: Protected endpoints use Redis sliding-window rate limiting to prevent abuse.
+
+## 🚀 Key Features
+- **User Authentication**: Secure registration with 6-digit email OTP verification.
+- **Contract Processing**: Support for PDF file uploads and automated text extraction.
+- **AI Engine Analysis**: High-risk clause extraction, risk score computation (0-100), and modification recommendations powered by Google Gemini LLM.
+- **Contract Q&A**: Real-time SSE streaming and standard answers for document clause inquiries.
+- **Admin Dashboard**: System-wide statistics and audit operations.
+"""
+
+docs_url = None if settings.PRODUCTION else "/docs"
+redoc_url = None if settings.PRODUCTION else "/redoc"
+openapi_url = None if settings.PRODUCTION else "/openapi.json"
+
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
+    description=app_description,
+    openapi_tags=openapi_tags,
+    docs_url=docs_url,
+    redoc_url=redoc_url,
+    openapi_url=openapi_url,
+    contact={
+        "name": "AI Contract Reviewer Development Team",
+        "url": "https://github.com/parth123965-wq/AI-Contract-Reviewer",
+    },
+    license_info={
+        "name": "MIT License",
+    },
     lifespan=lifespan
 )
 
@@ -135,10 +192,16 @@ app.include_router(router=users_router)
 app.include_router(router=contract_router)
 app.include_router(router=admin_router)
 
-@app.get("/", dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="home"))])
+@app.get(
+    "/",
+    tags=["System"],
+    summary="System Health & Operational Status",
+    description="Check backend server health, application display name, version, and debug status.",
+    dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="home"))]
+)
 def home() -> dict:
     return {
-        "message":settings.APP_NAME,
-        "version":settings.APP_VERSION,
-        "debug":settings.DEBUG
+        "message": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "debug": settings.DEBUG
     }

@@ -32,7 +32,12 @@ admin_router = APIRouter(
 # ADMIN AUTHENTICATION
 # =======================================================
 
-@admin_router.post("/auth/login", dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="admin_login"))])
+@admin_router.post(
+    "/auth/login",
+    summary="Admin User Login",
+    description="Authenticate system administrator with email and password. Grants administrative JWT token and sets secure session cookie.",
+    dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="admin_login"))]
+)
 async def admin_login(
     response: Response,
     credentials: AdminLoginRequest,
@@ -61,7 +66,13 @@ async def admin_login(
 # DASHBOARD STATS
 # =======================================================
 
-@admin_router.get("/dashboard/stats", response_model=AdminDashboardStats, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_stats"))])
+@admin_router.get(
+    "/dashboard/stats",
+    response_model=AdminDashboardStats,
+    summary="Get System Dashboard Metrics",
+    description="Retrieve high-level metrics including total users, active users, total uploaded contracts, status breakdown, and risk distribution.",
+    dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_stats"))]
+)
 async def get_dashboard_stats(
     admin: Annotated[User, Depends(get_current_admin)],
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -74,7 +85,13 @@ async def get_dashboard_stats(
 # USER MANAGEMENT
 # =======================================================
 
-@admin_router.get("/users", response_model=AdminUserListResponse, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_users"))])
+@admin_router.get(
+    "/users",
+    response_model=AdminUserListResponse,
+    summary="List All System Users (Paginated)",
+    description="Retrieve paginated user list with optional search filter by email or username, and status filtering.",
+    dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_users"))]
+)
 async def list_users(
     admin: Annotated[User, Depends(get_current_admin)],
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -89,7 +106,13 @@ async def list_users(
     )
 
 
-@admin_router.get("/users/{user_id}", response_model=UserAdminDetailResponse, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_users"))])
+@admin_router.get(
+    "/users/{user_id}",
+    response_model=UserAdminDetailResponse,
+    summary="Get User Administrative Details",
+    description="Retrieve detailed profile information, account status, and total uploaded contracts count for a target user ID.",
+    dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_users"))]
+)
 async def get_user_detail(
     user_id: int,
     admin: Annotated[User, Depends(get_current_admin)],
@@ -99,7 +122,13 @@ async def get_user_detail(
     return await service.get_user_detail(db=db, user_id=user_id)
 
 
-@admin_router.patch("/users/{user_id}/status", response_model=UserResponse, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_users"))])
+@admin_router.patch(
+    "/users/{user_id}/status",
+    response_model=UserResponse,
+    summary="Update User Account Status",
+    description="Activate or suspend a user account.",
+    dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_users"))]
+)
 async def update_user_status(
     user_id: int,
     body: UserStatusUpdate,
@@ -110,7 +139,13 @@ async def update_user_status(
     return await service.update_user_status(db=db, user_id=user_id, is_active=body.is_active)
 
 
-@admin_router.patch("/users/{user_id}/role", response_model=UserResponse, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_users"))])
+@admin_router.patch(
+    "/users/{user_id}/role",
+    response_model=UserResponse,
+    summary="Update User Role",
+    description="Grant or revoke administrative permissions for a target user account.",
+    dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_users"))]
+)
 async def update_user_role(
     user_id: int,
     body: UserRoleUpdate,
@@ -121,7 +156,12 @@ async def update_user_role(
     return await service.update_user_role(db=db, user_id=user_id, is_admin=body.is_admin)
 
 
-@admin_router.delete("/users/{user_id}", dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_users"))])
+@admin_router.delete(
+    "/users/{user_id}",
+    summary="Delete User Account",
+    description="Permanently delete a user account and associated resources.",
+    dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_users"))]
+)
 async def delete_user(
     user_id: int,
     admin: Annotated[User, Depends(get_current_admin)],
@@ -135,7 +175,13 @@ async def delete_user(
 # CONTRACT MANAGEMENT
 # =======================================================
 
-@admin_router.get("/contracts", response_model=AdminContractListResponse, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_contracts"))])
+@admin_router.get(
+    "/contracts",
+    response_model=AdminContractListResponse,
+    summary="List All Platform Contracts (Paginated)",
+    description="Retrieve paginated list of all system contracts across all users with status, search, and user filtering.",
+    dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_contracts"))]
+)
 async def list_contracts(
     admin: Annotated[User, Depends(get_current_admin)],
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -158,7 +204,13 @@ async def list_contracts(
     )
 
 
-@admin_router.get("/contracts/{contract_id}", response_model=ContractAdminDetailResponse, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_contracts"))])
+@admin_router.get(
+    "/contracts/{contract_id}",
+    response_model=ContractAdminDetailResponse,
+    summary="Get Contract Administrative Details",
+    description="Retrieve contract document details along with owner username and email information.",
+    dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_contracts"))]
+)
 async def get_contract_detail(
     contract_id: int,
     admin: Annotated[User, Depends(get_current_admin)],
@@ -168,7 +220,13 @@ async def get_contract_detail(
     return await service.get_contract_detail(db=db, contract_id=contract_id)
 
 
-@admin_router.patch("/contracts/{contract_id}/status", response_model=ContractResponse, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_contracts"))])
+@admin_router.patch(
+    "/contracts/{contract_id}/status",
+    response_model=ContractResponse,
+    summary="Update Contract Processing Status",
+    description="Manually override or update contract processing status (e.g. processing, completed, error).",
+    dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_contracts"))]
+)
 async def update_contract_status(
     contract_id: int,
     body: ContractStatusUpdate,
@@ -183,7 +241,12 @@ async def update_contract_status(
     return await service.update_contract_status(db=db, contract_id=contract_id, new_status=new_status)
 
 
-@admin_router.delete("/contracts/{contract_id}", dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_contracts"))])
+@admin_router.delete(
+    "/contracts/{contract_id}",
+    summary="Delete Contract Document (Admin)",
+    description="Administrative deletion of any contract document from the system.",
+    dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_contracts"))]
+)
 async def delete_contract(
     contract_id: int,
     admin: Annotated[User, Depends(get_current_admin)],

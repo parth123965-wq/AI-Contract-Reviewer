@@ -12,10 +12,16 @@ auth_router = APIRouter(
     tags=["Authentication"]
 )
 
-@auth_router.post("/register", status_code=201, dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="auth_register"))])
+@auth_router.post(
+    "/register",
+    status_code=201,
+    summary="Register New User Account",
+    description="Create a new user account with email and password. Generates and dispatches a 6-digit OTP verification code via email.",
+    dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="auth_register"))]
+)
 async def register_user(
-    db: Annotated[AsyncSession,Depends(get_db)],
-    auth_services: Annotated[AuthService,Depends(auth_service)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    auth_services: Annotated[AuthService, Depends(auth_service)],
     user: UserCreate
 ):
     saved_user = await auth_services.register_user(
@@ -27,11 +33,17 @@ async def register_user(
         "user": UserResponse.model_validate(saved_user)
     }
 
-@auth_router.post("/verify-registration", response_model=UserResponse, dependencies=[Depends(RateLimiter(times=10, seconds=60, prefix="auth_verify"))])
+@auth_router.post(
+    "/verify-registration",
+    response_model=UserResponse,
+    summary="Verify User Email Registration",
+    description="Validate the 6-digit OTP code sent during registration to activate the user account.",
+    dependencies=[Depends(RateLimiter(times=10, seconds=60, prefix="auth_verify"))]
+)
 async def verify_registration(
     data: VerifyRegistrationRequest,
-    db: Annotated[AsyncSession,Depends(get_db)],
-    auth_services: Annotated[AuthService,Depends(auth_service)]
+    db: Annotated[AsyncSession, Depends(get_db)],
+    auth_services: Annotated[AuthService, Depends(auth_service)]
 ) -> UserResponse:
     verified_user = await auth_services.verify_registration(
         db=db,
@@ -40,11 +52,16 @@ async def verify_registration(
     )
     return UserResponse.model_validate(verified_user)
 
-@auth_router.post("/resend-otp", dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="auth_resend_otp"))])
+@auth_router.post(
+    "/resend-otp",
+    summary="Resend Email Verification OTP",
+    description="Request a new 6-digit email OTP verification code for pending unverified accounts.",
+    dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="auth_resend_otp"))]
+)
 async def resend_otp(
     data: ResendOTPRequest,
-    db: Annotated[AsyncSession,Depends(get_db)],
-    auth_services: Annotated[AuthService,Depends(auth_service)]
+    db: Annotated[AsyncSession, Depends(get_db)],
+    auth_services: Annotated[AuthService, Depends(auth_service)]
 ):
     await auth_services.resend_registration_otp(
         db=db,
@@ -54,19 +71,23 @@ async def resend_otp(
         "message": "Verification OTP has been resent to your email."
     }
 
-@auth_router.post('/login', dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="auth_login"))])
+@auth_router.post(
+    '/login',
+    response_model=LoginResponse,
+    summary="User Login (JSON Payload)",
+    description="Authenticate user with email and password. Returns JWT access token and user profile details.",
+    dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="auth_login"))]
+)
 async def login(
     response: Response,
     user: UserLogin,
-    db: Annotated[AsyncSession,Depends(get_db)],
-    service: Annotated[AuthService,Depends(auth_service)]
+    db: Annotated[AsyncSession, Depends(get_db)],
+    service: Annotated[AuthService, Depends(auth_service)]
 ):
-
     login_response = await service.login_user(
         db=db,
         user=user
     )
-
 
     response.set_cookie(
         key="ai_contract_session",
@@ -76,7 +97,6 @@ async def login(
         secure=False
     )
 
-
     return {
         "message": "Login successful",
         "access_token": login_response.access_token,
@@ -84,25 +104,28 @@ async def login(
         "user": login_response.user
     }
     
-@auth_router.post('/token', dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="auth_token"))])
+@auth_router.post(
+    '/token',
+    response_model=LoginResponse,
+    summary="OAuth2 Form Password Login (Swagger UI Testing)",
+    description="OAuth2-compatible form authentication endpoint used by Swagger UI authorize button.",
+    dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="auth_token"))]
+)
 async def token(
     response: Response,
-    form_data: Annotated[OAuth2PasswordRequestForm,Depends()],
-    db: Annotated[AsyncSession,Depends(get_db)],
-    service: Annotated[AuthService,Depends(auth_service)]
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    service: Annotated[AuthService, Depends(auth_service)]
 ):
-
     user = UserLogin(
         email=form_data.username,
         password=form_data.password
     )
 
-
     login_response = await service.login_user(
         db=db,
         user=user
     )
-
 
     response.set_cookie(
         key="ai_contract_session",
@@ -112,7 +135,6 @@ async def token(
         secure=False
     )
 
-
     return {
         "message": "Login successful",
         "access_token": login_response.access_token,
@@ -120,9 +142,13 @@ async def token(
         "user": login_response.user
     }
     
-@auth_router.post("/logout", dependencies=[Depends(RateLimiter(times=20, seconds=60, prefix="auth_logout"))])
+@auth_router.post(
+    "/logout",
+    summary="User Logout",
+    description="Clear session cookies and log out user.",
+    dependencies=[Depends(RateLimiter(times=20, seconds=60, prefix="auth_logout"))]
+)
 async def logout(response: Response):
-
     response.delete_cookie(
         key="ai_contract_session"
     )

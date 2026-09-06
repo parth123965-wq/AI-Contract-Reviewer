@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     APP_NAME: str
     APP_VERSION: str
     DEBUG: bool
+    PRODUCTION: bool = False
     DATABASE_URL: str
     SECRET_KEY: str
     ALGORITHM: str

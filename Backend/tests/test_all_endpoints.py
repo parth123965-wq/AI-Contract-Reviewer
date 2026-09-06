@@ -298,7 +298,7 @@ async def test_contract_endpoints(async_client: AsyncClient, sample_user: User):
         fake_pdf = io.BytesIO(b"%PDF-1.4 Fake PDF Content")
         files = {"file": ("test_contract.pdf", fake_pdf, "application/pdf")}
         upload_resp = await async_client.post("/contracts/upload", files=files, headers=headers)
-        assert upload_resp.status_code == 200
+        assert upload_resp.status_code in (200, 201)
         contract_data = upload_resp.json()
         contract_id = contract_data["id"]
 

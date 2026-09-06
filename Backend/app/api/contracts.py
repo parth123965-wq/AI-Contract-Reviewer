@@ -22,14 +22,21 @@ contract_router = APIRouter(
     tags=['Contracts']
 )
 
-@contract_router.post('/upload', dependencies=[Depends(RateLimiter(times=10, seconds=60, prefix="contracts_upload"))])
+@contract_router.post(
+    '/upload',
+    response_model=ContractResponse,
+    status_code=201,
+    summary="Upload Contract PDF File",
+    description="Upload a new legal contract PDF document. Automatically queues an asynchronous AI engine analysis task for clause risk evaluation.",
+    dependencies=[Depends(RateLimiter(times=10, seconds=60, prefix="contracts_upload"))]
+)
 async def upload(
-    db: Annotated[AsyncSession,Depends(get_db)],
-    current_user: Annotated[User,Depends(get_current_user)],
-    contract_service: Annotated[ContractService,Depends(contract_service)],
-    file: Annotated[UploadFile,File()],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    contract_service: Annotated[ContractService, Depends(contract_service)],
+    file: Annotated[UploadFile, File()],
     background_task: BackgroundTasks,
-    ai_analysis_service: Annotated[AnalysisService,Depends(get_analysis_service)]
+    ai_analysis_service: Annotated[AnalysisService, Depends(get_analysis_service)]
 ) -> ContractResponse:
     contract = await contract_service.upload_contract(
         db=db,
@@ -42,11 +49,17 @@ async def upload(
     )
     return contract
     
-@contract_router.get('', response_model=ContractListResponse, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="contracts_list"))])
+@contract_router.get(
+    '',
+    response_model=ContractListResponse,
+    summary="Get User Contracts List",
+    description="Retrieve all contract documents uploaded by the authenticated user, including latest analysis risk scores.",
+    dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="contracts_list"))]
+)
 async def get_contracts(
-    db: Annotated[AsyncSession,Depends(get_db)],
-    current_user: Annotated[User,Depends(get_current_user)],
-    service: Annotated[ContractService,Depends(contract_service)]
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[ContractService, Depends(contract_service)]
 ) -> ContractListResponse:
     contracts = await service.get_user_contracts(
         db=db,
@@ -56,11 +69,17 @@ async def get_contracts(
         "contracts": contracts
     }
     
-@contract_router.get('/{contract_id}', response_model=ContractResponse, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="contracts_detail"))])
+@contract_router.get(
+    '/{contract_id}',
+    response_model=ContractResponse,
+    summary="Get Contract Details by ID",
+    description="Retrieve full contract details, file metadata, historical analysis runs, and key risk findings by contract ID.",
+    dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="contracts_detail"))]
+)
 async def get_contract_by_id(
-    db: Annotated[AsyncSession,Depends(get_db)],
-    current_user: Annotated[User,Depends(get_current_user)],
-    service: Annotated[ContractService,Depends(contract_service)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[ContractService, Depends(contract_service)],
     contract_id: int
 ) -> ContractResponse:
     return await service.get_contract_by_id(
@@ -69,11 +88,16 @@ async def get_contract_by_id(
         current_user=current_user   
     )
     
-@contract_router.delete('/{id}', dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="contracts_delete"))])
+@contract_router.delete(
+    '/{id}',
+    summary="Delete Contract Document",
+    description="Permanently delete a contract document, associated disk file, and historical analysis records.",
+    dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="contracts_delete"))]
+)
 async def delete_contract(
-    db: Annotated[AsyncSession,Depends(get_db)],
-    current_user: Annotated[User,Depends(get_current_user)],
-    service: Annotated[ContractService,Depends(contract_service)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[ContractService, Depends(contract_service)],
     id: int
 ):
     await service.delete_contract(
@@ -81,9 +105,14 @@ async def delete_contract(
         contract_id=id,
         current_user=current_user
     )
-    return {"status":"success"}
+    return {"status": "success"}
 
-@contract_router.post('/{contract_id}/ask', dependencies=[Depends(RateLimiter(times=10, seconds=60, prefix="contracts_ask"))])
+@contract_router.post(
+    '/{contract_id}/ask',
+    summary="Ask Question on Contract (RAG SSE Stream)",
+    description="Perform RAG (Retrieval-Augmented Generation) query against contract clause vector embeddings. Returns Server-Sent Events (SSE) stream of AI response tokens.",
+    dependencies=[Depends(RateLimiter(times=10, seconds=60, prefix="contracts_ask"))]
+)
 async def ask_question_on_contract(
     contract_id: int,
     body: QuestionRequest,
