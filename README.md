@@ -143,7 +143,7 @@ ai-contract-reviewer/
 
 4. **Launch Application Containers**:
    ```bash
-   docker-compose up -d --build
+   python Backend/start.py
    ```
 
 5. **Access Application**:
@@ -185,14 +185,9 @@ ai-contract-reviewer/
    ```
    *Edit `Backend/.env` to supply `GEMINI_API_KEY`, local `DATABASE_URL`, and `REDIS_URL`.*
 
-5. **Run Alembic Database Migrations**:
+5. **Run Application via `start.py`**:
    ```bash
-   alembic upgrade head
-   ```
-
-6. **Start Application Server**:
-   ```bash
-   # Option A: Automatic startup script (launches DB/Redis docker dependencies + Uvicorn)
+   # Option A: Automatic startup script (spins up background DB/Redis containers, runs Alembic migrations & launches Uvicorn)
    python start.py --local
 
    # Option B: Direct Uvicorn runner
