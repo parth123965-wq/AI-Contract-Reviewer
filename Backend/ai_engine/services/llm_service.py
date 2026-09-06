@@ -3,6 +3,7 @@ import os
 import re
 from dotenv import load_dotenv
 from app.core.config import settings
+from ai_engine.services.prompt_service import PromptService
 
 load_dotenv()
 
@@ -28,6 +29,7 @@ except ImportError:
 class LLMService:
     
     def __init__(self):
+        self.prompt_service = PromptService()
         self.api_key = (
             getattr(settings, "GOOGLE_API_KEY", None)
             or getattr(settings, "GEMINI_API_KEY", None)
@@ -138,19 +140,11 @@ class LLMService:
 
     def ask_question(self, question: str, context_chunks: list[str]) -> str:
         """Answers a specific user question using vector-retrieved context chunks (RAG)."""
+        prompt = self.prompt_service.build_qa_prompt(question, context_chunks)
         valid_chunks = [
             c.strip() for c in context_chunks
             if isinstance(c, str) and len(c.strip()) >= 3 and not (c.strip().isdigit() and len(c.strip()) <= 3)
         ]
-        context_text = "\n\n".join(valid_chunks) if valid_chunks else "No document text available."
-        prompt = f"""You are a helpful AI contract assistant. Answer the user's question using ONLY the provided document context below.
-
-Context from Document:
-{context_text}
-
-Question: {question}
-
-Provide a direct, clear, and natural answer without any generic placeholders or code snippets:"""
 
         candidate_models = [self.model_name, "gemini-flash-latest", "gemini-2.5-flash", "gemini-pro-latest", "gemini-2.5-pro", "gemini-1.5-flash"]
 
@@ -213,19 +207,7 @@ Provide a direct, clear, and natural answer without any generic placeholders or 
 
     def ask_question_stream(self, question: str, context_chunks: list[str]):
         """Streams answers for a user question token-by-token using vector context chunks."""
-        valid_chunks = [
-            c.strip() for c in context_chunks
-            if isinstance(c, str) and len(c.strip()) >= 3 and not (c.strip().isdigit() and len(c.strip()) <= 3)
-        ]
-        context_text = "\n\n".join(valid_chunks) if valid_chunks else "No document text available."
-        prompt = f"""You are a helpful AI contract assistant. Answer the user's question using ONLY the provided document context below.
-
-Context from Document:
-{context_text}
-
-Question: {question}
-
-Provide a direct, clear, and natural answer without any generic placeholders or code snippets:"""
+        prompt = self.prompt_service.build_qa_prompt(question, context_chunks)
 
         candidate_models = [self.model_name, "gemini-flash-latest", "gemini-2.5-flash", "gemini-pro-latest", "gemini-2.5-pro", "gemini-1.5-flash"]
 
