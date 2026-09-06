@@ -255,3 +255,42 @@ async def delete_contract(
 ):
     return await service.delete_contract(db=db, contract_id=contract_id)
 
+
+# =======================================================
+# SYSTEM MONITORING (ADMIN ONLY)
+# =======================================================
+
+from app.core.monitoring import get_full_monitoring_report, get_db_health, get_redis_health
+
+@admin_router.get(
+    "/monitoring/system",
+    summary="Get System Resource & Health Monitoring Report (Admin Only)",
+    description="Retrieve comprehensive system resources (CPU, RAM, Disk), application process metrics, database connectivity, and Redis health status.",
+    dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_monitoring_system"))]
+)
+async def get_system_monitoring(
+    admin: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    return await get_full_monitoring_report(db=db)
+
+
+@admin_router.get(
+    "/monitoring/health",
+    summary="Get Subsystem Health Summary (Admin Only)",
+    description="Quick operational health check of database and Redis services.",
+    dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_monitoring_health"))]
+)
+async def get_subsystem_health(
+    admin: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    db_health = await get_db_health(db=db)
+    redis_health = await get_redis_health()
+    return {
+        "status": "healthy" if db_health.get("connected") and redis_health.get("status") in ["healthy", "disabled"] else "degraded",
+        "database": db_health,
+        "redis": redis_health
+    }
+
+
