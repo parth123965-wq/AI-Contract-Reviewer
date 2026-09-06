@@ -93,134 +93,152 @@ ai-contract-reviewer/
 
 ---
 
-## 🚀 Quick Start with Docker Compose
+## 🚀 Setup & Installation Instructions
 
 ### Prerequisites
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (v20.10+) & Docker Compose installed.
-- A **Google Gemini API Key** ([Get your API key here](https://aistudio.google.com/app/apikey)).
+- **For Docker Compose Setup**:
+  - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (v20.10+) and Docker Compose.
+- **For Local Python Setup**:
+  - Python 3.10+ installed.
+  - PostgreSQL 15+ & Redis 7+ running locally (or via Docker).
+- **Google Gemini API Key**:
+  - Obtain a Gemini API Key from [Google AI Studio](https://aistudio.google.com/app/apikey).
 
-### 1. Clone Repository & Setup Environment
+---
 
-```bash
-git clone https://github.com/parth123965-wq/AI-Contract-Reviewer.git
-cd AI-Contract-Reviewer
-```
+### Option 1: Quick Start with Docker Compose (Recommended)
 
-Set your Gemini API key:
-```bash
-# Windows PowerShell
-$env:GEMINI_API_KEY="your_actual_gemini_api_key_here"
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/parth123965-wq/AI-Contract-Reviewer.git
+   cd AI-Contract-Reviewer
+   ```
 
-# Linux / macOS
-export GEMINI_API_KEY="your_actual_gemini_api_key_here"
-```
+2. **Setup Environment Variables**:
+   Copy the `.env.example` file to `.env` in the `Backend/` directory:
+   ```bash
+   # Windows PowerShell / Command Prompt
+   copy Backend\.env.example Backend\.env
 
-### 2. Launch Docker Services
+   # Linux / macOS
+   cp Backend/.env.example Backend/.env
+   ```
 
-```bash
-docker-compose up -d --build
-```
+3. **Configure Environment Keys**:
+   Edit `Backend/.env` to insert your actual Gemini API key and optional production credentials:
+   ```env
+   GEMINI_API_KEY="your_actual_gemini_api_key_here"
+   GOOGLE_API_KEY="your_actual_google_api_key_here"
+   SECRET_KEY="your_custom_secret_key_here"
+   ```
 
-Access the application in your browser:
-- 🌐 **Frontend Web App**: `http://localhost`
-- ⚡ **Backend REST API**: `http://localhost:8000`
-- 📚 **Interactive Swagger API Docs**: `http://localhost:8000/docs`
+4. **Launch Application Containers**:
+   ```bash
+   docker-compose up -d --build
+   ```
+
+5. **Access Application**:
+   - 🌐 **Frontend Web App**: `http://localhost`
+   - ⚡ **Backend REST API**: `http://localhost:8000`
+   - 📚 **Interactive Swagger API Docs**: `http://localhost:8000/docs`
+
+---
+
+### Option 2: Local Python Development Setup
+
+1. **Clone & Navigate**:
+   ```bash
+   git clone https://github.com/parth123965-wq/AI-Contract-Reviewer.git
+   cd AI-Contract-Reviewer/Backend
+   ```
+
+2. **Create & Activate Virtual Environment**:
+   ```bash
+   # Windows PowerShell
+   python -m venv .venv
+   .\.venv\Scripts\activate
+
+   # Linux / macOS
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
+
+3. **Install Dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Setup Environment Configuration**:
+   ```bash
+   # Copy template environment file
+   copy .env.example .env    # Windows
+   cp .env.example .env      # Linux/macOS
+   ```
+   *Edit `Backend/.env` to supply `GEMINI_API_KEY`, local `DATABASE_URL`, and `REDIS_URL`.*
+
+5. **Run Alembic Database Migrations**:
+   ```bash
+   alembic upgrade head
+   ```
+
+6. **Start Application Server**:
+   ```bash
+   # Option A: Automatic startup script (launches DB/Redis docker dependencies + Uvicorn)
+   python start.py --local
+
+   # Option B: Direct Uvicorn runner
+   uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+   ```
 
 ---
 
 ## 🔑 Environment Configuration (`Backend/.env`)
 
-The backend service relies on environment configuration variables defined in `Backend/.env`. Below is a reference of all available keys and sensitive credentials required:
+Below is a reference of all environment variables supported by the backend service:
 
-### 1. General & Security Config
-| Variable | Example / Default | Description |
-| :--- | :--- | :--- |
-| `APP_NAME` | `AI Contract Reviewer` | Application title |
-| `APP_VERSION` | `1.0.0` | API version string |
-| `DEBUG` | `True` | Enable FastAPI debug mode |
-| `SECRET_KEY` | `kwomdg` | Secret key used for signing JWT authentication tokens |
-| `ALGORITHM` | `HS256` | JWT encoding algorithm |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | JWT token lifetime in minutes |
-| `UPLOAD_DIR` | `uploads/contracts` | Directory for persistent contract file storage |
-| `LOG_LEVEL` | `INFO` | Application log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
+### 1. General & Security Settings
+| Variable | Type | Default / Example | Description |
+| :--- | :--- | :--- | :--- |
+| `APP_NAME` | `string` | `AI Contract Reviewer` | Application title |
+| `APP_VERSION` | `string` | `1.0.0` | Application version string |
+| `DEBUG` | `boolean` | `True` | Enable FastAPI debug mode & dev CORS configuration |
+| `SECRET_KEY` | `string` | `your_secret_key_here` | Secret key used for signing JWT authentication tokens |
+| `ALGORITHM` | `string` | `HS256` | JWT encoding algorithm |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `integer` | `30` | JWT token lifetime in minutes |
+| `UPLOAD_DIR` | `string` | `uploads/contracts` | Directory path for persistent contract file storage |
+| `LOG_LEVEL` | `string` | `INFO` | Logging severity (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
+| `ALLOWED_ORIGINS` | `list[str]` | `["http://localhost:3000","http://localhost:5173"]` | Allowed production CORS origins |
 
-### 2. Database & Redis Connections
-| Variable | Example / Default | Description |
-| :--- | :--- | :--- |
-| `DATABASE_URL` | `postgresql+asyncpg://postgres:parth@localhost:5432/contract_reviewers` | PostgreSQL async database connection URL (using `asyncpg`) |
-| `REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL for caching & OTP storage |
+### 2. Database & Cache Connections
+| Variable | Type | Default / Example | Description |
+| :--- | :--- | :--- | :--- |
+| `DATABASE_URL` | `string` | `postgresql+asyncpg://postgres:your_password@localhost:5432/contract_reviewers` | Async PostgreSQL connection URL |
+| `REDIS_URL` | `string` | `redis://localhost:6379/0` | Redis connection URL for caching & OTP storage |
 
 ### 3. AI Engine & LLM Configuration
-| Variable | Example / Default | Description |
-| :--- | :--- | :--- |
-| `GEMINI_API_KEY` | `your_gemini_api_key_here` | Google Gemini API Key for LLM contract risk analysis & Q&A |
-| `GOOGLE_API_KEY` | `your_google_api_key_here` | Fallback Google API Key |
-| `AI_MODEL_NAME` | `gemini-1.5-flash` | Gemini model variant used for inference |
-| `MODEL_NAME` | `BAAI/bge-small-en-v1.5` | HuggingFace embedding model for vector search |
-| `COLLECTION_NAME` | `contracts` | ChromaDB vector store collection name |
-| `CHROMA_DB_PATH` | `ai_engine/vector_store` | Persistent directory path for ChromaDB storage |
+| Variable | Type | Default / Example | Description |
+| :--- | :--- | :--- | :--- |
+| `GEMINI_API_KEY` | `string` | `your_gemini_api_key_here` | Google Gemini API Key for contract risk analysis & RAG Q&A |
+| `GOOGLE_API_KEY` | `string` | `your_google_api_key_here` | Fallback Google API Key |
+| `AI_MODEL_NAME` | `string` | `gemini-1.5-flash` | Gemini model variant used for inference |
+| `MODEL_NAME` | `string` | `BAAI/bge-small-en-v1.5` | HuggingFace embedding model for vector search |
+| `COLLECTION_NAME` | `string` | `contracts` | ChromaDB vector store collection name |
+| `CHROMA_DB_PATH` | `string` | `ai_engine/vector_store` | Persistent directory path for ChromaDB storage |
 
-### 4. SMTP Email & Registration OTP Settings
-| Variable | Example / Default | Description |
-| :--- | :--- | :--- |
-| `MAIL_USERNAME` | `your_email@gmail.com` | SMTP email account username |
-| `MAIL_PASSWORD` | `your_app_password` | SMTP email app password |
-| `MAIL_FROM` | `noreply@ai-contract-reviewer.com` | Sender email address for OTP notifications |
-| `MAIL_PORT` | `587` | SMTP server port |
-| `MAIL_SERVER` | `smtp.gmail.com` | SMTP server host |
-| `MAIL_FROM_NAME` | `AI Contract Reviewer` | Sender name shown in user inbox |
-| `MAIL_STARTTLS` | `True` | Enable STARTTLS connection security |
-| `MAIL_SSL_TLS` | `False` | Enable SSL/TLS connection security |
-| `OTP_LENGTH` | `6` | Length of verification OTP digits |
-| `OTP_EXPIRE_SECONDS` | `300` | Expiration time for generated OTP (5 mins) |
-| `OTP_COOLDOWN_SECONDS` | `60` | Cooldown period before resending OTP (60s) |
-| `OTP_MAX_ATTEMPTS` | `5` | Maximum failed OTP attempts allowed |
-
----
-
-### Sample `.env` File Template
-
-Copy the template below into your `Backend/.env` file:
-
-```env
-APP_NAME='AI Contract Reviewer'
-APP_VERSION='1.0.0'
-DEBUG=True
-
-# Database & Cache Connections
-DATABASE_URL='postgresql+asyncpg://postgres:parth@localhost:5432/contract_reviewers'
-REDIS_URL='redis://localhost:6379/0'
-
-# Security & JWT Tokens
-SECRET_KEY='kwomdg_secret_key_change_me'
-ALGORITHM='HS256'
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-UPLOAD_DIR='uploads/contracts'
-LOG_LEVEL='INFO'
-
-# AI Engine & Vector Store
-MODEL_NAME="BAAI/bge-small-en-v1.5"
-COLLECTION_NAME="contracts"
-CHROMA_DB_PATH="ai_engine/vector_store"
-AI_MODEL_NAME="gemini-1.5-flash"
-GEMINI_API_KEY="your_actual_gemini_api_key"
-GOOGLE_API_KEY="your_actual_google_api_key"
-
-# Email SMTP Setup
-MAIL_USERNAME=""
-MAIL_PASSWORD=""
-MAIL_FROM="noreply@ai-contract-reviewer.com"
-MAIL_PORT=587
-MAIL_SERVER="smtp.gmail.com"
-MAIL_FROM_NAME="AI Contract Reviewer"
-MAIL_STARTTLS=True
-MAIL_SSL_TLS=False
-
-# Registration & Profile OTP Parameters
-OTP_LENGTH=6
-OTP_EXPIRE_SECONDS=300
-OTP_COOLDOWN_SECONDS=60
-OTP_MAX_ATTEMPTS=5
-```
+### 4. SMTP Email & OTP Registration Settings
+| Variable | Type | Default / Example | Description |
+| :--- | :--- | :--- | :--- |
+| `MAIL_USERNAME` | `string` | `your_email@gmail.com` | SMTP email account username |
+| `MAIL_PASSWORD` | `string` | `your_app_password` | SMTP email app password |
+| `MAIL_FROM` | `string` | `noreply@ai-contract-reviewer.com` | Sender email address for OTP notifications |
+| `MAIL_PORT` | `integer` | `587` | SMTP server port |
+| `MAIL_SERVER` | `string` | `smtp.gmail.com` | SMTP server host |
+| `MAIL_FROM_NAME` | `string` | `AI Contract Reviewer` | Sender name shown in user inbox |
+| `MAIL_STARTTLS` | `boolean` | `True` | Enable STARTTLS connection security |
+| `MAIL_SSL_TLS` | `boolean` | `False` | Enable SSL/TLS connection security |
+| `OTP_LENGTH` | `integer` | `6` | Number of digits in generated verification OTP |
+| `OTP_EXPIRE_SECONDS` | `integer` | `300` | Expiration time for generated OTP (5 mins) |
+| `OTP_COOLDOWN_SECONDS` | `integer` | `60` | Cooldown period before resending OTP (60s) |
+| `OTP_MAX_ATTEMPTS` | `integer` | `5` | Maximum failed OTP attempts allowed |
 
