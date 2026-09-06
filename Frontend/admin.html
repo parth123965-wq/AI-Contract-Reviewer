@@ -13,6 +13,8 @@
     <link rel="stylesheet" href="./css/components/badge.css" />
     <link rel="stylesheet" href="./css/components/input.css" />
     <link rel="stylesheet" href="./css/dashboard.css" />
+    <!-- PDF Generation Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
       .admin-badge {
         background: var(--gradient-primary);
@@ -140,6 +142,7 @@
           </div>
 
           <div class="navbar-actions">
+            <button id="exportAdminPdfBtn" class="btn btn-outline btn-sm">📄 Export Audit PDF</button>
             <span class="admin-badge">SUPER ADMIN</span>
             <div class="user-profile">
               <div class="avatar" id="admin-avatar">A</div>

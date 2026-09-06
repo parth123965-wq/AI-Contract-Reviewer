@@ -33,6 +33,11 @@ async function initDetailPage() {
 
 /* Event Handlers */
 function initDetailEvents(contractId) {
+  const exportPdfBtn = document.getElementById("exportPdfBtn");
+  if (exportPdfBtn) {
+    exportPdfBtn.addEventListener("click", () => exportContractPDF(contractId));
+  }
+
   const reanalyzeBtn = document.getElementById("reanalyzeBtn");
   if (reanalyzeBtn) {
     reanalyzeBtn.addEventListener("click", async () => {
@@ -329,3 +334,100 @@ function escapeHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
+
+/* PDF Export Function */
+function exportContractPDF(contractId) {
+  const exportBtn = document.getElementById("exportPdfBtn");
+  const title = document.getElementById("contract-title")?.textContent || "Contract_Analysis";
+  const status = document.getElementById("contract-status")?.textContent || "";
+  const size = document.getElementById("contract-size")?.textContent || "";
+  const date = document.getElementById("contract-date")?.textContent || "";
+  const summary = document.getElementById("contract-summary")?.textContent || "";
+  const score = document.getElementById("score-value")?.textContent || "0";
+  const riskBadge = document.getElementById("risk-badge")?.textContent || "LOW";
+  const findings = document.getElementById("findings-list")?.innerHTML || "";
+  const recommendations = document.getElementById("recommendations-list")?.innerHTML || "";
+
+  const element = document.createElement("div");
+  element.style.padding = "24px";
+  element.style.fontFamily = "Arial, sans-serif";
+  element.style.color = "#0f172a";
+  element.style.backgroundColor = "#ffffff";
+
+  element.innerHTML = `
+    <div style="border-bottom: 2px solid #00f0ff; padding-bottom: 12px; margin-bottom: 20px;">
+      <h1 style="color: #0f172a; font-size: 22px; margin: 0 0 6px 0;">⚖️ AI Contract Analysis Report</h1>
+      <p style="color: #64748b; font-size: 13px; margin: 0;">Document: <strong>${escapeHtml(title)}</strong> | Status: ${escapeHtml(status)} | Analyzed: ${escapeHtml(date)}</p>
+    </div>
+
+    <div style="display: flex; gap: 15px; margin-bottom: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
+      <div style="flex: 1;">
+        <span style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: bold;">Overall Risk Score</span>
+        <div style="font-size: 24px; font-weight: bold; color: #0f172a;">${escapeHtml(score)} / 100</div>
+      </div>
+      <div style="flex: 1;">
+        <span style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: bold;">Risk Exposure Level</span>
+        <div style="font-size: 18px; font-weight: bold; color: #0284c7;">${escapeHtml(riskBadge)}</div>
+      </div>
+      <div style="flex: 1;">
+        <span style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: bold;">File Size</span>
+        <div style="font-size: 16px; font-weight: bold; color: #334155;">${escapeHtml(size)}</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <h2 style="font-size: 16px; color: #0f172a; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px;">📝 Executive Summary</h2>
+      <p style="font-size: 13px; line-height: 1.6; color: #334155;">${escapeHtml(summary)}</p>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <h2 style="font-size: 16px; color: #0f172a; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px;">🔍 Identified Clause Risks & Exposure</h2>
+      <div style="font-size: 13px; color: #334155;">${findings}</div>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <h2 style="font-size: 16px; color: #0f172a; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px;">💡 Actionable Recommendations</h2>
+      <div style="font-size: 13px; color: #334155;">${recommendations}</div>
+    </div>
+
+    <div style="margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 10px; text-align: center; font-size: 11px; color: #94a3b8;">
+      Generated automatically by AI Contract Reviewer Enterprise Platform
+    </div>
+  `;
+
+  const opt = {
+    margin: 10,
+    filename: `Contract_Analysis_Report_#${contractId}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  if (exportBtn) {
+    exportBtn.disabled = true;
+    exportBtn.textContent = "⏳ Generating PDF...";
+  }
+
+  if (typeof html2pdf === "function") {
+    html2pdf().set(opt).from(element).save().then(() => {
+      if (exportBtn) {
+        exportBtn.disabled = false;
+        exportBtn.textContent = "📥 Export PDF Report";
+      }
+      showToast("PDF report downloaded successfully!", "success");
+    }).catch(err => {
+      if (exportBtn) {
+        exportBtn.disabled = false;
+        exportBtn.textContent = "📥 Export PDF Report";
+      }
+      showToast("PDF generation failed: " + err.message, "error");
+    });
+  } else {
+    window.print();
+    if (exportBtn) {
+      exportBtn.disabled = false;
+      exportBtn.textContent = "📥 Export PDF Report";
+    }
+  }
+}
+

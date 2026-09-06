@@ -597,7 +597,134 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  // Admin Export Audit PDF Handler
+  const exportAdminPdfBtn = document.getElementById("exportAdminPdfBtn");
+  if (exportAdminPdfBtn) {
+    exportAdminPdfBtn.addEventListener("click", () => exportAdminReportPDF());
+  }
+
+  async function exportAdminReportPDF() {
+    const totalUsers = document.getElementById("stat-total-users")?.textContent || "0";
+    const totalContracts = document.getElementById("stat-total-contracts")?.textContent || "0";
+    const totalAnalyses = document.getElementById("stat-total-analyses")?.textContent || "0";
+    const activeUsers = document.getElementById("stat-active-users")?.textContent || "0";
+    const benchChunk = document.getElementById("bench-chunk-speed")?.textContent || "--";
+    const benchEmb = document.getElementById("bench-embedding-latency")?.textContent || "--";
+    const benchChroma = document.getElementById("bench-chroma-latency")?.textContent || "--";
+    const benchRps = document.getElementById("bench-api-rps")?.textContent || "--";
+    const benchRam = document.getElementById("bench-ram-usage")?.textContent || "--";
+
+    const dateStr = new Date().toLocaleString();
+
+    const element = document.createElement("div");
+    element.style.padding = "24px";
+    element.style.fontFamily = "Arial, sans-serif";
+    element.style.color = "#0f172a";
+    element.style.backgroundColor = "#ffffff";
+
+    element.innerHTML = `
+      <div style="border-bottom: 2px solid #00f0ff; padding-bottom: 12px; margin-bottom: 20px;">
+        <h1 style="color: #0f172a; font-size: 22px; margin: 0 0 6px 0;">🛡️ System Overview & Performance Audit Report</h1>
+        <p style="color: #64748b; font-size: 13px; margin: 0;">AI Contract Reviewer Platform Administration | Date: ${dateStr}</p>
+      </div>
+
+      <h2 style="font-size: 16px; color: #0f172a; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 15px;">📊 Platform Infrastructure Metrics</h2>
+      <div style="display: flex; gap: 15px; margin-bottom: 25px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
+        <div style="flex: 1;">
+          <span style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: bold;">Platform Users</span>
+          <div style="font-size: 20px; font-weight: bold; color: #0f172a;">${totalUsers} (${activeUsers} Active)</div>
+        </div>
+        <div style="flex: 1;">
+          <span style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: bold;">Total Contracts</span>
+          <div style="font-size: 20px; font-weight: bold; color: #0284c7;">${totalContracts}</div>
+        </div>
+        <div style="flex: 1;">
+          <span style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: bold;">Total AI Analyses</span>
+          <div style="font-size: 20px; font-weight: bold; color: #16a34a;">${totalAnalyses}</div>
+        </div>
+      </div>
+
+      <h2 style="font-size: 16px; color: #0f172a; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 15px;">⚡ Performance Benchmarks Summary</h2>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 13px;">
+        <thead>
+          <tr style="background: #f1f5f9; text-align: left;">
+            <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Metric</th>
+            <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Measured Value</th>
+            <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Subsystem</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">AI Chunking Speed</td>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>${benchChunk}</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">ChunkService</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">Embedding Model Latency</td>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>${benchEmb}</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">SentenceTransformers</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">ChromaDB Vector Search</td>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>${benchChroma}</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">Persistent VectorStore</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">API Request Throughput</td>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>${benchRps}</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">FastAPI REST Engine</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">Process RAM Usage</td>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;"><strong>${benchRam}</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">System Resources</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 10px; text-align: center; font-size: 11px; color: #94a3b8;">
+        Official Administrative System Audit Report - AI Contract Reviewer Enterprise Platform
+      </div>
+    `;
+
+    const opt = {
+      margin: 10,
+      filename: `Admin_System_Report_${new Date().toISOString().slice(0, 10)}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    if (exportAdminPdfBtn) {
+      exportAdminPdfBtn.disabled = true;
+      exportAdminPdfBtn.textContent = "⏳ Exporting...";
+    }
+
+    if (typeof html2pdf === "function") {
+      html2pdf().set(opt).from(element).save().then(() => {
+        if (exportAdminPdfBtn) {
+          exportAdminPdfBtn.disabled = false;
+          exportAdminPdfBtn.textContent = "📄 Export Audit PDF";
+        }
+        showToast("Admin audit PDF report downloaded successfully!", "success");
+      }).catch(err => {
+        if (exportAdminPdfBtn) {
+          exportAdminPdfBtn.disabled = false;
+          exportAdminPdfBtn.textContent = "📄 Export Audit PDF";
+        }
+        showToast("Admin PDF export failed: " + err.message, "danger");
+      });
+    } else {
+      window.print();
+      if (exportAdminPdfBtn) {
+        exportAdminPdfBtn.disabled = false;
+        exportAdminPdfBtn.textContent = "📄 Export Audit PDF";
+      }
+    }
+  }
+
   // Initial Load
   loadDashboardStats();
 });
+
 

@@ -13,6 +13,8 @@
     <link rel="stylesheet" href="./css/components/badge.css" />
     <link rel="stylesheet" href="./css/components/input.css" />
     <link rel="stylesheet" href="./css/contract-detail.css" />
+    <!-- PDF Generation Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   </head>
 
   <body>
@@ -38,6 +40,7 @@
         </div>
 
         <div class="contract-actions">
+          <button id="exportPdfBtn" class="btn btn-outline btn-sm">📥 Export PDF Report</button>
           <button id="reanalyzeBtn" class="btn btn-secondary btn-sm">⚡ Re-analyze</button>
           <button id="deleteContractBtn" class="btn btn-danger btn-sm">🗑️ Delete</button>
         </div>
