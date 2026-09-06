@@ -92,12 +92,33 @@ def main():
         print(f"⚠️ Migration warning: {e}")
 
     # 4. Start Uvicorn FastAPI Server
-    print("\n⚡ Starting FastAPI Uvicorn Server on http://127.0.0.1:8000 ...")
+    cert_file = os.getenv("SSL_CERTFILE") or str(PROJECT_ROOT / "certs" / "tls.crt")
+    key_file = os.getenv("SSL_KEYFILE") or str(PROJECT_ROOT / "certs" / "tls.key")
+    
+    use_ssl = os.path.exists(cert_file) and os.path.exists(key_file)
+    protocol = "https" if use_ssl else "http"
+
+    print(f"\n⚡ Starting FastAPI Uvicorn Server on {protocol}://127.0.0.1:8000 ...")
+    if use_ssl:
+        print(f"🔒 SSL/TLS Enabled (Cert: {cert_file}, Key: {key_file})")
+
     try:
         import uvicorn
-        uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
+        uvicorn_kwargs = {
+            "app": "app.main:app",
+            "host": "127.0.0.1",
+            "port": 8000,
+            "reload": True,
+        }
+        if use_ssl:
+            uvicorn_kwargs["ssl_certfile"] = cert_file
+            uvicorn_kwargs["ssl_keyfile"] = key_file
+        uvicorn.run(**uvicorn_kwargs)
     except ImportError:
-        run_command([sys.executable, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000", "--reload"], cwd=BASE_DIR)
+        cmd = [sys.executable, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000", "--reload"]
+        if use_ssl:
+            cmd.extend(["--ssl-certfile", cert_file, "--ssl-keyfile", key_file])
+        run_command(cmd, cwd=BASE_DIR)
 
 if __name__ == "__main__":
     main()

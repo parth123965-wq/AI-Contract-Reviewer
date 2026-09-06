@@ -32,7 +32,17 @@ class Settings(BaseSettings):
     OTP_EXPIRE_SECONDS: int
     OTP_COOLDOWN_SECONDS: int
     OTP_MAX_ATTEMPTS: int
+    FORCE_HTTPS: bool = False
+    SSL_KEYFILE: str | None = None
+    SSL_CERTFILE: str | None = None
+    SECURE_COOKIES: bool = True
     ALLOWED_ORIGINS: list[str] = [
+        "https://localhost",
+        "https://127.0.0.1",
+        "https://localhost:443",
+        "https://127.0.0.1:443",
+        "https://localhost:8000",
+        "https://127.0.0.1:8000",
         "http://localhost:3000",
         "http://localhost:5173",
         "http://localhost:5500",

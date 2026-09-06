@@ -11,6 +11,7 @@ from app.api.users import users_router
 from app.api.contracts import contract_router
 from app.api.admin import admin_router
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
 main_logger = get_app_logger("main")
 
@@ -46,12 +47,23 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Optional force HTTPS redirect middleware
+if settings.FORCE_HTTPS:
+    app.add_middleware(HTTPSRedirectMiddleware)
+
 
 @app.middleware("http")
-async def log_requests(request: Request, call_next):
+async def enforce_security_headers(request: Request, call_next):
     start_time = time.time()
     response = await call_next(request)
     process_time = (time.time() - start_time) * 1000
+
+    # OWASP Cryptographic Security Headers
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
     main_logger.info(
         "HTTP Request Processed",
@@ -70,6 +82,12 @@ async def log_requests(request: Request, call_next):
 if settings.DEBUG:
     # Development Settings: explicit local origins, explicit methods and headers
     cors_origins = [
+        "https://localhost",
+        "https://127.0.0.1",
+        "https://localhost:443",
+        "https://127.0.0.1:443",
+        "https://localhost:8000",
+        "https://127.0.0.1:8000",
         "http://localhost:3000",
         "http://localhost:5173",
         "http://localhost:5500",
