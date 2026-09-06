@@ -1,10 +1,11 @@
 import time
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from app.core.config import settings
 from app.core.redis_setup import initialize_redis, close_redis
 from app.core.email_setup import initialize_email, close_email
 from app.core.logger import app_logger, get_app_logger
+from app.core.rate_limit import RateLimiter
 from app.api.auth import auth_router
 from app.api.users import users_router
 from app.api.contracts import contract_router
@@ -116,7 +117,7 @@ app.include_router(router=users_router)
 app.include_router(router=contract_router)
 app.include_router(router=admin_router)
 
-@app.get("/")
+@app.get("/", dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="home"))])
 def home() -> dict:
     return {
         "message":settings.APP_NAME,
