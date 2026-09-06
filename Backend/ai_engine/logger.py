@@ -6,14 +6,14 @@ from typing import Any, Dict
 from app.core.config import settings
 
 
-class AppJSONFormatter(logging.Formatter):
+class AIEngineJSONFormatter(logging.Formatter):
     """
-    Structured JSON Formatter for Backend App API service.
+    Structured JSON Formatter specifically for AI Engine / LLM operations.
     """
     def format(self, record: logging.LogRecord) -> str:
         log_data: Dict[str, Any] = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "service": "backend_app",
+            "service": "ai_engine",
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -24,7 +24,7 @@ class AppJSONFormatter(logging.Formatter):
         if record.exc_info:
             log_data["exception"] = self.formatException(record.exc_info)
 
-        # Include custom extra fields if passed in log call
+        # Include custom extra metadata (e.g. model_name, tokens, node_name, prompt_id)
         standard_attrs = {
             "name", "msg", "args", "levelname", "levelno", "pathname", "filename",
             "module", "exc_info", "exc_text", "stack_info", "lineno", "funcName",
@@ -38,25 +38,25 @@ class AppJSONFormatter(logging.Formatter):
         return json.dumps(log_data)
 
 
-def setup_app_logging() -> logging.Logger:
-    logger = logging.getLogger("app")
+def setup_ai_engine_logging() -> logging.Logger:
+    logger = logging.getLogger("ai_engine")
     log_level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
     logger.setLevel(log_level)
 
     if not logger.handlers:
         handler = logging.StreamHandler(sys.stdout)
-        handler.setFormatter(AppJSONFormatter())
+        handler.setFormatter(AIEngineJSONFormatter())
         logger.addHandler(handler)
         logger.propagate = False
 
     return logger
 
 
-app_logger = setup_app_logging()
+ai_logger = setup_ai_engine_logging()
 
 
-def get_app_logger(name: str) -> logging.Logger:
+def get_ai_logger(name: str) -> logging.Logger:
     """
-    Returns a child logger scoped under 'app.<name>'
+    Returns a child logger scoped under 'ai_engine.<name>'
     """
-    return logging.getLogger(f"app.{name}")
+    return logging.getLogger(f"ai_engine.{name}")

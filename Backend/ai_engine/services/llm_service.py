@@ -25,6 +25,10 @@ try:
 except ImportError:
     ChatGoogleGenerativeAI = None
 
+from ai_engine.logger import get_ai_logger
+
+logger = get_ai_logger("services.llm")
+
 
 class LLMService:
     

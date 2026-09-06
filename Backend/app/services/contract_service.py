@@ -9,6 +9,9 @@ from app.schemas.contract import ContractResponse , ContractListResponse
 from app.core.config import settings
 import shutil
 from typing import Optional
+from app.core.logger import get_app_logger
+
+logger = get_app_logger("services.contract")
 
 class ContractService:
     MAX_FILE_SIZE = 20 * 1024 * 1024

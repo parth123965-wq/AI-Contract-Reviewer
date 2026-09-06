@@ -13,6 +13,9 @@ from app.schemas.user import (
     VerifyEmailChangeRequest,
     VerifyPasswordChangeRequest
 )
+from app.core.logger import get_app_logger
+
+logger = get_app_logger("services.user")
 
 class UserService:
     def __init__(self):

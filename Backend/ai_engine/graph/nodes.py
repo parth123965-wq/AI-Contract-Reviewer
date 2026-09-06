@@ -8,6 +8,9 @@ from ai_engine.services.llm_service import LLMService
 from ai_engine.services.parser_service import ParserService
 from ai_engine.services.save_analysis import AnalysisService
 from app.core.config import settings
+from ai_engine.logger import get_ai_logger
+
+logger = get_ai_logger("graph.nodes")
 
 class ContractNodes:
     

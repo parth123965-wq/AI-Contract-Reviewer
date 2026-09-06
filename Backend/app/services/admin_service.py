@@ -18,6 +18,9 @@ from app.schemas.admin import (
 )
 from app.models.contract import ContractStatus
 from app.models.user import User
+from app.core.logger import get_app_logger
+
+logger = get_app_logger("services.admin")
 
 class AdminService:
     def __init__(self):

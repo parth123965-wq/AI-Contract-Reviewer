@@ -5,6 +5,10 @@ try:
 except ImportError:
     HAS_CHROMADB = False
 
+from ai_engine.logger import get_ai_logger
+
+logger = get_ai_logger("services.vector_store")
+
 class VectorStoreService:
     
     

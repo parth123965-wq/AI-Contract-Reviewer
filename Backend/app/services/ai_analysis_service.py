@@ -8,6 +8,9 @@ from app.repositories.contract_repository import ContractRepository
 
 from ai_engine.graph.graph import ContractGraph
 from ai_engine.schemas.analysis_result import AnalysisResult
+from app.core.logger import get_app_logger
+
+logger = get_app_logger("services.ai_analysis")
 
 
 class AnalysisService:

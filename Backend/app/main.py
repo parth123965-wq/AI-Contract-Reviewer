@@ -1,29 +1,42 @@
+import time
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from app.core.config import settings
 from app.core.redis_setup import initialize_redis, close_redis
 from app.core.email_setup import initialize_email, close_email
+from app.core.logger import app_logger, get_app_logger
 from app.api.auth import auth_router
 from app.api.users import users_router
 from app.api.contracts import contract_router
 from app.api.admin import admin_router
 from fastapi.middleware.cors import CORSMiddleware
 
+main_logger = get_app_logger("main")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: initialize services
+    main_logger.info("Starting Backend App service...")
     try:
         await initialize_redis()
+        main_logger.info("Redis initialized successfully.")
     except Exception as e:
-        print(f"Redis initialization warning: {e}")
-    await initialize_email()
+        main_logger.warning("Redis initialization warning", extra={"error": str(e)})
+    
+    try:
+        await initialize_email()
+        main_logger.info("Email service initialized successfully.")
+    except Exception as e:
+        main_logger.warning("Email initialization warning", extra={"error": str(e)})
 
     yield
 
     # Shutdown: close services
+    main_logger.info("Shutting down Backend App service...")
     await close_redis()
     await close_email()
+    main_logger.info("Services closed successfully.")
 
 
 app = FastAPI(
@@ -31,6 +44,26 @@ app = FastAPI(
     version=settings.APP_VERSION,
     lifespan=lifespan
 )
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = (time.time() - start_time) * 1000
+
+    main_logger.info(
+        "HTTP Request Processed",
+        extra={
+            "method": request.method,
+            "url": str(request.url),
+            "status_code": response.status_code,
+            "duration_ms": round(process_time, 2),
+            "client_ip": request.client.host if request.client else None,
+        }
+    )
+    return response
+
 
 # Explicit CORS configuration based on DEBUG environment setting
 if settings.DEBUG:

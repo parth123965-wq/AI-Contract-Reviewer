@@ -6,6 +6,9 @@ from app.repositories.user_repository import UserRepository
 from fastapi import HTTPException, status
 from app.auth.jwt import create_access_token
 from app.services.otp_service import otp_service
+from app.core.logger import get_app_logger
+
+logger = get_app_logger("services.auth")
 
 class AuthService:
     

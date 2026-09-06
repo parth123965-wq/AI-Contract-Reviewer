@@ -1,4 +1,3 @@
-import logging
 from pathlib import Path
 from typing import Any, Dict
 from fastapi import HTTPException, status
@@ -7,8 +6,9 @@ from jinja2 import Environment, FileSystemLoader
 
 from app.core.config import settings
 from app.core.email_setup import get_email
+from app.core.logger import get_app_logger
 
-logger = logging.getLogger(__name__)
+logger = get_app_logger("services.email")
 
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
 
