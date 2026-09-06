@@ -382,6 +382,81 @@
             </div>
         </div>
 
+        <!-- Advanced Performance & Telemetry Metrics -->
+        <div class="grid">
+            <!-- HTTP Request / Response Latency Histograms -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">HTTP Request Latency Histogram</span>
+                    <span id="http-count-badge" class="badge badge-healthy">0 Calls</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Average / P95 Latency</span>
+                    <span id="http-lat-summary" class="stat-value">0.0ms / 0.0ms</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Fast (&lt;50ms)</span>
+                    <span id="hist-fast" class="stat-value">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Normal (50-200ms)</span>
+                    <span id="hist-normal" class="stat-value">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Slow (&gt;200ms)</span>
+                    <span id="hist-slow" class="stat-value">0</span>
+                </div>
+            </div>
+
+            <!-- LLM API Call Latency Tracking -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">LLM API Call Latency Tracking</span>
+                    <span id="llm-status-badge" class="badge badge-healthy">HEALTHY</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Total Executions</span>
+                    <span id="llm-total-calls" class="stat-value">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Avg Generation Time</span>
+                    <span id="llm-avg-lat" class="stat-value">0.0 ms</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Min / Max Latency</span>
+                    <span id="llm-range-lat" class="stat-value">0.0ms / 0.0ms</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Failed / Error Count</span>
+                    <span id="llm-error-count" class="stat-value">0</span>
+                </div>
+            </div>
+
+            <!-- Vector Search & DB Performance Metrics -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Vector Search & DB Metrics</span>
+                    <span id="telemetry-status-badge" class="badge badge-healthy">ACTIVE</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Vector Search Avg Latency</span>
+                    <span id="vector-avg-lat" class="stat-value">0.0 ms</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Vector Queries Tracked</span>
+                    <span id="vector-count" class="stat-value">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">DB Queries Tracked</span>
+                    <span id="db-query-count" class="stat-value">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">DB Avg Latency</span>
+                    <span id="db-avg-lat" class="stat-value">0.0 ms</span>
+                </div>
+            </div>
+        </div>
+
         <footer>
             Auto-refreshing live operational metrics every 5 seconds &bull; AI Contract Reviewer Admin Engine
         </footer>
@@ -464,6 +539,30 @@
                 document.getElementById('python-version').innerText = proc.python_version || '-';
                 document.getElementById('process-threads').innerText = proc.num_threads || '1';
                 document.getElementById('process-rss').innerText = formatBytes(proc.memory_rss_bytes);
+
+                // Performance & Telemetry
+                const perf = data.performance || {};
+                const httpReq = perf.http_requests || {};
+                document.getElementById('http-count-badge').innerText = `${httpReq.count || 0} Calls`;
+                document.getElementById('http-lat-summary').innerText = `${httpReq.avg_ms || 0.0}ms / ${httpReq.p95_ms || 0.0}ms`;
+                const hist = httpReq.histogram || {};
+                document.getElementById('hist-fast').innerText = hist['<50ms'] || 0;
+                document.getElementById('hist-normal').innerText = hist['50-200ms'] || 0;
+                document.getElementById('hist-slow').innerText = (hist['200-500ms'] || 0) + (hist['>500ms'] || 0);
+
+                const llmStats = perf.llm_api_calls || {};
+                document.getElementById('llm-total-calls').innerText = llmStats.count || 0;
+                document.getElementById('llm-avg-lat').innerText = `${llmStats.avg_ms || 0.0} ms`;
+                document.getElementById('llm-range-lat').innerText = `${llmStats.min_ms || 0.0}ms / ${llmStats.max_ms || 0.0}ms`;
+                document.getElementById('llm-error-count').innerText = llmStats.error_count || 0;
+
+                const vectorStats = perf.vector_search || {};
+                document.getElementById('vector-avg-lat').innerText = `${vectorStats.avg_ms || 0.0} ms`;
+                document.getElementById('vector-count').innerText = vectorStats.count || 0;
+
+                const dbStats = perf.database_queries || {};
+                document.getElementById('db-query-count').innerText = dbStats.count || 0;
+                document.getElementById('db-avg-lat').innerText = `${dbStats.avg_ms || 0.0} ms`;
 
             } catch (err) {
                 console.error("Failed to fetch monitoring metrics", err);

@@ -103,6 +103,11 @@ async def test_monitoring_functions_direct():
         assert "system" in report
         assert "process" in report
         assert "services" in report
+        assert "performance" in report
+        assert "http_requests" in report["performance"]
+        assert "llm_api_calls" in report["performance"]
+        assert "vector_search" in report["performance"]
+        assert "database_queries" in report["performance"]
 
 
 @pytest.mark.asyncio
