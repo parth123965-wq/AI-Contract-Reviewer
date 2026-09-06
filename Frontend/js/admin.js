@@ -118,9 +118,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (subheading) subheading.textContent = "Real-time infrastructure CPU/RAM metrics, process details, and DB/Redis latency";
         const dashboardUrl = `${API_CONFIG.BASE_URL}/admin/monitoring/dashboard`;
         const iframe = document.getElementById("monitoring-gui-iframe");
+        const fullScreenBtn = document.getElementById("open-gui-fullscreen-btn");
         if (iframe) iframe.src = dashboardUrl;
-        const btn = document.getElementById("open-gui-fullscreen-btn");
-        if (btn) btn.href = dashboardUrl;
+        if (fullScreenBtn) fullScreenBtn.href = dashboardUrl;
+      } else if (targetTab === "benchmarks") {
+        if (heading) heading.textContent = "Performance Benchmarks";
+        if (subheading) subheading.textContent = "System profiling across AI Engine, ChromaDB vector store, JWT security, and API throughput";
+        loadBenchmarks();
       }
     });
   });
@@ -497,6 +501,103 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  // Performance Benchmarks Handlers
+  async function loadBenchmarks() {
+    const jsonOutput = document.getElementById("bench-json-output");
+    const timestampElem = document.getElementById("bench-timestamp");
+    const badge = document.getElementById("bench-status-badge");
+
+    try {
+      if (jsonOutput) jsonOutput.textContent = "Fetching performance benchmark metrics report...";
+      const data = await adminGetBenchmarkReport();
+      renderBenchmarkData(data);
+    } catch (err) {
+      if (jsonOutput) jsonOutput.textContent = "Failed to load benchmark report: " + err.message;
+      if (badge) {
+        badge.textContent = "ERROR";
+        badge.className = "badge badge-danger";
+      }
+    }
+  }
+
+  function renderBenchmarkData(data) {
+    const jsonOutput = document.getElementById("bench-json-output");
+    const timestampElem = document.getElementById("bench-timestamp");
+    const badge = document.getElementById("bench-status-badge");
+
+    const chunkSpeed = document.getElementById("bench-chunk-speed");
+    const embLatency = document.getElementById("bench-embedding-latency");
+    const chromaLatency = document.getElementById("bench-chroma-latency");
+    const jwtOps = document.getElementById("bench-jwt-ops");
+    const apiRps = document.getElementById("bench-api-rps");
+    const ramUsage = document.getElementById("bench-ram-usage");
+
+    if (jsonOutput) jsonOutput.textContent = JSON.stringify(data, null, 2);
+    if (timestampElem) timestampElem.textContent = `Last Run: ${data.timestamp || "Unknown"}`;
+    if (badge) {
+      badge.textContent = "READY";
+      badge.className = "badge badge-success";
+    }
+
+    const ai = data.ai_pipeline || {};
+    const api = data.api_endpoints || {};
+    const res = data.system_resources || {};
+
+    if (chunkSpeed) {
+      const chars = ai.chunking?.chars_per_sec || 0;
+      chunkSpeed.textContent = chars > 1000000 ? `${(chars / 1000000).toFixed(1)}M/s` : `${chars.toLocaleString()}/s`;
+    }
+    if (embLatency) {
+      embLatency.textContent = `${ai.embeddings?.avg_ms_per_chunk || "--"} ms`;
+    }
+    if (chromaLatency) {
+      chromaLatency.textContent = `${ai.vector_store?.avg_query_latency_ms || "--"} ms`;
+    }
+    if (jwtOps) {
+      const ops = api.jwt_security?.creation_ops_per_sec || 0;
+      jwtOps.textContent = `${ops.toLocaleString()} ops/s`;
+    }
+    if (apiRps) {
+      apiRps.textContent = `${api.api_throughput?.requests_per_sec || 0} req/s`;
+    }
+    if (ramUsage) {
+      ramUsage.textContent = `${res.memory_rss_mb || "--"} MB`;
+    }
+  }
+
+  const runBenchmarkBtn = document.getElementById("run-benchmark-btn");
+  if (runBenchmarkBtn) {
+    runBenchmarkBtn.addEventListener("click", async () => {
+      const jsonOutput = document.getElementById("bench-json-output");
+      const badge = document.getElementById("bench-status-badge");
+
+      try {
+        runBenchmarkBtn.disabled = true;
+        runBenchmarkBtn.innerHTML = `⏳ Running Benchmarks...`;
+        if (jsonOutput) jsonOutput.textContent = "Executing performance benchmark suite across AI Engine, ChromaDB, JWT, and API REST endpoints...";
+        if (badge) {
+          badge.textContent = "RUNNING";
+          badge.className = "badge badge-warning";
+        }
+
+        const freshData = await adminRunBenchmark();
+        renderBenchmarkData(freshData);
+        showToast("Performance benchmark execution completed!", "success");
+      } catch (err) {
+        showToast("Benchmark execution failed: " + err.message, "danger");
+        if (jsonOutput) jsonOutput.textContent = "Execution Error: " + err.message;
+        if (badge) {
+          badge.textContent = "FAILED";
+          badge.className = "badge badge-danger";
+        }
+      } finally {
+        runBenchmarkBtn.disabled = false;
+        runBenchmarkBtn.innerHTML = `🚀 Run Performance Benchmark`;
+      }
+    });
+  }
+
   // Initial Load
   loadDashboardStats();
 });
+

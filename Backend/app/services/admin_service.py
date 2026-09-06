@@ -213,5 +213,53 @@ class AdminService:
         await self.contract_repository.soft_delete_contract(db=db, contract=contract)
         return {"message": "Contract deleted successfully", "contract_id": contract_id}
 
+    async def get_benchmark_report(self) -> dict:
+        import json
+        from pathlib import Path
+        backend_dir = Path(__file__).resolve().parent.parent.parent
+        json_path = backend_dir / "benchmark_report.json"
+        if json_path.exists():
+            try:
+                return json.loads(json_path.read_text(encoding="utf-8"))
+            except Exception as e:
+                logger.warning(f"Error reading benchmark report JSON: {e}")
+        
+        # If file doesn't exist yet, run benchmark to generate report
+        return await self.run_performance_benchmark()
+
+    async def run_performance_benchmark(self) -> dict:
+        import asyncio
+        from benchmarks.run_benchmarks import run_all_ai_benchmarks, run_all_api_benchmarks, get_system_resource_metrics, generate_markdown_report
+        from datetime import datetime
+        import json
+        from pathlib import Path
+
+        start_time = asyncio.get_event_loop().time()
+        ai_metrics = run_all_ai_benchmarks()
+        api_metrics = run_all_api_benchmarks()
+        resource_metrics = get_system_resource_metrics()
+        total_time = asyncio.get_event_loop().time() - start_time
+
+        results = {
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "total_benchmark_duration_sec": round(total_time, 2),
+            "ai_pipeline": ai_metrics,
+            "api_endpoints": api_metrics,
+            "system_resources": resource_metrics
+        }
+
+        backend_dir = Path(__file__).resolve().parent.parent.parent
+        json_path = backend_dir / "benchmark_report.json"
+        md_path = backend_dir / "benchmark_report.md"
+
+        try:
+            json_path.write_text(json.dumps(results, indent=2), encoding="utf-8")
+            generate_markdown_report(results, md_path)
+        except Exception as e:
+            logger.warning(f"Error writing benchmark report output files: {e}")
+
+        return results
+
 def get_admin_service() -> AdminService:
     return AdminService()
+

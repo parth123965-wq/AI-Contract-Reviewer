@@ -461,5 +461,14 @@ async function adminGetMonitoringHealth() {
   return apiGet("/admin/monitoring/health");
 }
 
+async function adminGetBenchmarkReport() {
+  return apiGet("/admin/benchmarks/report");
+}
+
+async function adminRunBenchmark() {
+  return apiPost("/admin/benchmarks/run", {});
+}
+
+
 
 
