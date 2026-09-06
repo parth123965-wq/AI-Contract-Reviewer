@@ -46,9 +46,14 @@ class ContractService:
         self,
         file: UploadFile
     ) -> int:
-        file.file.seek(0,2)
+        file.file.seek(0, 2)
         size = file.file.tell()
         file.file.seek(0)
+        if size == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Uploaded file cannot be empty."
+            )
         if size > self.MAX_FILE_SIZE:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -56,6 +61,18 @@ class ContractService:
             )
         return size
     
+    def _validate_magic_bytes(
+        self,
+        file: UploadFile
+    ) -> None:
+        header = file.file.read(4)
+        file.file.seek(0)
+        if header != b"%PDF":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid PDF file format."
+            )
+
     def _generate_filename(
         self,
         file: UploadFile
@@ -93,6 +110,7 @@ class ContractService:
             self._validate_extension(file=file)
             self._validate_content_type(file=file)
             file_size = self._validate_file_size(file=file)
+            self._validate_magic_bytes(file=file)
             stored_filename = self._generate_filename(file=file)
             file_path = self._save_file(
                 file=file,
