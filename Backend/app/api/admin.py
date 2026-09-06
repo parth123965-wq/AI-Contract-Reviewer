@@ -21,6 +21,9 @@ from app.schemas.admin import (
     AdminDashboardStats
 )
 from app.core.rate_limit import RateLimiter
+from fastapi.responses import HTMLResponse
+from pathlib import Path
+
 
 admin_router = APIRouter(
     prefix="/admin",
@@ -292,5 +295,20 @@ async def get_subsystem_health(
         "database": db_health,
         "redis": redis_health
     }
+
+@admin_router.get(
+    "/monitoring/dashboard",
+    response_class=HTMLResponse,
+    summary="Get System Monitoring Visual GUI Dashboard (Admin Only)",
+    description="Interactive visual HTML dashboard displaying real-time CPU, RAM, Disk, process metrics, and DB/Redis latency graphs.",
+    dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_monitoring_dashboard"))]
+)
+async def get_monitoring_dashboard(
+    admin: Annotated[User, Depends(get_current_admin)]
+):
+    template_path = Path(__file__).resolve().parent.parent / "templates" / "monitoring_dashboard.html"
+    if not template_path.exists():
+        raise HTTPException(status_code=500, detail="Monitoring dashboard template missing")
+    return HTMLResponse(content=template_path.read_text(encoding="utf-8"))
 
 

@@ -453,5 +453,13 @@ async function adminDeleteContract(contractId) {
   return apiDelete(`/admin/contracts/${contractId}`);
 }
 
+async function adminGetMonitoringSystem() {
+  return apiGet("/admin/monitoring/system");
+}
+
+async function adminGetMonitoringHealth() {
+  return apiGet("/admin/monitoring/health");
+}
+
 
 

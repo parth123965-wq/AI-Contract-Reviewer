@@ -113,6 +113,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (heading) heading.textContent = "Contract Management";
         if (subheading) subheading.textContent = "Review all uploaded contracts and inspect analysis states";
         loadContracts();
+      } else if (targetTab === "monitoring") {
+        if (heading) heading.textContent = "System Health & Monitoring";
+        if (subheading) subheading.textContent = "Real-time infrastructure CPU/RAM metrics, process details, and DB/Redis latency";
+        const dashboardUrl = `${API_CONFIG.BASE_URL}/admin/monitoring/dashboard`;
+        const iframe = document.getElementById("monitoring-gui-iframe");
+        if (iframe) iframe.src = dashboardUrl;
+        const btn = document.getElementById("open-gui-fullscreen-btn");
+        if (btn) btn.href = dashboardUrl;
       }
     });
   });

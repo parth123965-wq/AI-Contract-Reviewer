@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Monitoring & Observation Dashboard | Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --card-hover-border: rgba(99, 102, 241, 0.4);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-primary: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.3);
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.2);
+            --warning: #f59e0b;
+            --warning-glow: rgba(245, 158, 11, 0.2);
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .title-section h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(90deg, #ffffff, #a5b4fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .title-section p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        .status-badge.degraded .status-dot {
+            background: var(--danger);
+            box-shadow: 0 0 10px var(--danger);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); }
+        }
+
+        .refresh-btn {
+            background: rgba(99, 102, 241, 0.15);
+            color: #a5b4fc;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(99, 102, 241, 0.3);
+            border-color: var(--accent-primary);
+            color: #ffffff;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            backdrop-filter: blur(16px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            border-color: var(--card-hover-border);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .card-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 9999px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 9999px;
+            background: linear-gradient(90deg, #6366f1, #818cf8);
+            transition: width 0.5s ease;
+        }
+
+        .progress-bar-fill.warning {
+            background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        }
+
+        .progress-bar-fill.danger {
+            background: linear-gradient(90deg, #ef4444, #f87171);
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.9rem;
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .badge {
+            padding: 0.25rem 0.6rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-healthy {
+            background: var(--success-glow);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-disabled {
+            background: rgba(148, 163, 184, 0.1);
+            color: var(--text-muted);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .badge-unhealthy {
+            background: var(--danger-glow);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--card-border);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="title-section">
+                <h1>System Monitoring & Observation</h1>
+                <p>Real-time infrastructure health metrics, application runtime, and service connectivity</p>
+            </div>
+            <div class="header-controls">
+                <div id="overall-badge" class="status-badge">
+                    <div class="status-dot"></div>
+                    <span id="overall-status-text">INITIALIZING</span>
+                </div>
+                <button class="refresh-btn" onclick="fetchMetrics()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                    </svg>
+                    Refresh Now
+                </button>
+            </div>
+        </header>
+
+        <!-- Top Overview Cards -->
+        <div class="grid">
+            <!-- CPU Card -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">CPU Utilization</span>
+                    <span id="cpu-cores" class="badge badge-healthy">Cores: -</span>
+                </div>
+                <div id="cpu-val" class="card-value">0.0%</div>
+                <div class="progress-bar-bg">
+                    <div id="cpu-bar" class="progress-bar-fill" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- Memory Card -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">RAM Usage</span>
+                    <span id="ram-used-text" class="stat-label">0 / 0 GB</span>
+                </div>
+                <div id="ram-val" class="card-value">0.0%</div>
+                <div class="progress-bar-bg">
+                    <div id="ram-bar" class="progress-bar-fill" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- Disk Storage Card -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Disk Storage</span>
+                    <span id="disk-used-text" class="stat-label">0 / 0 GB</span>
+                </div>
+                <div id="disk-val" class="card-value">0.0%</div>
+                <div class="progress-bar-bg">
+                    <div id="disk-bar" class="progress-bar-fill" style="width: 0%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Services & Process Grid -->
+        <div class="grid">
+            <!-- Relational DB Card -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Relational Database</span>
+                    <span id="db-status-badge" class="badge badge-healthy">HEALTHY</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Connection Latency</span>
+                    <span id="db-latency" class="stat-value">0.0 ms</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Connection State</span>
+                    <span id="db-connected" class="stat-value">Connected</span>
+                </div>
+            </div>
+
+            <!-- Redis Cache Card -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Redis Cache Service</span>
+                    <span id="redis-status-badge" class="badge badge-healthy">HEALTHY</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Ping Latency</span>
+                    <span id="redis-latency" class="stat-value">0.0 ms</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Memory Footprint</span>
+                    <span id="redis-memory" class="stat-value">N/A</span>
+                </div>
+            </div>
+
+            <!-- Application Process Metrics -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Process Runtime</span>
+                    <span id="process-pid" class="stat-label">PID: -</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">System Uptime</span>
+                    <span id="process-uptime" class="stat-value">0h 0m 0s</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Python Version</span>
+                    <span id="python-version" class="stat-value">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Active Threads</span>
+                    <span id="process-threads" class="stat-value">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Process Memory (RSS)</span>
+                    <span id="process-rss" class="stat-value">0 MB</span>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            Auto-refreshing live operational metrics every 5 seconds &bull; AI Contract Reviewer Admin Engine
+        </footer>
+    </div>
+
+    <script>
+        function formatBytes(bytes, decimals = 2) {
+            if (!bytes || bytes === 0) return '0 GB';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        async function fetchMetrics() {
+            try {
+                const response = await fetch('/admin/monitoring/system', {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!response.ok) return;
+
+                const data = await response.json();
+
+                // Overall status
+                const overallBadge = document.getElementById('overall-badge');
+                const overallText = document.getElementById('overall-status-text');
+                if (data.overall_status === 'healthy') {
+                    overallBadge.className = 'status-badge';
+                    overallText.innerText = 'SYSTEM HEALTHY';
+                } else {
+                    overallBadge.className = 'status-badge degraded';
+                    overallText.innerText = 'DEGRADED';
+                }
+
+                // CPU
+                const cpuPerc = data.system?.cpu?.usage_percent || 0;
+                document.getElementById('cpu-val').innerText = `${cpuPerc.toFixed(1)}%`;
+                document.getElementById('cpu-cores').innerText = `Cores: ${data.system?.cpu?.core_count || 1}`;
+                const cpuBar = document.getElementById('cpu-bar');
+                cpuBar.style.width = `${Math.min(cpuPerc, 100)}%`;
+                cpuBar.className = cpuPerc > 85 ? 'progress-bar-fill danger' : (cpuPerc > 70 ? 'progress-bar-fill warning' : 'progress-bar-fill');
+
+                // RAM
+                const ramPerc = data.system?.memory?.usage_percent || 0;
+                document.getElementById('ram-val').innerText = `${ramPerc.toFixed(1)}%`;
+                document.getElementById('ram-used-text').innerText = `${formatBytes(data.system?.memory?.used_bytes)} / ${formatBytes(data.system?.memory?.total_bytes)}`;
+                const ramBar = document.getElementById('ram-bar');
+                ramBar.style.width = `${Math.min(ramPerc, 100)}%`;
+                ramBar.className = ramPerc > 85 ? 'progress-bar-fill danger' : (ramPerc > 70 ? 'progress-bar-fill warning' : 'progress-bar-fill');
+
+                // Disk
+                const diskPerc = data.system?.disk?.usage_percent || 0;
+                document.getElementById('disk-val').innerText = `${diskPerc.toFixed(1)}%`;
+                document.getElementById('disk-used-text').innerText = `${formatBytes(data.system?.disk?.used_bytes)} / ${formatBytes(data.system?.disk?.total_bytes)}`;
+                const diskBar = document.getElementById('disk-bar');
+                diskBar.style.width = `${Math.min(diskPerc, 100)}%`;
+                diskBar.className = diskPerc > 85 ? 'progress-bar-fill danger' : (diskPerc > 70 ? 'progress-bar-fill warning' : 'progress-bar-fill');
+
+                // Database
+                const db = data.services?.database || {};
+                const dbBadge = document.getElementById('db-status-badge');
+                dbBadge.innerText = (db.status || 'UNHEALTHY').toUpperCase();
+                dbBadge.className = db.status === 'healthy' ? 'badge badge-healthy' : 'badge badge-unhealthy';
+                document.getElementById('db-latency').innerText = `${db.latency_ms || 0.0} ms`;
+                document.getElementById('db-connected').innerText = db.connected ? 'Connected' : 'Disconnected';
+
+                // Redis
+                const redis = data.services?.redis || {};
+                const redisBadge = document.getElementById('redis-status-badge');
+                redisBadge.innerText = (redis.status || 'DISABLED').toUpperCase();
+                redisBadge.className = redis.status === 'healthy' ? 'badge badge-healthy' : (redis.status === 'disabled' ? 'badge badge-disabled' : 'badge badge-unhealthy');
+                document.getElementById('redis-latency').innerText = `${redis.latency_ms || 0.0} ms`;
+                document.getElementById('redis-memory').innerText = redis.used_memory_human || 'N/A';
+
+                // Process
+                const proc = data.process || {};
+                document.getElementById('process-pid').innerText = `PID: ${proc.pid || '-'}`;
+                document.getElementById('process-uptime').innerText = proc.uptime_formatted || '0s';
+                document.getElementById('python-version').innerText = proc.python_version || '-';
+                document.getElementById('process-threads').innerText = proc.num_threads || '1';
+                document.getElementById('process-rss').innerText = formatBytes(proc.memory_rss_bytes);
+
+            } catch (err) {
+                console.error("Failed to fetch monitoring metrics", err);
+            }
+        }
+
+        // Initial fetch and 5-second polling interval
+        fetchMetrics();
+        setInterval(fetchMetrics, 5000);
+    </script>
+</body>
+</html>

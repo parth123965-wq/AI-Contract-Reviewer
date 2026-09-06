@@ -112,6 +112,9 @@
           <button type="button" class="nav-item" data-admin-tab="contracts">
             <span class="nav-icon">📑</span> Contract Control
           </button>
+          <button type="button" class="nav-item" data-admin-tab="monitoring">
+            <span class="nav-icon">📊</span> System Health & GUI
+          </button>
         </nav>
 
         <div class="sidebar-footer">
@@ -258,6 +261,22 @@
               <span id="contractsPageInfo" style="font-size: var(--font-sm); color: var(--color-text-muted);">Page 1</span>
               <button id="nextContractsBtn" class="btn btn-outline btn-sm" disabled>Next</button>
             </div>
+          </div>
+        </section>
+
+        <!-- SYSTEM MONITORING & HEALTH GUI TAB -->
+        <section id="tab-monitoring" class="admin-tab-content">
+          <div class="card glass-card" style="padding: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+              <div>
+                <h3 style="color: var(--color-text-light); font-size: 1.1rem; font-weight: 600;">Real-Time Infrastructure & Operational Metrics</h3>
+                <p style="color: var(--color-text-muted); font-size: 0.85rem; margin-top: 0.2rem;">Live CPU, Memory, Disk storage, active threads, and Database/Redis connection health</p>
+              </div>
+              <a id="open-gui-fullscreen-btn" href="http://127.0.0.1:8000/admin/monitoring/dashboard" target="_blank" class="btn btn-primary btn-sm" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem;">
+                🚀 Open Fullscreen GUI Dashboard ↗
+              </a>
+            </div>
+            <iframe id="monitoring-gui-iframe" src="http://127.0.0.1:8000/admin/monitoring/dashboard" style="width: 100%; height: 750px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: var(--radius-lg); background: #0f172a;" title="System Monitoring GUI"></iframe>
           </div>
         </section>
 
