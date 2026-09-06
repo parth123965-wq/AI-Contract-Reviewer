@@ -11,7 +11,8 @@ from sqlalchemy import (
     func,
     Text,
     JSON,
-    TIMESTAMP
+    TIMESTAMP,
+    Index
 )
 from enum import Enum
 from sqlalchemy.orm import Mapped , mapped_column , relationship
@@ -31,6 +32,10 @@ class RiskLevel(str, Enum):
     
 class Contract(Base):
     __tablename__ = "contracts"
+    __table_args__ = (
+        Index("ix_contracts_user_id_is_deleted", "user_id", "is_deleted"),
+        Index("ix_contracts_status_is_deleted", "status", "is_deleted"),
+    )
     id: Mapped[int] = mapped_column(
         primary_key=True,
         autoincrement=True
@@ -103,6 +108,10 @@ class Contract(Base):
     
 class ContractAnalysis(Base):
     __tablename__ = "contract_analyses"
+    __table_args__ = (
+        Index("ix_contract_analyses_contract_version", "contract_id", "analysis_version"),
+        Index("ix_contract_analyses_risk_level", "risk_level"),
+    )
     id: Mapped[int] = mapped_column(
         primary_key=True,
         autoincrement=True
