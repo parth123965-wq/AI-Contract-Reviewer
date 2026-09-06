@@ -32,26 +32,50 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Explicit CORS configuration based on DEBUG environment setting
+if settings.DEBUG:
+    # Development Settings: explicit local origins, explicit methods and headers
+    cors_origins = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:5500",
+        "http://localhost:8000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5500",
+        "http://127.0.0.1:8000",
+        "http://localhost",
+        "http://127.0.0.1"
+    ]
+    cors_methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    cors_headers = [
+        "Content-Type",
+        "Authorization",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+        "Access-Control-Request-Method",
+        "Access-Control-Request-Headers"
+    ]
+else:
+    # Production Settings: strict configured allowed origins, explicit methods and headers
+    cors_origins = settings.ALLOWED_ORIGINS
+    cors_methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    cors_headers = [
+        "Content-Type",
+        "Authorization",
+        "Accept",
+        "Origin",
+        "X-Requested-With"
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://127.0.0.1:5500",
-        "http://localhost:5500",
-        "http://localhost",
-        "http://localhost:80",
-        "http://127.0.0.1:80",
-        "http://127.0.0.1",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000"
-    ],
-    allow_origin_regex=r"https?://.*",
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=[
-        "*"
-    ],
-    allow_headers=[
-        "*"
-    ],
+    allow_methods=cors_methods,
+    allow_headers=cors_headers,
+    max_age=600,
 )
 
 app.include_router(router=auth_router)

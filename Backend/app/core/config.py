@@ -32,6 +32,16 @@ class Settings(BaseSettings):
     OTP_EXPIRE_SECONDS: int
     OTP_COOLDOWN_SECONDS: int
     OTP_MAX_ATTEMPTS: int
+    ALLOWED_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:5500",
+        "http://localhost:8000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5500",
+        "http://127.0.0.1:8000"
+    ]
     model_config = SettingsConfigDict(
         env_file=ENV_PATH,
         extra='ignore'
