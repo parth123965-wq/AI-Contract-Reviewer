@@ -8,6 +8,9 @@ class User(Base):
     __table_args__ = (
         Index("ix_users_is_admin_is_verified", "is_admin", "is_verified"),
         Index("ix_users_created_at", "created_at"),
+        Index("ix_users_is_admin", "is_admin"),
+        Index("ix_users_is_verified", "is_verified"),
+        Index("ix_users_updated_at", "updated_at"),
     )
     id: Mapped[int] = mapped_column(primary_key=True,autoincrement=True)
     username: Mapped[str] = mapped_column(String(100),nullable=False,unique=True,index=True)

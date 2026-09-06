@@ -37,6 +37,9 @@ class Contract(Base):
         Index("ix_contracts_status_is_deleted", "status", "is_deleted"),
         Index("ix_contracts_user_created_at", "user_id", "created_at"),
         Index("ix_contracts_status_created_at", "status", "created_at"),
+        Index("ix_contracts_status", "status"),
+        Index("ix_contracts_created_at", "created_at"),
+        Index("ix_contracts_original_filename", "original_filename"),
     )
     id: Mapped[int] = mapped_column(
         primary_key=True,
@@ -115,6 +118,7 @@ class ContractAnalysis(Base):
         Index("ix_contract_analyses_risk_level", "risk_level"),
         Index("ix_contract_analyses_risk_score", "risk_score"),
         Index("ix_contract_analyses_created_at", "created_at"),
+        Index("ix_contract_analyses_analysis_version", "analysis_version"),
     )
     id: Mapped[int] = mapped_column(
         primary_key=True,
