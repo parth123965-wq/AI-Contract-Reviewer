@@ -10,3 +10,4 @@ logs/
 vector_store/
 .chroma_db/
 test_admin.db
+.benchmarks

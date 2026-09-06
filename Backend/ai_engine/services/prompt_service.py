@@ -1,32 +1,98 @@
 import re
+from typing import Tuple
 
 
 class PromptService:
 
-    @staticmethod
-    def sanitize_input(text: str) -> str:
-        """Sanitizes untrusted text input to prevent prompt injection attacks and delimiter escaping."""
+    # Zero-width spaces, invisible formatting controls, and null bytes used to bypass regex filters
+    HIDDEN_CHAR_PATTERN = re.compile(r"[\u200b\u200c\u200d\ufeff\u200e\u200f\u0000\u00ad]")
+
+    # Jailbreak, system override, and prompt exfiltration attack patterns
+    INJECTION_PATTERNS = [
+        r"ignore\s+(all\s+)?(previous|prior|above|former)\s+(instructions?|directives?|rules?|prompts?)",
+        r"disregard\s+(all\s+)?(previous|prior|above|former)\s+(instructions?|directives?|rules?|prompts?)",
+        r"forget\s+(all\s+)?(previous|prior|above|former)\s+(instructions?|directives?|rules?|prompts?)",
+        r"override\s+(all\s+)?(previous|system|prior)\s+(instructions?|directives?|rules?|prompts?)",
+        r"system\s*override",
+        r"new\s+(system\s+)?prompt:",
+        r"you\s+are\s+now\s+(in\s+)?(developer|dan|jailbreak|unfiltered)\s+mode",
+        r"act\s+as\s+(an?\s+)?(unfiltered|unrestricted|god|jailbroken|developer)\s+(ai|agent|bot|model)",
+        r"print\s+(your\s+)?(initial|system)\s+(prompt|instructions)",
+        r"reveal\s+(your\s+)?(initial|system)\s+(prompt|instructions)",
+        r"repeat\s+(all\s+)?(text|words)\s+above",
+        r"output\s+(your\s+)?(system\s+prompt|raw\s+instructions)",
+        r"do\s+anything\s+now",
+    ]
+
+    # Model format delimiter tokens that attempt to break chat framework boundaries
+    SPECIAL_TOKENS_PATTERN = re.compile(
+        r"(?:<\|im_start\|>|<\|im_end\|>|<\|system\|>|<\|user\|>|<\|assistant\|>|\[INST\]|\[/INST\]|<<SYS>>|<SYS>|\[SYSTEM NOTE\])",
+        re.IGNORECASE
+    )
+
+    @classmethod
+    def sanitize_input(cls, text: str) -> str:
+        """
+        Sanitizes untrusted text input (user questions or uploaded document text)
+        to neutralize prompt injection, delimiter escaping, and hidden character bypasses.
+        """
         if not text or not isinstance(text, str):
             return ""
 
-        # 1. Escape/neutralize XML closing tags and custom delimiters that could break data boundaries
-        sanitized = re.sub(r"</?(?:context|user_question|system|prompt|instruction)[^>]*>", "", text, flags=re.IGNORECASE)
+        # 1. Strip hidden zero-width spaces and control characters
+        sanitized = cls.HIDDEN_CHAR_PATTERN.sub("", text)
+
+        # 2. Neutralize XML structural tags and system delimiter tokens
+        sanitized = re.sub(r"</?(?:context|user_question|system|prompt|instruction)[^>]*>", "", sanitized, flags=re.IGNORECASE)
+        sanitized = cls.SPECIAL_TOKENS_PATTERN.sub("[FILTERED_TOKEN]", sanitized)
+
         sanitized = sanitized.replace("--- CONTEXT START ---", "[CONTEXT START]")
         sanitized = sanitized.replace("--- CONTEXT END ---", "[CONTEXT END]")
 
-        # 2. Defuse common prompt injection / jailbreak instruction overrides inside data blocks
-        injection_patterns = [
-            r"ignore\s+(all\s+)?(previous|prior|above)\s+(instructions?|directives?|rules?)",
-            r"disregard\s+(all\s+)?(previous|prior|above)\s+(instructions?|directives?|rules?)",
-            r"system\s*override",
-            r"you\s+are\s+now\s+in\s+developer\s+mode",
-            r"new\s+system\s+prompt:",
-            r"forget\s+all\s+(previous|prior)\s+instructions",
-        ]
-        for pattern in injection_patterns:
+        # 3. Defuse adversarial injection instructions inside text blocks
+        for pattern in cls.INJECTION_PATTERNS:
             sanitized = re.sub(pattern, "[FILTERED_INSTRUCTION]", sanitized, flags=re.IGNORECASE)
 
+        # 4. Neutralize markdown image data exfiltration attempts (e.g. ![leak](http://evil.com?q=...))
+        sanitized = re.sub(r"!\[([^\]]*)\]\((https?://[^\)]+)\)", r"[LINK: \1]", sanitized)
+
         return sanitized.strip()
+
+    @classmethod
+    def detect_prompt_injection(cls, text: str) -> Tuple[bool, str]:
+        """
+        Analyzes input text for high-confidence prompt injection indicators.
+        Returns (is_threat, threat_description).
+        """
+        if not text or not isinstance(text, str):
+            return False, "Clean"
+
+        cleaned_text = cls.HIDDEN_CHAR_PATTERN.sub("", text)
+
+        # Check for special model control tokens
+        if cls.SPECIAL_TOKENS_PATTERN.search(cleaned_text):
+            return True, "Model delimiter token injection detected"
+
+        # Check for adversarial instruction overrides
+        for pattern in cls.INJECTION_PATTERNS:
+            if re.search(pattern, cleaned_text, flags=re.IGNORECASE):
+                return True, "Prompt override / jailbreak pattern detected"
+
+        return False, "Clean"
+
+    @classmethod
+    def verify_output_safety(cls, output_text: str) -> str:
+        """
+        Verifies LLM generated responses to ensure no system prompt leakage
+        or exfiltration directives occurred.
+        """
+        if not output_text or not isinstance(output_text, str):
+            return ""
+
+        # Remove any leaked boundary tags or instructions in output
+        cleaned = cls.SPECIAL_TOKENS_PATTERN.sub("", output_text)
+        cleaned = re.sub(r"</?(?:context|user_question|system|prompt|instruction)[^>]*>", "", cleaned, flags=re.IGNORECASE)
+        return cleaned.strip()
 
     def build_prompt(self, request: list[str]) -> str:
         """Builds a secure contract analysis prompt with input sanitization and strict boundary tags."""
