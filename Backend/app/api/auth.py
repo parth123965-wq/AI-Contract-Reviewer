@@ -5,13 +5,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
 from app.schemas.user import UserResponse , UserCreate , LoginResponse , UserLogin , VerifyRegistrationRequest , ResendOTPRequest
 from fastapi.security import OAuth2PasswordRequestForm
+from app.core.rate_limit import RateLimiter
 
 auth_router = APIRouter(
     prefix="/auth",
     tags=["Authentication"]
 )
 
-@auth_router.post("/register", status_code=201)
+@auth_router.post("/register", status_code=201, dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="auth_register"))])
 async def register_user(
     db: Annotated[AsyncSession,Depends(get_db)],
     auth_services: Annotated[AuthService,Depends(auth_service)],
@@ -26,7 +27,7 @@ async def register_user(
         "user": UserResponse.model_validate(saved_user)
     }
 
-@auth_router.post("/verify-registration", response_model=UserResponse)
+@auth_router.post("/verify-registration", response_model=UserResponse, dependencies=[Depends(RateLimiter(times=10, seconds=60, prefix="auth_verify"))])
 async def verify_registration(
     data: VerifyRegistrationRequest,
     db: Annotated[AsyncSession,Depends(get_db)],
@@ -39,7 +40,7 @@ async def verify_registration(
     )
     return UserResponse.model_validate(verified_user)
 
-@auth_router.post("/resend-otp")
+@auth_router.post("/resend-otp", dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="auth_resend_otp"))])
 async def resend_otp(
     data: ResendOTPRequest,
     db: Annotated[AsyncSession,Depends(get_db)],
@@ -53,7 +54,7 @@ async def resend_otp(
         "message": "Verification OTP has been resent to your email."
     }
 
-@auth_router.post('/login')
+@auth_router.post('/login', dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="auth_login"))])
 async def login(
     response: Response,
     user: UserLogin,
@@ -83,7 +84,7 @@ async def login(
         "user": login_response.user
     }
     
-@auth_router.post('/token')
+@auth_router.post('/token', dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="auth_token"))])
 async def token(
     response: Response,
     form_data: Annotated[OAuth2PasswordRequestForm,Depends()],
@@ -119,7 +120,7 @@ async def token(
         "user": login_response.user
     }
     
-@auth_router.post("/logout")
+@auth_router.post("/logout", dependencies=[Depends(RateLimiter(times=20, seconds=60, prefix="auth_logout"))])
 async def logout(response: Response):
 
     response.delete_cookie(

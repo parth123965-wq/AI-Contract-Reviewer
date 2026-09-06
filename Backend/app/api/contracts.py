@@ -15,13 +15,14 @@ from ai_engine.services.vector_store_service import VectorStoreService
 from ai_engine.services.llm_service import LLMService
 from fastapi.responses import StreamingResponse
 import json
+from app.core.rate_limit import RateLimiter
 
 contract_router = APIRouter(
     prefix="/contracts",
     tags=['Contracts']
 )
 
-@contract_router.post('/upload')
+@contract_router.post('/upload', dependencies=[Depends(RateLimiter(times=10, seconds=60, prefix="contracts_upload"))])
 async def upload(
     db: Annotated[AsyncSession,Depends(get_db)],
     current_user: Annotated[User,Depends(get_current_user)],
@@ -41,7 +42,7 @@ async def upload(
     )
     return contract
     
-@contract_router.get('',response_model=ContractListResponse)
+@contract_router.get('', response_model=ContractListResponse, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="contracts_list"))])
 async def get_contracts(
     db: Annotated[AsyncSession,Depends(get_db)],
     current_user: Annotated[User,Depends(get_current_user)],
@@ -55,7 +56,7 @@ async def get_contracts(
         "contracts": contracts
     }
     
-@contract_router.get('/{contract_id}',response_model=ContractResponse)
+@contract_router.get('/{contract_id}', response_model=ContractResponse, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="contracts_detail"))])
 async def get_contract_by_id(
     db: Annotated[AsyncSession,Depends(get_db)],
     current_user: Annotated[User,Depends(get_current_user)],
@@ -68,7 +69,7 @@ async def get_contract_by_id(
         current_user=current_user   
     )
     
-@contract_router.delete('/{id}')
+@contract_router.delete('/{id}', dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="contracts_delete"))])
 async def delete_contract(
     db: Annotated[AsyncSession,Depends(get_db)],
     current_user: Annotated[User,Depends(get_current_user)],
@@ -82,7 +83,7 @@ async def delete_contract(
     )
     return {"status":"success"}
 
-@contract_router.post('/{contract_id}/ask')
+@contract_router.post('/{contract_id}/ask', dependencies=[Depends(RateLimiter(times=10, seconds=60, prefix="contracts_ask"))])
 async def ask_question_on_contract(
     contract_id: int,
     body: QuestionRequest,

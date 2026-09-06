@@ -20,6 +20,7 @@ from app.schemas.admin import (
     ContractStatusUpdate,
     AdminDashboardStats
 )
+from app.core.rate_limit import RateLimiter
 
 admin_router = APIRouter(
     prefix="/admin",
@@ -31,7 +32,7 @@ admin_router = APIRouter(
 # ADMIN AUTHENTICATION
 # =======================================================
 
-@admin_router.post("/auth/login")
+@admin_router.post("/auth/login", dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="admin_login"))])
 async def admin_login(
     response: Response,
     credentials: AdminLoginRequest,
@@ -60,7 +61,7 @@ async def admin_login(
 # DASHBOARD STATS
 # =======================================================
 
-@admin_router.get("/dashboard/stats", response_model=AdminDashboardStats)
+@admin_router.get("/dashboard/stats", response_model=AdminDashboardStats, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_stats"))])
 async def get_dashboard_stats(
     admin: Annotated[User, Depends(get_current_admin)],
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -73,7 +74,7 @@ async def get_dashboard_stats(
 # USER MANAGEMENT
 # =======================================================
 
-@admin_router.get("/users", response_model=AdminUserListResponse)
+@admin_router.get("/users", response_model=AdminUserListResponse, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_users"))])
 async def list_users(
     admin: Annotated[User, Depends(get_current_admin)],
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -88,7 +89,7 @@ async def list_users(
     )
 
 
-@admin_router.get("/users/{user_id}", response_model=UserAdminDetailResponse)
+@admin_router.get("/users/{user_id}", response_model=UserAdminDetailResponse, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_users"))])
 async def get_user_detail(
     user_id: int,
     admin: Annotated[User, Depends(get_current_admin)],
@@ -98,7 +99,7 @@ async def get_user_detail(
     return await service.get_user_detail(db=db, user_id=user_id)
 
 
-@admin_router.patch("/users/{user_id}/status", response_model=UserResponse)
+@admin_router.patch("/users/{user_id}/status", response_model=UserResponse, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_users"))])
 async def update_user_status(
     user_id: int,
     body: UserStatusUpdate,
@@ -109,7 +110,7 @@ async def update_user_status(
     return await service.update_user_status(db=db, user_id=user_id, is_active=body.is_active)
 
 
-@admin_router.patch("/users/{user_id}/role", response_model=UserResponse)
+@admin_router.patch("/users/{user_id}/role", response_model=UserResponse, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_users"))])
 async def update_user_role(
     user_id: int,
     body: UserRoleUpdate,
@@ -120,7 +121,7 @@ async def update_user_role(
     return await service.update_user_role(db=db, user_id=user_id, is_admin=body.is_admin)
 
 
-@admin_router.delete("/users/{user_id}")
+@admin_router.delete("/users/{user_id}", dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_users"))])
 async def delete_user(
     user_id: int,
     admin: Annotated[User, Depends(get_current_admin)],
@@ -134,7 +135,7 @@ async def delete_user(
 # CONTRACT MANAGEMENT
 # =======================================================
 
-@admin_router.get("/contracts", response_model=AdminContractListResponse)
+@admin_router.get("/contracts", response_model=AdminContractListResponse, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_contracts"))])
 async def list_contracts(
     admin: Annotated[User, Depends(get_current_admin)],
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -157,7 +158,7 @@ async def list_contracts(
     )
 
 
-@admin_router.get("/contracts/{contract_id}", response_model=ContractAdminDetailResponse)
+@admin_router.get("/contracts/{contract_id}", response_model=ContractAdminDetailResponse, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_contracts"))])
 async def get_contract_detail(
     contract_id: int,
     admin: Annotated[User, Depends(get_current_admin)],
@@ -167,7 +168,7 @@ async def get_contract_detail(
     return await service.get_contract_detail(db=db, contract_id=contract_id)
 
 
-@admin_router.patch("/contracts/{contract_id}/status", response_model=ContractResponse)
+@admin_router.patch("/contracts/{contract_id}/status", response_model=ContractResponse, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="admin_contracts"))])
 async def update_contract_status(
     contract_id: int,
     body: ContractStatusUpdate,
@@ -182,7 +183,7 @@ async def update_contract_status(
     return await service.update_contract_status(db=db, contract_id=contract_id, new_status=new_status)
 
 
-@admin_router.delete("/contracts/{contract_id}")
+@admin_router.delete("/contracts/{contract_id}", dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_contracts"))])
 async def delete_contract(
     contract_id: int,
     admin: Annotated[User, Depends(get_current_admin)],
@@ -190,3 +191,4 @@ async def delete_contract(
     service: Annotated[AdminService, Depends(get_admin_service)]
 ):
     return await service.delete_contract(db=db, contract_id=contract_id)
+

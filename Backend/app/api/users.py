@@ -13,17 +13,18 @@ from app.schemas.user import (
     VerifyPasswordChangeRequest
 )
 from app.services.user_service import UserService, get_user_service
+from app.core.rate_limit import RateLimiter
 
 users_router = APIRouter(
     prefix='/users',
     tags=['Users']
 )
 
-@users_router.get('/me', response_model=UserResponse)
+@users_router.get('/me', response_model=UserResponse, dependencies=[Depends(RateLimiter(times=60, seconds=60, prefix="users_me"))])
 async def get_profile(current_user: Annotated[User, Depends(get_current_user)]):
     return current_user
 
-@users_router.patch('/me/username', response_model=UserResponse)
+@users_router.patch('/me/username', response_model=UserResponse, dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="users_username"))])
 async def update_username(
     request: UpdateUsernameRequest,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -32,7 +33,7 @@ async def update_username(
 ):
     return await user_service.update_username(db=db, current_user=current_user, request=request)
 
-@users_router.post('/me/email/request')
+@users_router.post('/me/email/request', dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="users_email_req"))])
 async def request_email_change(
     request: RequestEmailChangeRequest,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -41,7 +42,7 @@ async def request_email_change(
 ):
     return await user_service.request_email_change(db=db, current_user=current_user, request=request)
 
-@users_router.post('/me/email/confirm', response_model=UserResponse)
+@users_router.post('/me/email/confirm', response_model=UserResponse, dependencies=[Depends(RateLimiter(times=10, seconds=60, prefix="users_email_confirm"))])
 async def confirm_email_change(
     request: VerifyEmailChangeRequest,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -50,7 +51,7 @@ async def confirm_email_change(
 ):
     return await user_service.confirm_email_change(db=db, current_user=current_user, request=request)
 
-@users_router.post('/me/password/request')
+@users_router.post('/me/password/request', dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="users_password_req"))])
 async def request_password_change(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -58,7 +59,7 @@ async def request_password_change(
 ):
     return await user_service.request_password_change(db=db, current_user=current_user)
 
-@users_router.post('/me/password/confirm')
+@users_router.post('/me/password/confirm', dependencies=[Depends(RateLimiter(times=10, seconds=60, prefix="users_password_confirm"))])
 async def confirm_password_change(
     request: VerifyPasswordChangeRequest,
     current_user: Annotated[User, Depends(get_current_user)],
