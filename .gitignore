@@ -1,3 +1,4 @@
 .agents/
 .benchmarks
 uploads/contracts
+ai_engine/vector_store
