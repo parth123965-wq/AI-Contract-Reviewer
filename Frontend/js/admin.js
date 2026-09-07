@@ -125,6 +125,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (heading) heading.textContent = "Performance Benchmarks";
         if (subheading) subheading.textContent = "System profiling across AI Engine, ChromaDB vector store, JWT security, and API throughput";
         loadBenchmarks();
+      } else if (targetTab === "ai-matrix") {
+        if (heading) heading.textContent = "AI Engine Matrix & Performance";
+        if (subheading) subheading.textContent = "Neural AI engine health metrics, model status, and legal risk detection rules";
       }
     });
   });
