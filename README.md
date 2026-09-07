@@ -6,9 +6,10 @@
 [![LangGraph](https://img.shields.io/badge/LangGraph-121013?style=for-the-badge&logo=chainlink&logoColor=white)](https://www.langchain.com/)
 [![ChromaDB](https://img.shields.io/badge/ChromaDB-FF6F61?style=for-the-badge)](https://www.trychroma.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
-An enterprise-grade, full-stack AI platform for automated legal contract ingestion, risk detection, indemnification exposure scoring, real-time streaming RAG Q&A (ChatGPT/Gemini style), and complete platform administration.
+An enterprise-grade, full-stack AI platform for automated legal contract ingestion, risk detection, indemnification exposure scoring, real-time streaming RAG Q&A (ChatGPT/Gemini style), high-performance Redis caching, and complete platform administration with visual system monitoring.
 
 ---
 
@@ -24,23 +25,31 @@ An enterprise-grade, full-stack AI platform for automated legal contract ingesti
   - Real-time token streaming Q&A endpoint (`POST /contracts/{id}/ask`).
   - Streams answers token-by-token using FastAPI `StreamingResponse` (Server-Sent Events / SSE) and frontend `ReadableStream` reader without blocking or page freezes.
 
+- 🚀 **Redis Cache & Security Store**:
+  - High-performance **Redis 7** integration for storing email verification OTPs with automated TTL expiration, sliding-window API rate limiting, and subsystem ping latency tracking.
+
 - 🎨 **College Showcase Glassmorphic UI**:
-  - Ultra-premium midnight dark cyber theme with frosted glassmorphism (`backdrop-filter: blur`), Google Fonts (`Outfit` & `Inter`), glowing neon accents, drag-and-drop dropzone, and interactive radial SVG risk gauges.
+  - Ultra-premium midnight dark cyber theme with frosted glassmorphism (`backdrop-filter: blur`), Google Fonts (`Outfit` & `Inter`), glowing neon accents, drag-and-drop dropzone, crisp SVG vector icons, and interactive radial SVG risk gauges.
 
-- 🛡️ **Template-Based Prompt Engineering & Injection Hardening**:
-  - `PromptService` template-based prompt engineering (`string.Template` structures) isolating untrusted document context and questions from core security directives.
-  - Multi-layered input sanitization neutralizing zero-width spaces, bidirectional text overrides (`\u202a-\u202e`), model control tokens (`<|im_start|>`), adversarial instructions, and image exfiltration URLs.
+- 🛡️ **Security, User Preferences & Email Notifications**:
+  - **OTP-Verified Sensitive Actions**: Email change requests (`POST /users/me/email/request` & `/confirm`) and Password resets (`POST /users/me/password/request` & `/confirm`).
+  - **Automated Security Notifications**: Instant email alerts dispatched for username updates, email updates (sent to both old and new addresses), and password changes.
+  - **Prompt Hardening**: Multi-layered input sanitization neutralizing zero-width spaces, bidirectional text overrides (`\u202a-\u202e`), model control tokens (`<|im_start|>`), adversarial instructions, and markdown image exfiltration.
 
-- 📊 **Real-Time System Telemetry & Monitoring Dashboard**:
-  - Interactive HTML dashboard (`/admin/monitoring/dashboard`) built with glassmorphic dark theme and live 5-second polling.
-  - Monitors system resources (CPU, RAM, Disk), process execution metrics (PID, RSS, active threads), service connection health (PostgreSQL, Redis), and performance telemetry (HTTP latency histograms, P95 response times, LLM API call tracking, vector search speeds).
+- 📊 **System Telemetry & Visual GUI Monitoring Dashboard**:
+  - Interactive HTML dashboard (`/admin/monitoring/dashboard`) built with live telemetry, **Auto-Refresh Controls (ON/OFF Toggle, 5s–30s interval selection)**, and manual refresh options.
+  - Live system resource profiling (CPU, RAM, Disk), process execution metrics (PID, RSS memory, active threads), service health checks (PostgreSQL, Redis), and API telemetry (latencies, LLM API tracking, vector search speeds).
+
+- ⚡ **Performance Benchmark Suite**:
+  - On-demand system benchmarking (`POST /admin/benchmarks/run` & `GET /admin/benchmarks/report`).
+  - Measures AI Engine chunking throughput, sentence-transformers embedding latency, ChromaDB search speed, JWT encoding/decoding ops/sec, and API throughput.
 
 - 🛡️ **Role-Based Authentication & Admin Management Portal**:
-  - Secure JWT authentication with HttpOnly session cookies and Bearer tokens.
-  - Admin dashboard for user role promotion/demotion, contract status updates, search pagination, and system analytics.
+  - Secure JWT authentication with HttpOnly session cookies and Bearer tokens (with URL query token fallback support for embedded views).
+  - Admin panel for user management, contract overview, role promotion/demotion, status toggles, and PDF audit report generation.
 
-- 🐳 **Containerized Architecture**:
-  - Fully dockerized application orchestrated with Docker Compose (PostgreSQL, FastAPI Backend, Nginx Frontend).
+- 🐳 **Containerized Microservices Architecture**:
+  - Fully containerized microservices architecture orchestrated via Docker Compose (**PostgreSQL**, **Redis**, **FastAPI Backend**, **Nginx Frontend**).
 
 ---
 
@@ -48,13 +57,18 @@ An enterprise-grade, full-stack AI platform for automated legal contract ingesti
 
 ```mermaid
 graph TD
-    User([User / Browser]) -->|HTTP Port 80| Frontend[Frontend: Nginx]
+    User([User / Browser]) -->|HTTP/HTTPS Ports 80/443| Frontend[Frontend: Nginx Reverse Proxy]
     Frontend -->|REST API & SSE Stream Port 8000| Backend[Backend: FastAPI REST API]
     
-    subgraph Backend Service
+    subgraph Infrastructure Services
         Backend --> DB[(PostgreSQL Database)]
+        Backend --> Redis[(Redis Cache & OTP Store)]
+    end
+
+    subgraph Backend Service
         Backend --> LangGraph[LangGraph AI Pipeline]
         Backend --> SSE[Real-Time Token SSE Stream]
+        Backend --> Telemetry[System Health & Telemetry Engine]
     end
     
     subgraph AI Engine & RAG
@@ -71,16 +85,18 @@ graph TD
 
 ```text
 ai-contract-reviewer/
-├── Backend/                         # FastAPI REST API & Neural AI Engine
+├── Backend/                         # FastAPI REST API, Redis Cache & Neural AI Engine
 │   ├── ai_engine/                   # LangGraph DAG workflow, RAG pipeline & ChromaDB
 │   │   ├── graph/                   # LangGraph state & node execution graph
 │   │   ├── services/                # Text extraction, chunking, embeddings, LLM streaming & vector store
 │   │   └── vector_store/            # Persistent ChromaDB vector index storage
 │   ├── app/                         # FastAPI Application Core
 │   │   ├── api/                     # Routers (Auth, Users, Contracts, Admin)
-│   │   ├── core/                    # App settings & Pydantic config
+│   │   ├── core/                    # Settings, Redis setup, email setup & rate limiters
 │   │   ├── database/                # SQLAlchemy session provider & models
-│   │   └── services/                # Business logic controllers
+│   │   ├── templates/               # HTML email templates & visual monitoring dashboard GUI
+│   │   └── services/                # Business logic controllers (user_service, email_service, admin_service)
+│   ├── benchmarks/                  # System performance benchmark suite
 │   ├── alembic/                     # Database migration scripts
 │   ├── Dockerfile                   # Python 3.10 backend container definition
 │   ├── requirements.txt             # Python package dependencies
@@ -90,12 +106,14 @@ ai-contract-reviewer/
 │   ├── css/                         # Custom styling & glassmorphism UI theme
 │   ├── js/                          # Unified API service layer, streaming reader & interaction scripts
 │   ├── index.html                   # Landing page & Authentication (Login/Register)
-│   ├── dashboard.html               # User contracts dashboard & file upload modal
+│   ├── dashboard.html               # User contracts dashboard & preferences panel
 │   ├── contract-detail.html         # Contract analysis report & real-time RAG Q&A stream
-│   ├── admin.html                   # Administrator management control panel
+│   ├── admin.html                   # Administrator management control panel & monitoring iframe
+│   ├── nginx.conf                   # Nginx reverse proxy & security headers configuration
 │   └── Dockerfile                   # Nginx alpine web server container definition
 │
-├── docker-compose.yml               # Multi-container orchestration (Postgres, Backend, Frontend)
+├── certs/                           # SSL/TLS certificates directory
+├── docker-compose.yml               # Multi-container orchestration (Postgres, Redis, Backend, Frontend)
 └── README.md                        # Root project documentation
 ```
 
@@ -143,13 +161,16 @@ ai-contract-reviewer/
 
 4. **Launch Application Containers**:
    ```bash
+   docker-compose up -d --build
+   # OR use the automatic Python runner
    python Backend/start.py
    ```
 
 5. **Access Application**:
-   - 🌐 **Frontend Web App**: `http://localhost`
+   - 🌐 **Frontend Web App**: `https://localhost` (or `http://localhost`)
    - ⚡ **Backend REST API**: `http://localhost:8000`
    - 📚 **Interactive Swagger API Docs**: `http://localhost:8000/docs`
+   - 📊 **Visual Monitoring Dashboard**: `http://localhost:8000/admin/monitoring/dashboard`
 
 ---
 
@@ -213,11 +234,11 @@ Below is a reference of all environment variables supported by the backend servi
 | `LOG_LEVEL` | `string` | `INFO` | Logging severity (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
 | `ALLOWED_ORIGINS` | `list[str]` | `["http://localhost:3000","http://localhost:5173"]` | Allowed production CORS origins |
 
-### 2. Database & Cache Connections
+### 2. Database & Redis Cache Connections
 | Variable | Type | Default / Example | Description |
 | :--- | :--- | :--- | :--- |
 | `DATABASE_URL` | `string` | `postgresql+asyncpg://postgres:your_password@localhost:5432/contract_reviewers` | Async PostgreSQL connection URL |
-| `REDIS_URL` | `string` | `redis://localhost:6379/0` | Redis connection URL for caching & OTP storage |
+| `REDIS_URL` | `string` | `redis://localhost:6379/0` | Redis connection URL for caching, rate limiting & OTP storage |
 
 ### 3. AI Engine & LLM Configuration
 | Variable | Type | Default / Example | Description |
@@ -244,4 +265,3 @@ Below is a reference of all environment variables supported by the backend servi
 | `OTP_EXPIRE_SECONDS` | `integer` | `300` | Expiration time for generated OTP (5 mins) |
 | `OTP_COOLDOWN_SECONDS` | `integer` | `60` | Cooldown period before resending OTP (60s) |
 | `OTP_MAX_ATTEMPTS` | `integer` | `5` | Maximum failed OTP attempts allowed |
-

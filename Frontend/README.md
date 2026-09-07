@@ -6,7 +6,7 @@
 [![Theme](https://img.shields.io/badge/Design-Glassmorphism%20%26%20Dark%20Mode-7B2CBF?style=for-the-badge)](#-design-system--styling)
 [![Docker](https://img.shields.io/badge/Docker-Nginx%20Alpine-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
-A responsive, high-performance web interface for the **AI Contract Reviewer** ecosystem. Built with pure Vanilla HTML5, modern CSS custom properties, glassmorphic UI components, Google Fonts (`Outfit` & `Inter`), and ES6+ JavaScript modules connecting directly to the FastAPI REST backend.
+A responsive, high-performance web interface for the **AI Contract Reviewer** ecosystem. Built with pure Vanilla HTML5, modern CSS custom properties, glassmorphic UI components, Google Fonts (`Outfit` & `Inter`), SVG vector icons, and ES6+ JavaScript modules connecting directly to the FastAPI REST backend.
 
 ---
 
@@ -18,23 +18,26 @@ A responsive, high-performance web interface for the **AI Contract Reviewer** ec
   - Supports live OTP resend capabilities via `POST /auth/resend-otp`.
 
 - 👤 **User Profile & Security Preferences**:
-  - **Display Name Update**: Instant username updates connecting to `PATCH /users/me/username` with live UI header avatar sync.
-  - **Email Address Change**: 2-step verification workflow (`POST /users/me/email/request` & `POST /users/me/email/confirm`).
-  - **Password & Security Reset**: 2-step security workflow (`POST /users/me/password/request` & `POST /users/me/password/confirm`).
+  - **Display Name Update**: Username updates connecting to `PATCH /users/me/username` with automated security email notification.
+  - **Email Address Change**: 2-step verification workflow (`POST /users/me/email/request` & `/confirm`) with automated email alerts sent to both old and new addresses.
+  - **Password Reset**: 2-step security workflow (`POST /users/me/password/request` & `/confirm`) with optional current password requirement.
 
 - ⚡ **Real-Time Token Streaming RAG Assistant**:
   - Interactive Q&A chat assistant on the contract detail page connecting to `POST /contracts/{contract_id}/ask`.
   - Decodes `text/event-stream` SSE tokens in real-time via `ReadableStream.getReader()` for progressive rendering (ChatGPT / Gemini style).
 
-- 🎨 **Midnight Cyber Glassmorphism Theme**:
-  - Midnight dark palette (`#090a0f`) with frosted glass backdrop blur (`backdrop-filter: blur(16px)`), glowing neon cyan and purple accents, and smooth hover micro-animations.
+- 🎨 **Midnight Cyber Glassmorphism Theme & SVG Icons**:
+  - Midnight dark palette (`#090a0f`) with frosted glass backdrop blur (`backdrop-filter: blur(16px)`), glowing neon cyan and purple accents, smooth hover micro-animations, and clean SVG vector icons across buttons and card headers.
 
 - 🔑 **Authentication & Role Management**:
   - Dual-mode login (User Workspace vs. Admin Portal) connecting to `/auth/login` and `/admin/auth/login`.
 
-- 🛡️ **Full Admin Control Panel & Monitoring Dashboard**:
+- 🛡️ **Full Admin Control Panel & Telemetry Dashboard**:
   - Dedicated administrative interface (`admin.html`) with real-time stats counters, user role management, status toggles, and contract overview controls.
-  - Interactive visual System Monitoring Dashboard (`/admin/monitoring/dashboard`) rendering live CPU, memory, database/redis latencies, and HTTP response histograms.
+  - Interactive visual System Monitoring Dashboard (`/admin/monitoring/dashboard`) rendering live CPU, memory, disk usage, database/redis latencies, and HTTP response histograms with **Auto-Refresh Controls (ON/OFF Toggle, 5s–30s interval selector)**.
+
+- ⚡ **Performance Benchmarks Tab**:
+  - Admin tab for running system-wide performance profiling across AI Engine chunking speed, embedding latency, ChromaDB search speed, JWT ops/sec, and API request throughput.
 
 - 📊 **Interactive Workspace Dashboard**:
   - Stat cards displaying total contracts, completed reviews, high-risk exposure alerts, and processing queues.
@@ -48,6 +51,7 @@ A responsive, high-performance web interface for the **AI Contract Reviewer** ec
 - **Theme & CSS Tokens**: Centralized design tokens in `css/theme.css`.
 - **Typography**: Google Fonts `Outfit` (headings) and `Inter` (body).
 - **Glassmorphic Cards**: Frosted glass panels, glowing neon borders, radial risk exposure gauge charts, and micro-hover states.
+- **SVG Vector Icons**: Universal inline SVG icons ensuring crisp rendering across all browsers.
 
 ---
 
@@ -84,7 +88,7 @@ Frontend/
 │   └── theme.css                 # Design Tokens & Glassmorphism Utilities
 │
 ├── js/                           # JavaScript Logic & API Layer
-│   ├── admin.js                  # Admin Control Panel Controller
+│   ├── admin.js                  # Admin Control Panel & Monitoring Iframe Controller
 │   ├── api.js                    # Unified REST API Layer & Streaming Chat Reader
 │   ├── auth.js                   # Dual Login, Registration & OTP Verification Handlers
 │   ├── contract-detail.js        # Analysis View & Token Streaming Chat Controller
@@ -96,7 +100,7 @@ Frontend/
 ├── register.html                 # Create Account & OTP Verification Page
 ├── dashboard.html                # Workspace Dashboard & Preferences Page
 ├── contract-detail.html          # Contract Analysis & RAG Streaming View Page
+├── nginx.conf                    # Nginx Reverse Proxy & OWASP Security Headers (X-Frame-Options SAMEORIGIN)
 ├── Dockerfile                    # Containerization Setup (Nginx Alpine)
 └── README.md                     # Documentation
 ```
-

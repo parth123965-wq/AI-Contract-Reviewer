@@ -3,11 +3,12 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python)](https://www.python.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
 [![LangChain](https://img.shields.io/badge/LangChain-121013?style=for-the-badge&logo=chainlink&logoColor=white)](https://www.langchain.com/)
 [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
 [![ChromaDB](https://img.shields.io/badge/ChromaDB-FF6F61?style=for-the-badge)](https://www.trychroma.com/)
 
-An enterprise-grade, asynchronous backend service and neural AI pipeline designed for automated legal contract ingestion, risk detection, indemnification exposure scoring, real-time streaming RAG Q&A (ChatGPT/Gemini style), and complete Admin Panel management.
+An enterprise-grade, asynchronous backend service and neural AI pipeline designed for automated legal contract ingestion, risk detection, indemnification exposure scoring, real-time streaming RAG Q&A (ChatGPT/Gemini style), high-performance Redis caching, and complete Admin Panel management.
 
 ---
 
@@ -17,22 +18,27 @@ An enterprise-grade, asynchronous backend service and neural AI pipeline designe
   - `POST /contracts/{contract_id}/ask`: Streams answers token-by-token using FastAPI `StreamingResponse` (`text/event-stream`).
   - Utilizes `genai_client.models.generate_content_stream` to stream output without waiting for full generation.
 
-- 👤 **User Profile Management & OTP Security**:
-  - **Unique Username Constraint**: Guaranteed unique username indexing across all registered accounts.
-  - **OTP-Verified Sensitive Actions**:
-    - **Email Change**: `POST /users/me/email/request` dispatches a 6-digit OTP code to the new target email, and `POST /users/me/email/confirm` validates the OTP to update the email address.
-    - **Password Change**: `POST /users/me/password/request` dispatches a 6-digit OTP code to the user's registered email, and `POST /users/me/password/confirm` verifies current password + OTP to safely update the password hash.
-  - `PATCH /users/me/username` for updating user profile handle.
+- 🚀 **Redis Cache & Security Engine**:
+  - High-speed **Redis 7** integration for storing email verification OTPs with automated TTL expiration (`OTP_EXPIRE_SECONDS`), sliding-window API rate limiting, and connection health/latency checks (`get_redis_health()`).
+
+- 👤 **User Profile Management & Security Notifications**:
+  - **Unique Username Indexing**: Guaranteed unique username handles across all registered accounts.
+  - **Security Notification Emails**:
+    - **Username Update**: Automated email notification dispatched to the user's registered email when display name is updated (`username_changed.html`).
+    - **Email Address Change**: 2-step OTP flow (`POST /users/me/email/request` & `/confirm`) with notification emails dispatched to **both** `old_email` and `new_email` addresses upon update.
+    - **Password Change**: 2-step security OTP flow (`POST /users/me/password/request` & `/confirm`) with optional `current_password` validation and automated security alert email (`password_changed.html`).
+
+- 📊 **Real-Time System Telemetry & Admin Monitoring Dashboard**:
+  - `GET /admin/monitoring/system`: Returns CPU, RAM, Disk usage, process runtime metrics (PID, RSS, active threads), database/Redis connection health, and in-memory performance telemetry (HTTP latency histograms, P95 metrics, LLM call stats, vector search speeds).
+  - `GET /admin/monitoring/dashboard`: Interactive glassmorphic HTML dashboard UI rendering real-time operational health and latency graphs with configurable **Auto-Refresh Controls (ON/OFF, 5s–30s intervals)**.
+
+- ⚡ **Performance Benchmark Suite**:
+  - `POST /admin/benchmarks/run` & `GET /admin/benchmarks/report`: Runs on-demand performance profiling across AI Engine chunking speed, sentence-transformers embedding throughput, ChromaDB similarity query latency, JWT token creation/decoding ops/sec, and REST endpoint throughput.
 
 - 🛠️ **Admin Control Panel & Management APIs**:
   - **User Management**: Paginated search, status activation/deactivation, admin role promotion/demotion, and user deletion.
   - **Contract Management**: View, filter by status, search across filenames/users, update processing status, and delete contracts across all platform users.
   - **Analytics Dashboard**: Real-time stats on user counts, contract processing status queues, and risk level breakdowns.
-
-
-- 📊 **Real-Time System Telemetry & Admin Monitoring GUI Dashboard**:
-  - `GET /admin/monitoring/system`: Returns CPU, RAM, Disk usage, process runtime metrics, DB/Redis health, and in-memory performance telemetry (HTTP latency histograms, P95 metrics, LLM call stats, vector search speeds).
-  - `GET /admin/monitoring/dashboard`: Interactive glassmorphic HTML dashboard UI rendering real-time operational health and latency statistics.
 
 - 🛡️ **Template-Based Prompt Engineering & Injection Hardening**:
   - Secure template-based prompt generation (`string.Template` structures) isolating context/question inputs from core system instructions.
@@ -41,11 +47,6 @@ An enterprise-grade, asynchronous backend service and neural AI pipeline designe
 - 📄 **Asynchronous Contract Upload & OCR**:
   - Ingestion of contract documents with validation and file storage management.
   - **Multimodal Gemini Vision OCR Fallback**: Automatic image-rendering and OCR text extraction for scanned photo/image-based PDFs.
-
-- ⚡ **Neural LangGraph Pipeline**:
-  - Stateful multi-node RAG (Retrieval-Augmented Generation) graph workflow built using `langgraph`.
-  - Sentence-transformer embeddings (`BAAI/bge-small-en-v1.5`) stored in a persistent ChromaDB vector store.
-  - Google Gemini API (`gemini-flash-latest` / `gemini-pro-latest`) for risk scoring (0-100), legal recommendations, and clause summaries.
 
 ---
 
@@ -68,12 +69,18 @@ Backend/
 │   └── vector_store/             # ChromaDB Persistent Storage
 │
 ├── app/                          # Core FastAPI Application
-│   ├── api/                      # Router Controllers (contracts.py with StreamingResponse)
-│   ├── core/                     # Application Config & Security Settings
+│   ├── api/                      # Router Controllers (Auth, Users, Contracts, Admin)
+│   ├── core/                     # Application Config, Redis Setup, Email & Security
 │   ├── database/                 # SQLAlchemy Async Engines & Models
 │   ├── dependencies/             # Fast API Dependencies & JWT Validators
 │   ├── models/                   # SQLAlchemy Database Models (User, Contract, Analysis)
 │   ├── repositories/             # Async Database Repository Layer
 │   ├── schemas/                  # Pydantic Request & Response Schemas
-│   └── services/                 # Business Logic Controllers (user_service, auth_service, otp_service, admin_service)
+│   ├── templates/                # HTML email templates & visual monitoring dashboard GUI
+│   └── services/                 # Business Logic Controllers (user_service, auth_service, otp_service, email_service, admin_service)
+│
+├── benchmarks/                   # Performance Benchmark Suite
+│   ├── benchmark_ai_pipeline.py  # AI Chunking, Embeddings & Vector Store Profiling
+│   ├── benchmark_api_endpoints.py# JWT Overhead & API Throughput Benchmarks
+│   └── run_benchmarks.py         # Main Benchmark Suite Runner & Report Generator
 ```
