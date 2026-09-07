@@ -76,8 +76,8 @@ def benchmark_api_health_concurrency(num_requests: int = 200, concurrency: int =
 def run_all_api_benchmarks() -> Dict[str, Any]:
     """Runs all API benchmarks and returns aggregated metrics."""
     return {
-        "jwt_security": benchmark_jwt_security(),
-        "api_throughput": benchmark_api_health_concurrency()
+        "jwt_security": benchmark_jwt_security(iterations=200),
+        "api_throughput": benchmark_api_health_concurrency(num_requests=40, concurrency=5)
     }
 
 

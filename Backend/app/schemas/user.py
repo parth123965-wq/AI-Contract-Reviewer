@@ -1,5 +1,6 @@
 from pydantic import EmailStr , Field , BaseModel , ConfigDict
 from datetime import datetime
+from typing import Optional
 
 class UserCreate(BaseModel):
     username: str = Field(
@@ -123,10 +124,11 @@ class ChangePasswordRequest(BaseModel):
     )
 
 class VerifyPasswordChangeRequest(BaseModel):
-    current_password: str = Field(
+    current_password: Optional[str] = Field(
+        default=None,
         min_length=8,
         max_length=128,
-        description="Current account password",
+        description="Current account password (optional if OTP provided)",
         examples=["OldPass123!"]
     )
     new_password: str = Field(

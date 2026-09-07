@@ -117,6 +117,20 @@ class EmailService:
         subject = f"Your {settings.APP_NAME} Password Has Been Changed"
         await self.send_email(recipients=[email], subject=subject, body_html=html_content)
 
+    async def send_username_changed_notification(self, email: str, old_username: str, new_username: str) -> None:
+        """
+        Send username change notification email using app/templates/username_changed.html.
+        """
+        html_content = self._render_template(
+            "username_changed.html",
+            {
+                "old_username": old_username,
+                "new_username": new_username
+            }
+        )
+        subject = f"Your {settings.APP_NAME} Username Has Been Changed"
+        await self.send_email(recipients=[email], subject=subject, body_html=html_content)
+
 
 # Default service instance
 email_service = EmailService()

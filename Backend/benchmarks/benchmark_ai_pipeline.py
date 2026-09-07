@@ -125,9 +125,9 @@ def benchmark_vector_store(vector_count: int = 50, num_queries: int = 20) -> Dic
 def run_all_ai_benchmarks() -> Dict[str, Any]:
     """Runs all AI pipeline benchmarks and returns aggregated metrics."""
     return {
-        "chunking": benchmark_chunking(),
-        "embeddings": benchmark_embeddings(),
-        "vector_store": benchmark_vector_store()
+        "chunking": benchmark_chunking(iterations=20),
+        "embeddings": benchmark_embeddings(num_chunks=5),
+        "vector_store": benchmark_vector_store(vector_count=10, num_queries=5)
     }
 
 

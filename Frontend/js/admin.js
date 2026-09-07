@@ -67,6 +67,25 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Notification Toast Helper
   function showToast(message, type = "info") {
+    let displayMsg = message;
+    if (message && typeof message === "object") {
+      if (message instanceof Error) {
+        displayMsg = message.message;
+      } else if (typeof message.message === "string") {
+        displayMsg = message.message;
+      } else if (typeof message.detail === "string") {
+        displayMsg = message.detail;
+      } else if (Array.isArray(message.detail)) {
+        displayMsg = message.detail.map(item => (typeof item === "string" ? item : (item.msg || JSON.stringify(item)))).join("; ");
+      } else {
+        try {
+          displayMsg = JSON.stringify(message);
+        } catch {
+          displayMsg = String(message);
+        }
+      }
+    }
+
     const container = document.getElementById("toast-container");
     if (!container) return;
     const toast = document.createElement("div");
@@ -77,7 +96,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     toast.style.background = type === "danger" ? "#f7768e" : type === "success" ? "#9ece6a" : "#7aa2f8";
     toast.style.color = "#1a1b26";
     toast.style.fontWeight = "600";
-    toast.textContent = message;
+    toast.textContent = displayMsg;
     container.appendChild(toast);
     setTimeout(() => toast.remove(), 4000);
   }
@@ -116,7 +135,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       } else if (targetTab === "monitoring") {
         if (heading) heading.textContent = "System Health & Monitoring";
         if (subheading) subheading.textContent = "Real-time infrastructure CPU/RAM metrics, process details, and DB/Redis latency";
-        const dashboardUrl = `${API_CONFIG.BASE_URL}/admin/monitoring/dashboard`;
+        const token = getToken();
+        const origin = (typeof window !== "undefined" && window.location && window.location.origin && window.location.origin !== "null" && window.location.origin !== "file://") ? window.location.origin : API_CONFIG.BASE_URL;
+        const baseUrl = window.location.protocol === "https:" ? origin : API_CONFIG.BASE_URL;
+        const dashboardUrl = `${baseUrl}/admin/monitoring/dashboard${token ? '?token=' + encodeURIComponent(token) : ''}`;
         const iframe = document.getElementById("monitoring-gui-iframe");
         const fullScreenBtn = document.getElementById("open-gui-fullscreen-btn");
         if (iframe) iframe.src = dashboardUrl;

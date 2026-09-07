@@ -35,8 +35,20 @@ class UserService:
                 detail="Username is already taken."
             )
 
+        old_username = current_user.username
         current_user.username = new_username
         updated_user = await self.user_repository.update_user(db=db, user=current_user)
+
+        # Notify user about username change
+        try:
+            await email_service.send_username_changed_notification(
+                email=current_user.email,
+                old_username=old_username,
+                new_username=new_username
+            )
+        except Exception:
+            pass
+
         return UserResponse.model_validate(updated_user)
 
     async def request_email_change(
@@ -77,13 +89,14 @@ class UserService:
         current_user.email = new_email
         updated_user = await self.user_repository.update_user(db=db, user=current_user)
 
-        # Notify user about email change (sent to new email address)
+        # Notify user about email change (sent to both old and new email addresses)
         try:
-            await email_service.send_email_changed_notification(
-                email=new_email,
-                username=current_user.username,
-                new_email=new_email
-            )
+            for target_email in set([old_email, new_email]):
+                await email_service.send_email_changed_notification(
+                    email=target_email,
+                    username=current_user.username,
+                    new_email=new_email
+                )
         except Exception:
             pass
 
@@ -99,17 +112,18 @@ class UserService:
     async def confirm_password_change(
         self, db: AsyncSession, current_user: User, request: VerifyPasswordChangeRequest
     ) -> dict:
-        if not verify_password(password=request.current_password, password_hash_value=current_user.password_hash):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Incorrect current password."
-            )
+        if request.current_password:
+            if not verify_password(password=request.current_password, password_hash_value=current_user.password_hash):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Incorrect current password."
+                )
 
-        if request.current_password == request.new_password:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="New password must be different from current password."
-            )
+            if request.current_password == request.new_password:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="New password must be different from current password."
+                )
 
         await otp_service.verify_otp(purpose="password_change", identifier=current_user.email, input_otp=request.otp_code)
 

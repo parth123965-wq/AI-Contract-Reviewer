@@ -192,7 +192,7 @@ function initDashboardEvents() {
       } finally {
         if (requestBtn) {
           requestBtn.disabled = false;
-          requestBtn.textContent = "📩 Send OTP";
+          requestBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 6px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Send OTP';
         }
       }
     });
@@ -250,7 +250,7 @@ function initDashboardEvents() {
         showToast(err.message || "Failed to request password reset OTP.", "error");
       } finally {
         requestPasswordOtpBtn.disabled = false;
-        requestPasswordOtpBtn.textContent = "📩 Request Password Reset OTP";
+        requestPasswordOtpBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 6px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Request Password Reset OTP';
       }
     });
   }
@@ -585,6 +585,25 @@ async function handleUploadSubmit(e) {
 
 /* Toast helper fallback */
 function showToast(message, type = "info") {
+  let displayMsg = message;
+  if (message && typeof message === "object") {
+    if (message instanceof Error) {
+      displayMsg = message.message;
+    } else if (typeof message.message === "string") {
+      displayMsg = message.message;
+    } else if (typeof message.detail === "string") {
+      displayMsg = message.detail;
+    } else if (Array.isArray(message.detail)) {
+      displayMsg = message.detail.map(item => (typeof item === "string" ? item : (item.msg || JSON.stringify(item)))).join("; ");
+    } else {
+      try {
+        displayMsg = JSON.stringify(message);
+      } catch {
+        displayMsg = String(message);
+      }
+    }
+  }
+
   let container = document.getElementById("toast-container");
   if (!container) {
     container = document.createElement("div");
@@ -595,7 +614,7 @@ function showToast(message, type = "info") {
 
   const toast = document.createElement("div");
   toast.className = `toast toast-${type}`;
-  toast.innerHTML = `<span>${type === 'error' ? '⚠️' : '✓'}</span> <div>${message}</div>`;
+  toast.innerHTML = `<span>${type === 'error' ? '⚠️' : '✓'}</span> <div>${displayMsg}</div>`;
 
   container.appendChild(toast);
   requestAnimationFrame(() => toast.classList.add("show"));

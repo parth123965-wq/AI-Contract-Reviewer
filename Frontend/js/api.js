@@ -46,7 +46,8 @@ function isAuthenticated() {
 /* HTTP Request Core */
 async function apiRequest(endpoint, options = {}) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT_MS);
+  const timeoutDuration = options.timeoutMs || API_CONFIG.TIMEOUT_MS;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
 
   const headers = {
     "Content-Type": "application/json",
@@ -92,7 +93,20 @@ async function apiRequest(endpoint, options = {}) {
         window.location.href = "index.html";
       }
     }
-    const errMsg = data?.detail || data?.message || `Request failed with status ${response.status}`;
+    let errMsg = `Request failed with status ${response.status}`;
+    if (data?.detail) {
+      if (typeof data.detail === "string") {
+        errMsg = data.detail;
+      } else if (Array.isArray(data.detail)) {
+        errMsg = data.detail
+          .map((item) => (typeof item === "string" ? item : (item.msg || item.detail || JSON.stringify(item))))
+          .join("; ");
+      } else if (typeof data.detail === "object") {
+        errMsg = data.detail.msg || data.detail.message || JSON.stringify(data.detail);
+      }
+    } else if (data?.message) {
+      errMsg = typeof data.message === "string" ? data.message : JSON.stringify(data.message);
+    }
     throw new Error(errMsg);
   }
 
@@ -169,8 +183,8 @@ function normalizeContractData(c) {
 }
 
 /* API Service Methods */
-async function apiGet(endpoint) {
-  return apiRequest(endpoint, { method: "GET" });
+async function apiGet(endpoint, extra = {}) {
+  return apiRequest(endpoint, { method: "GET", ...extra });
 }
 
 async function apiPost(endpoint, body, extra = {}) {
@@ -462,11 +476,11 @@ async function adminGetMonitoringHealth() {
 }
 
 async function adminGetBenchmarkReport() {
-  return apiGet("/admin/benchmarks/report");
+  return apiGet("/admin/benchmarks/report", { timeoutMs: 120000 });
 }
 
 async function adminRunBenchmark() {
-  return apiPost("/admin/benchmarks/run", {});
+  return apiPost("/admin/benchmarks/run", {}, { timeoutMs: 120000 });
 }
 
 

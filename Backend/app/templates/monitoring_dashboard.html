@@ -275,6 +275,15 @@
                     <div class="status-dot"></div>
                     <span id="overall-status-text">INITIALIZING</span>
                 </div>
+                <button id="toggle-auto-btn" class="refresh-btn" onclick="toggleAutoRefresh()" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); color: #6ee7b7;">
+                    ⚡ Auto: ON
+                </button>
+                <select id="refresh-interval-select" onchange="changeInterval(this.value)" style="background: var(--card-bg); color: var(--text-main); border: 1px solid var(--card-border); padding: 0.45rem 0.6rem; border-radius: 0.5rem; font-size: 0.85rem; cursor: pointer; outline: none;">
+                    <option value="5000">5s interval</option>
+                    <option value="10000" selected>10s interval</option>
+                    <option value="15000">15s interval</option>
+                    <option value="30000">30s interval</option>
+                </select>
                 <button class="refresh-btn" onclick="fetchMetrics()">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
@@ -463,6 +472,32 @@
     </div>
 
     <script>
+        let autoRefreshEnabled = true;
+        let refreshIntervalMs = 10000;
+        let timerId = null;
+
+        function getAuthToken() {
+            // 1. From URL query parameter ?token=...
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('token')) return urlParams.get('token');
+
+            // 2. From window.localStorage
+            try {
+                const local = localStorage.getItem('ai_contract_token');
+                if (local) return local;
+            } catch (e) {}
+
+            // 3. From parent window localStorage (if embedded in iframe)
+            try {
+                if (window.parent && window.parent !== window && window.parent.localStorage) {
+                    const parentLocal = window.parent.localStorage.getItem('ai_contract_token');
+                    if (parentLocal) return parentLocal;
+                }
+            } catch (e) {}
+
+            return null;
+        }
+
         function formatBytes(bytes, decimals = 2) {
             if (!bytes || bytes === 0) return '0 GB';
             const k = 1024;
@@ -473,23 +508,44 @@
         }
 
         async function fetchMetrics() {
+            const overallBadge = document.getElementById('overall-badge');
+            const overallText = document.getElementById('overall-status-text');
+
             try {
-                const response = await fetch('/admin/monitoring/system', {
-                    headers: { 'Accept': 'application/json' }
-                });
-                if (!response.ok) return;
+                const token = getAuthToken();
+                const headers = { 'Accept': 'application/json' };
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                const response = await fetch('/admin/monitoring/system', { headers });
+
+                if (response.status === 401) {
+                    if (overallBadge) overallBadge.className = 'status-badge degraded';
+                    if (overallText) overallText.innerText = 'UNAUTHORIZED (401)';
+                    return;
+                }
+                if (response.status === 429) {
+                    if (overallBadge) overallBadge.className = 'status-badge degraded';
+                    if (overallText) overallText.innerText = 'RATE LIMITED (429)';
+                    return;
+                }
+
+                if (!response.ok) {
+                    if (overallBadge) overallBadge.className = 'status-badge degraded';
+                    if (overallText) overallText.innerText = `ERROR (${response.status})`;
+                    return;
+                }
 
                 const data = await response.json();
 
                 // Overall status
-                const overallBadge = document.getElementById('overall-badge');
-                const overallText = document.getElementById('overall-status-text');
                 if (data.overall_status === 'healthy') {
-                    overallBadge.className = 'status-badge';
-                    overallText.innerText = 'SYSTEM HEALTHY';
+                    if (overallBadge) overallBadge.className = 'status-badge';
+                    if (overallText) overallText.innerText = 'SYSTEM HEALTHY';
                 } else {
-                    overallBadge.className = 'status-badge degraded';
-                    overallText.innerText = 'DEGRADED';
+                    if (overallBadge) overallBadge.className = 'status-badge degraded';
+                    if (overallText) overallText.innerText = 'DEGRADED';
                 }
 
                 // CPU
@@ -566,12 +622,43 @@
 
             } catch (err) {
                 console.error("Failed to fetch monitoring metrics", err);
+                if (overallBadge) overallBadge.className = 'status-badge degraded';
+                if (overallText) overallText.innerText = 'FETCH FAILED';
             }
         }
 
-        // Initial fetch and 5-second polling interval
+        function restartTimer() {
+            if (timerId) clearInterval(timerId);
+            if (autoRefreshEnabled) {
+                timerId = setInterval(fetchMetrics, refreshIntervalMs);
+            }
+        }
+
+        function toggleAutoRefresh() {
+            autoRefreshEnabled = !autoRefreshEnabled;
+            const btn = document.getElementById('toggle-auto-btn');
+            if (autoRefreshEnabled) {
+                btn.innerHTML = '⚡ Auto: ON';
+                btn.style.background = 'rgba(16, 185, 129, 0.15)';
+                btn.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                btn.style.color = '#6ee7b7';
+            } else {
+                btn.innerHTML = '⏸️ Auto: OFF';
+                btn.style.background = 'rgba(239, 68, 68, 0.15)';
+                btn.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                btn.style.color = '#fca5a5';
+            }
+            restartTimer();
+        }
+
+        function changeInterval(ms) {
+            refreshIntervalMs = parseInt(ms, 10) || 10000;
+            restartTimer();
+        }
+
+        // Initial fetch and start timer
         fetchMetrics();
-        setInterval(fetchMetrics, 5000);
+        restartTimer();
     </script>
 </body>
 </html>

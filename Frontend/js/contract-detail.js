@@ -308,6 +308,25 @@ function renderRecommendations(contract) {
 
 /* Toast Helper */
 function showToast(message, type = "info") {
+  let displayMsg = message;
+  if (message && typeof message === "object") {
+    if (message instanceof Error) {
+      displayMsg = message.message;
+    } else if (typeof message.message === "string") {
+      displayMsg = message.message;
+    } else if (typeof message.detail === "string") {
+      displayMsg = message.detail;
+    } else if (Array.isArray(message.detail)) {
+      displayMsg = message.detail.map(item => (typeof item === "string" ? item : (item.msg || JSON.stringify(item)))).join("; ");
+    } else {
+      try {
+        displayMsg = JSON.stringify(message);
+      } catch {
+        displayMsg = String(message);
+      }
+    }
+  }
+
   let container = document.getElementById("toast-container");
   if (!container) {
     container = document.createElement("div");
@@ -318,7 +337,7 @@ function showToast(message, type = "info") {
 
   const toast = document.createElement("div");
   toast.className = `toast toast-${type}`;
-  toast.innerHTML = `<span>${type === 'error' ? '⚠️' : '✓'}</span> <div>${message}</div>`;
+  toast.innerHTML = `<span>${type === 'error' ? '⚠️' : '✓'}</span> <div>${displayMsg}</div>`;
 
   container.appendChild(toast);
   requestAnimationFrame(() => toast.classList.add("show"));

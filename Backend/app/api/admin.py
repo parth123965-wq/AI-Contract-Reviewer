@@ -269,7 +269,7 @@ from app.core.monitoring import get_full_monitoring_report, get_db_health, get_r
     "/monitoring/system",
     summary="Get System Resource & Health Monitoring Report (Admin Only)",
     description="Retrieve comprehensive system resources (CPU, RAM, Disk), application process metrics, database connectivity, and Redis health status.",
-    dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_monitoring_system"))]
+    dependencies=[Depends(RateLimiter(times=600, seconds=60, prefix="admin_monitoring_system"))]
 )
 async def get_system_monitoring(
     admin: Annotated[User, Depends(get_current_admin)],
@@ -282,7 +282,7 @@ async def get_system_monitoring(
     "/monitoring/health",
     summary="Get Subsystem Health Summary (Admin Only)",
     description="Quick operational health check of database and Redis services.",
-    dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_monitoring_health"))]
+    dependencies=[Depends(RateLimiter(times=600, seconds=60, prefix="admin_monitoring_health"))]
 )
 async def get_subsystem_health(
     admin: Annotated[User, Depends(get_current_admin)],
@@ -301,7 +301,7 @@ async def get_subsystem_health(
     response_class=HTMLResponse,
     summary="Get System Monitoring Visual GUI Dashboard (Admin Only)",
     description="Interactive visual HTML dashboard displaying real-time CPU, RAM, Disk, process metrics, and DB/Redis latency graphs.",
-    dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_monitoring_dashboard"))]
+    dependencies=[Depends(RateLimiter(times=600, seconds=60, prefix="admin_monitoring_dashboard"))]
 )
 async def get_monitoring_dashboard(
     admin: Annotated[User, Depends(get_current_admin)]
@@ -320,7 +320,7 @@ async def get_monitoring_dashboard(
     "/benchmarks/report",
     summary="Get System Performance Benchmark Report (Admin Only)",
     description="Retrieve stored JSON performance benchmark metrics (AI Engine chunking speed, embedding latency, ChromaDB search, JWT ops, API throughput).",
-    dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_benchmarks_report"))]
+    dependencies=[Depends(RateLimiter(times=600, seconds=60, prefix="admin_benchmarks_report"))]
 )
 async def get_benchmark_report(
     admin: Annotated[User, Depends(get_current_admin)],
@@ -333,7 +333,7 @@ async def get_benchmark_report(
     "/benchmarks/run",
     summary="Trigger On-Demand Performance Benchmark Run (Admin Only)",
     description="Executes system performance benchmark suite across AI Engine, ChromaDB, JWT security, and API endpoints, returning fresh metrics.",
-    dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="admin_benchmarks_run"))]
+    dependencies=[Depends(RateLimiter(times=600, seconds=60, prefix="admin_benchmarks_run"))]
 )
 async def run_benchmark(
     admin: Annotated[User, Depends(get_current_admin)],

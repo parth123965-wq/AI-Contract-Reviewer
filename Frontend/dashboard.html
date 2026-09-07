@@ -197,7 +197,10 @@
             <!-- Card 2: Email Change -->
             <article class="card glass-card">
               <div class="card-header">
-                <h2 class="card-title">✉️ Update Email Address</h2>
+                <h2 class="card-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 6px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  Update Email Address
+                </h2>
               </div>
               <div style="display: grid; gap: 16px; margin-top: 12px;">
                 <div class="input-group">
@@ -210,11 +213,17 @@
                     <label class="input-label" for="newEmailInput">New Email Address</label>
                     <input type="email" id="newEmailInput" class="input" placeholder="newemail@company.com" required />
                   </div>
-                  <button type="submit" id="requestEmailOtpBtn" class="btn btn-outline">📩 Send OTP</button>
+                  <button type="submit" id="requestEmailOtpBtn" class="btn btn-outline">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 6px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    Send OTP
+                  </button>
                 </form>
 
                 <form id="confirmEmailChangeForm" style="display: none; background: rgba(0, 240, 255, 0.05); padding: 16px; border-radius: var(--radius-md); border: 1px solid rgba(0, 240, 255, 0.2); flex-direction: column; gap: 12px;">
-                  <span style="font-size: 0.875rem; color: var(--color-primary); font-weight: 600;">🔐 Verification OTP sent to new email</span>
+                  <span style="font-size: 0.875rem; color: var(--color-primary); font-weight: 600; display: inline-flex; align-items: center;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    Verification OTP sent to new email
+                  </span>
                   <div class="input-group">
                     <label class="input-label" for="emailOtpInput">Enter 6-Digit OTP Code</label>
                     <input type="text" id="emailOtpInput" class="input" maxlength="6" placeholder="123456" style="text-align: center; letter-spacing: 3px; font-family: var(--font-mono);" required />
@@ -229,18 +238,27 @@
             <!-- Card 3: Password & Security -->
             <article class="card glass-card">
               <div class="card-header">
-                <h2 class="card-title">🔑 Change Password</h2>
+                <h2 class="card-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 6px;"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.778-7.778zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                  Change Password
+                </h2>
               </div>
               <div style="display: grid; gap: 16px; margin-top: 12px;">
                 <p style="font-size: 0.875rem; color: var(--color-text-muted);">
                   To change your password, request a security OTP code sent to your active email.
                 </p>
                 <div>
-                  <button type="button" id="requestPasswordOtpBtn" class="btn btn-outline">📩 Request Password Reset OTP</button>
+                  <button type="button" id="requestPasswordOtpBtn" class="btn btn-outline">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 6px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    Request Password Reset OTP
+                  </button>
                 </div>
 
                 <form id="confirmPasswordChangeForm" style="display: none; background: rgba(112, 0, 255, 0.05); padding: 16px; border-radius: var(--radius-md); border: 1px solid rgba(112, 0, 255, 0.2); display: flex; flex-direction: column; gap: 12px;">
-                  <span style="font-size: 0.875rem; color: #a5b4fc; font-weight: 600;">🔐 OTP Sent to Your Email</span>
+                  <span style="font-size: 0.875rem; color: #a5b4fc; font-weight: 600; display: inline-flex; align-items: center;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    OTP Sent to Your Email
+                  </span>
                   <div class="input-group">
                     <label class="input-label" for="passwordOtpInput">6-Digit Verification OTP Code</label>
                     <input type="text" id="passwordOtpInput" class="input" maxlength="6" placeholder="123456" style="text-align: center; letter-spacing: 3px; font-family: var(--font-mono);" required />
