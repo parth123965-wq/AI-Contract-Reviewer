@@ -7,7 +7,9 @@ except ImportError:
 from pypdf import PdfReader
 from pathlib import Path
 from typing import Any
+import time
 import os
+
 from app.core.config import settings
 
 class TextExtractor:
@@ -51,8 +53,6 @@ class TextExtractor:
     def _ocr_extract_pdf(self, doc_tuple: Any) -> str:
         """Extracts text from scanned/image-based PDFs using Gemini Vision OCR."""
         engine, doc = doc_tuple
-        if engine != "fitz":
-            return ""
         ocr_texts = []
         try:
             from google import genai
@@ -65,26 +65,59 @@ class TextExtractor:
             if not api_key:
                 return ""
 
+            model_name = getattr(settings, "AI_MODEL_NAME", "gemini-3.6-flash") or "gemini-3.6-flash"
             client = genai.Client(api_key=api_key)
-            for page in doc:
-                pix = page.get_pixmap()
-                img_bytes = pix.tobytes("png")
-                try:
-                    response = client.models.generate_content(
-                        model="gemini-flash-latest",
-                        contents=[
-                            "Extract all text, tables, dates, and numbers from this document image cleanly and completely:",
-                            genai.types.Part.from_bytes(data=img_bytes, mime_type="image/png")
-                        ]
-                    )
-                    if response and response.text:
-                        ocr_texts.append(response.text.strip())
-                except Exception as exc:
-                    print(f"Gemini OCR page error: {exc}")
+            
+            if engine == "fitz":
+                for page in doc:
+                    pix = page.get_pixmap()
+                    img_bytes = pix.tobytes("png")
+                    models_to_try = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-flash-latest"]
+
+
+                    extracted = False
+                    for m in models_to_try:
+                        if extracted:
+                            break
+                        for attempt in range(3):
+                            try:
+                                response = client.models.generate_content(
+                                    model=m,
+                                    contents=[
+                                        "Extract all text, tables, dates, and numbers from this document image cleanly and completely:",
+                                        genai.types.Part.from_bytes(data=img_bytes, mime_type="image/png")
+                                    ]
+                                )
+                                if response and response.text:
+                                    ocr_texts.append(response.text.strip())
+                                    extracted = True
+                                    break
+                            except Exception as exc:
+                                print(f"Gemini OCR page error (model={m}, attempt={attempt}): {exc}")
+                                time.sleep(1)
+
+
+            else:
+                for page in doc.pages:
+                    for img in page.images:
+                        img_bytes = img.data
+                        try:
+                            response = client.models.generate_content(
+                                model=model_name,
+                                contents=[
+                                    "Extract all text, tables, dates, and numbers from this document image cleanly and completely:",
+                                    genai.types.Part.from_bytes(data=img_bytes, mime_type=f"image/{img.name.split('.')[-1]}")
+                                ]
+                            )
+                            if response and response.text:
+                                ocr_texts.append(response.text.strip())
+                        except Exception as exc:
+                            print(f"Gemini OCR page error: {exc}")
         except Exception as exc:
             print(f"Gemini Vision OCR setup note: {exc}")
 
         return "\n\n".join(ocr_texts)
+
 
     def extract_text(
         self,

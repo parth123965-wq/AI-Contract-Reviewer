@@ -30,6 +30,7 @@ langchain-google-genai>=1.0.0
 langgraph>=0.0.20
 google-genai>=0.1.0
 pypdf>=4.0.0
+PyMuPDF>=1.23.0
 
 # Testing & Utilities
 pytest>=7.0.0
