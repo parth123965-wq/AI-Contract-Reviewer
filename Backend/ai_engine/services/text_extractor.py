@@ -135,6 +135,6 @@ class TextExtractor:
                 single_string = ocr_text
 
         if not single_string or len(single_string.strip()) < 3:
-            raise ValueError("No meaningful text found in document.")
+            raise ValueError("No text found in document. If this is a scanned PDF image, Gemini API rate limits (429) may have prevented OCR processing. Please upload a searchable PDF or try again later.")
 
         return single_string
