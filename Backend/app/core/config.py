@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     AI_MODEL_NAME: str
     GEMINI_API_KEY: str | None = None
     GOOGLE_API_KEY: str | None = None
+    LOCAL_LLM_URL: str = "http://localhost:11434"
+    LOCAL_LLM_MODEL: str = "llama3.2:3b"
     REDIS_URL: str
     MAIL_USERNAME: str | None = None
     MAIL_PASSWORD: str | None = None

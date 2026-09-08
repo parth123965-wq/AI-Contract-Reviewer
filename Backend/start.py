@@ -72,19 +72,30 @@ def main():
     # SECONDARY / FALLBACK: Local Runner Mode
     print("💻 Starting in Local Runner Mode...")
 
-    # 1. Start Docker DB & Redis containers if possible
+    # 1. Start Docker DB, Redis, and Ollama containers if possible
     if docker_bin and DOCKER_COMPOSE_FILE.exists():
-        print("🐋 Starting DB and Redis background containers...")
-        cmd = docker_bin + ["-f", str(DOCKER_COMPOSE_FILE), "up", "-d", "db", "redis"]
+        print("🐋 Starting DB, Redis, and Ollama background containers...")
+        cmd = docker_bin + ["-f", str(DOCKER_COMPOSE_FILE), "up", "-d", "db", "redis", "ollama"]
         run_command(cmd, cwd=PROJECT_ROOT, check=False)
     else:
-        print("ℹ️ Assuming local PostgreSQL & Redis instances are running.")
+        print("ℹ️ Assuming local PostgreSQL, Redis, and Ollama instances are running.")
 
-    # 2. Wait for DB and Redis ports
+    # 2. Wait for DB, Redis, and Ollama ports
     wait_for_port("127.0.0.1", 5432, "PostgreSQL Database", timeout=15)
     wait_for_port("127.0.0.1", 6379, "Redis Server", timeout=15)
+    ollama_online = wait_for_port("127.0.0.1", 11434, "Ollama Local LLM Container", timeout=15)
 
-    # 3. Apply Alembic DB Migrations
+    # 3. Automatically ensure local LLM model is downloaded into Ollama
+    if docker_bin and ollama_online:
+        local_model = os.getenv("LOCAL_LLM_MODEL", "llama3.2:3b")
+        print(f"🦙 Checking/ensuring local LLM model '{local_model}' is pulled inside Ollama container...")
+        try:
+            pull_cmd = docker_bin + ["-f", str(DOCKER_COMPOSE_FILE), "exec", "-T", "ollama", "ollama", "pull", local_model]
+            subprocess.run(pull_cmd, cwd=PROJECT_ROOT, check=False)
+        except Exception as e:
+            print(f"⚠️ Note on local LLM model pull: {e}")
+
+    # 4. Apply Alembic DB Migrations
     print("\n📦 Applying Alembic database migrations...")
     try:
         run_command([sys.executable, "-m", "alembic", "upgrade", "head"], cwd=BASE_DIR, check=False)

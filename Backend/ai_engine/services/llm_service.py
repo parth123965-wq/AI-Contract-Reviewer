@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import requests
 from dotenv import load_dotenv
 from app.core.config import settings
 from ai_engine.services.prompt_service import PromptService
@@ -46,6 +47,8 @@ class LLMService:
                 del os.environ["GEMINI_API_KEY"]
 
         self.model_name = settings.AI_MODEL_NAME or "gemini-1.5-flash"
+        self.local_llm_url = getattr(settings, "LOCAL_LLM_URL", "http://localhost:11434") or os.getenv("LOCAL_LLM_URL", "http://localhost:11434")
+        self.local_llm_model = getattr(settings, "LOCAL_LLM_MODEL", "llama3.2:3b") or os.getenv("LOCAL_LLM_MODEL", "llama3.2:3b")
         self.genai_client = None
         self.legacy_model = None
         self.llm = None
@@ -82,6 +85,29 @@ class LLMService:
                     except Exception:
                         self.llm = None
 
+    def _query_local_llm(self, prompt: str) -> str | None:
+        """Queries local containerized Ollama LLM service when cloud API hit limits or fails."""
+        try:
+            url = f"{self.local_llm_url.rstrip('/')}/api/generate"
+            payload = {
+                "model": self.local_llm_model,
+                "prompt": prompt,
+                "stream": False
+            }
+            logger.info(f"Attempting local small LLM fallback ({self.local_llm_model}) at {url}...")
+            res = requests.post(url, json=payload, timeout=45)
+            if res.status_code == 200:
+                data = res.json()
+                response_text = data.get("response", "").strip()
+                if response_text:
+                    logger.info("Successfully received completion from local containerized LLM.")
+                    return response_text
+            else:
+                logger.warning(f"Local LLM returned non-200 status code: {res.status_code}")
+        except Exception as exc:
+            logger.warning(f"Local containerized LLM fallback note ({exc}).")
+        return None
+
     def generate(self, prompt: str) -> str:
         candidate_models = [self.model_name, "gemini-flash-latest", "gemini-2.5-flash", "gemini-pro-latest", "gemini-2.5-pro", "gemini-1.5-flash"]
         
@@ -97,8 +123,11 @@ class LLMService:
                         return response.text
                 except Exception as exc:
                     err_str = str(exc)
-                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "Quota" in err_str:
-                        print("Google Gemini API free tier rate limit reached (429). Executing dynamic document analysis...")
+                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "Quota" in err_str or "API_KEY" in err_str:
+                        print("Google Gemini API limit/error reached. Attempting local small LLM container fallback...")
+                        local_res = self._query_local_llm(prompt)
+                        if local_res:
+                            return local_res
                         return self._analyze_text_dynamically(prompt)
                     if "404" not in err_str:
                         print(f"google.genai SDK call note ({exc}), attempting legacy SDKs...")
@@ -114,8 +143,11 @@ class LLMService:
                         return res.text
                 except Exception as exc:
                     err_str = str(exc)
-                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "Quota" in err_str:
-                        print("Google Gemini API rate limit reached (429). Executing dynamic document analysis...")
+                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "Quota" in err_str or "API_KEY" in err_str:
+                        print("Google Gemini API rate limit reached (429). Attempting local small LLM container fallback...")
+                        local_res = self._query_local_llm(prompt)
+                        if local_res:
+                            return local_res
                         return self._analyze_text_dynamically(prompt)
                     if "404" not in err_str:
                         break
@@ -133,13 +165,21 @@ class LLMService:
                         return res_lc.content
                 except Exception as exc:
                     err_str = str(exc)
-                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "Quota" in err_str:
-                        print("Google Gemini API rate limit reached (429). Executing dynamic document analysis...")
+                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "Quota" in err_str or "API_KEY" in err_str:
+                        print("Google Gemini API rate limit reached (429). Attempting local small LLM container fallback...")
+                        local_res = self._query_local_llm(prompt)
+                        if local_res:
+                            return local_res
                         return self._analyze_text_dynamically(prompt)
                     if "404" not in err_str:
                         break
 
-        # 4. Dynamic Analysis Fallback: Extract insights directly from actual uploaded contract text
+        # 4. Attempt Local Containerized LLM Fallback (if not already tried)
+        local_res = self._query_local_llm(prompt)
+        if local_res:
+            return local_res
+
+        # 5. Dynamic Analysis Fallback: Extract insights directly from actual uploaded contract text
         return self._analyze_text_dynamically(prompt)
 
     def ask_question(self, question: str, context_chunks: list[str]) -> str:
@@ -177,7 +217,12 @@ class LLMService:
                     if "404" not in err_str:
                         break
 
-        # 3. Intelligent RAG Search Fallback (when Gemini API rate limit occurs)
+        # 3. Try Local LLM Fallback
+        local_ans = self._query_local_llm(prompt)
+        if local_ans:
+            return local_ans
+
+        # 4. Intelligent RAG Search Fallback (when Gemini API rate limit occurs)
         if not valid_chunks:
             return "No document text available to answer your question."
 
