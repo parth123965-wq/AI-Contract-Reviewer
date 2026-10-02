@@ -156,7 +156,7 @@ async def ask_question_on_contract(
             except Exception:
                 pass
 
-    async def event_generator():
+    def event_generator():
         try:
             for text_chunk in llm_service.ask_question_stream(question=body.question, context_chunks=chunks):
                 data = json.dumps({"chunk": text_chunk})
