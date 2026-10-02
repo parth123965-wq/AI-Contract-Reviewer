@@ -86,6 +86,22 @@ class VerifyRegistrationRequest(BaseModel):
 class ResendOTPRequest(BaseModel):
     email: EmailStr = Field(description="Target user email address for OTP delivery", examples=["john@example.com"])
 
+class PasswordResetRequest(BaseModel):
+    email: EmailStr = Field(description="Email address associated with the account")
+
+class PasswordResetConfirmRequest(BaseModel):
+    email: EmailStr = Field(description="Email address associated with the account")
+    otp_code: str = Field(
+        min_length=6,
+        max_length=6,
+        description="Password reset OTP sent to the account email"
+    )
+    new_password: str = Field(
+        min_length=8,
+        max_length=128,
+        description="New account password"
+    )
+
 class UpdateUsernameRequest(BaseModel):
     username: str = Field(
         min_length=3,

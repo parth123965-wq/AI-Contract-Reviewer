@@ -3,7 +3,16 @@ from app.database.database import get_db
 from app.services.auth_service import AuthService , auth_service
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
-from app.schemas.user import UserResponse , UserCreate , LoginResponse , UserLogin , VerifyRegistrationRequest , ResendOTPRequest
+from app.schemas.user import (
+    UserResponse,
+    UserCreate,
+    LoginResponse,
+    UserLogin,
+    VerifyRegistrationRequest,
+    ResendOTPRequest,
+    PasswordResetRequest,
+    PasswordResetConfirmRequest
+)
 from fastapi.security import OAuth2PasswordRequestForm
 from app.core.rate_limit import RateLimiter
 
@@ -70,6 +79,44 @@ async def resend_otp(
     return {
         "message": "Verification OTP has been resent to your email."
     }
+
+@auth_router.post(
+    "/password-reset/request",
+    summary="Request Password Reset OTP",
+    description="Send a password reset OTP to an active, verified account. Requests are subject to the configured OTP cooldown.",
+    dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="auth_password_reset_request"))]
+)
+async def request_password_reset(
+    data: PasswordResetRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    auth_services: Annotated[AuthService, Depends(auth_service)]
+):
+    await auth_services.request_password_reset(
+        db=db,
+        email=str(data.email)
+    )
+    return {
+        "message": "If an active, verified account exists for that email, a password reset code will be sent."
+    }
+
+@auth_router.post(
+    "/password-reset/confirm",
+    summary="Reset Password",
+    description="Verify the password reset OTP, update the password, and send a confirmation email.",
+    dependencies=[Depends(RateLimiter(times=10, seconds=60, prefix="auth_password_reset_confirm"))]
+)
+async def reset_password(
+    data: PasswordResetConfirmRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    auth_services: Annotated[AuthService, Depends(auth_service)]
+):
+    await auth_services.reset_password(
+        db=db,
+        email=str(data.email),
+        otp_code=data.otp_code,
+        new_password=data.new_password
+    )
+    return {"message": "Password reset successfully."}
 
 @auth_router.post(
     '/login',

@@ -6,6 +6,7 @@ from app.repositories.user_repository import UserRepository
 from fastapi import HTTPException, status
 from app.auth.jwt import create_access_token
 from app.services.otp_service import otp_service
+from app.services.email_service import email_service
 from app.core.logger import get_app_logger
 
 logger = get_app_logger("services.auth")
@@ -68,7 +69,73 @@ class AuthService:
 
         # Mark user as verified in database
         verified_user = await self.user_repository.mark_user_verified(db=db, user_id=existing_user.id)
+        if verified_user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found."
+            )
+
+        await email_service.send_welcome_email(
+            email=verified_user.email,
+            name=verified_user.username
+        )
         return verified_user
+
+    async def request_password_reset(self, db: AsyncSession, email: str) -> None:
+        normalized_email = email.strip().lower()
+        user = await self.user_repository.get_user_by_email(
+            db=db,
+            email=normalized_email
+        )
+        if user is None or not user.is_active or not user.is_verified:
+            return
+
+        try:
+            otp_code = await otp_service.generate_otp(
+                purpose="password_reset",
+                identifier=normalized_email
+            )
+        except HTTPException as exc:
+            if exc.status_code == status.HTTP_429_TOO_MANY_REQUESTS:
+                return
+            raise
+
+        await otp_service.send_otp_email(
+            email=user.email,
+            otp_code=otp_code,
+            purpose="password reset"
+        )
+
+    async def reset_password(
+        self,
+        db: AsyncSession,
+        email: str,
+        otp_code: str,
+        new_password: str
+    ) -> None:
+        normalized_email = email.strip().lower()
+        user = await self.user_repository.get_user_by_email(
+            db=db,
+            email=normalized_email
+        )
+        if user is None or not user.is_active or not user.is_verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired password reset code."
+            )
+
+        await otp_service.verify_otp(
+            purpose="password_reset",
+            identifier=normalized_email,
+            input_otp=otp_code
+        )
+
+        user.password_hash = hash_password(new_password)
+        await self.user_repository.update_user(db=db, user=user)
+        await email_service.send_password_changed_notification(
+            email=user.email,
+            username=user.username
+        )
 
     async def resend_registration_otp(self, db: AsyncSession, email: str) -> None:
         existing_user = await self.user_repository.get_user_by_email(db=db, email=email)
