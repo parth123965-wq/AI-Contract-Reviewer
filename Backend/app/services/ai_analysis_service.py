@@ -95,6 +95,18 @@ class AnalysisService:
                     time.perf_counter() - start_time
                 ) * 1000
 
+                # Bug Fix: Await the analysis save here safely while the db session is open
+                if final_state and final_state.get("analysis_result"):
+                    from app.core.config import settings
+                    await self.save_analysis(
+                        db=db,
+                        contract_id=contract.id,
+                        version=version,
+                        result=final_state["analysis_result"],
+                        model_name=settings.AI_MODEL_NAME or "gemini",
+                        processing_time=processing_time
+                    )
+
                 await self.contract_repository.update_status(
                     db=db,
                     contract=contract,

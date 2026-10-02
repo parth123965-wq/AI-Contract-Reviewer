@@ -86,14 +86,9 @@ class ContractNodes:
         if self._should_skip(state):
             return state
         try:
-            retrieved = self.vector_store.search(
-                contract_id=state['contract_id'],
-                user_id=state['user_id'],
-                query_embedding=state.get('query_embedding', []),
-            )
-            if not retrieved and state.get('chunks'):
-                retrieved = state['chunks'][:5]
-            state['retrieved_chunks'] = retrieved
+            # Bug Fix: Do not use the first chunk's embedding to filter chunks for general analysis.
+            # We want to analyze the entire document context, so we pass all chunks to the prompt.
+            state['retrieved_chunks'] = state.get('chunks', [])
         except Exception as exc:
             logger.error(f"Error in retrieve_context_node: {exc}", exc_info=True)
             state['error'] = str(exc)
@@ -143,31 +138,6 @@ class ContractNodes:
         return state
     
     def save_analysis_node(self, state: ContractState) -> ContractState:
-        if self._should_skip(state):
-            return state
-        if not state.get("db"):
-            return state
-        try:
-            import asyncio
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                loop = None
-            
-            coro = self.analysis_service.save_analysis(
-                db=state["db"],
-                contract_id=state["contract_id"],
-                result=state["analysis_result"],
-                model_name=settings.AI_MODEL_NAME,
-                processing_time_ms=state.get("processing_time_ms", 0),
-                analysis_version=state.get("analysis_version", 1)
-            )
-            if loop and loop.is_running():
-                loop.create_task(coro)
-            else:
-                asyncio.run(coro)
-        except Exception as exc:
-            logger.error(f"Error in save_analysis_node: {exc}", exc_info=True)
-            state["error"] = str(exc)
-            state["status"] = ContractStatus.FAILED
+        # Bug Fix: Saving is now awaited safely in ai_analysis_service.py to prevent 
+        # the AsyncSession from closing before the background task completes.
         return state
