@@ -104,11 +104,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Optional force HTTPS redirect middleware
-if settings.FORCE_HTTPS:
-    app.add_middleware(HTTPSRedirectMiddleware)
-
-
 @app.middleware("http")
 async def enforce_security_headers(request: Request, call_next):
     start_time = time.time()

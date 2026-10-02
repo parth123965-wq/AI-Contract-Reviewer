@@ -1,0 +1,72 @@
+services:
+  - type: web
+    name: ai-contract-reviewer-api
+    runtime: docker
+    plan: starter
+    region: virginia
+    dockerfilePath: ./Backend/Dockerfile
+    dockerContext: ./Backend
+    healthCheckPath: /
+    disk:
+      name: contract-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: APP_NAME
+        value: AI Contract Reviewer
+      - key: APP_VERSION
+        value: 2.0.0
+      - key: DEBUG
+        value: "false"
+      - key: PRODUCTION
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "30"
+      - key: UPLOAD_DIR
+        value: /var/data/uploads/contracts
+      - key: LOG_LEVEL
+        value: INFO
+      - key: EMBEDDING_MODEL
+        value: gemini-embedding-001
+      - key: COLLECTION_NAME
+        value: contracts_gemini
+      - key: CHROMA_DB_PATH
+        value: /var/data/vector_store
+      - key: AI_MODEL_NAME
+        value: gemini-1.5-flash
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_SERVER
+        value: smtp.gmail.com
+      - key: MAIL_FROM_NAME
+        value: AI Contract Reviewer
+      - key: MAIL_STARTTLS
+        value: "true"
+      - key: MAIL_SSL_TLS
+        value: "false"
+      - key: OTP_LENGTH
+        value: "6"
+      - key: OTP_EXPIRE_SECONDS
+        value: "300"
+      - key: OTP_COOLDOWN_SECONDS
+        value: "60"
+      - key: OTP_MAX_ATTEMPTS
+        value: "5"
+      - key: ALLOWED_ORIGINS
+        sync: false
