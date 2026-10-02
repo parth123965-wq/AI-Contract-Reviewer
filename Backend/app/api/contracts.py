@@ -132,7 +132,10 @@ async def ask_question_on_contract(
 
     # 1. Search RAG Vector Store
     try:
-        q_embeddings = emb_service.create_embeddings([body.question])
+        q_embeddings = emb_service.create_embeddings(
+            [body.question],
+            task_type="RETRIEVAL_QUERY"
+        )
         query_emb = q_embeddings[0] if q_embeddings else []
         if query_emb:
             chunks = vector_store.search(
@@ -141,8 +144,11 @@ async def ask_question_on_contract(
                 query_embedding=query_emb,
                 top_k=5
             )
-    except Exception:
-        pass
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="Failed to retrieve contract context."
+        ) from exc
 
     # 2. Fallback: Extract directly from contract file if vector store returned empty chunks
     if not chunks:

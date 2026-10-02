@@ -14,8 +14,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     UPLOAD_DIR: str
     LOG_LEVEL: str
-    MODEL_NAME: str
-    COLLECTION_NAME: str
+    EMBEDDING_MODEL: str = "gemini-embedding-001"
+    COLLECTION_NAME: str = "contracts_gemini"
     CHROMA_DB_PATH: str
     AI_MODEL_NAME: str
     GEMINI_API_KEY: str | None = None

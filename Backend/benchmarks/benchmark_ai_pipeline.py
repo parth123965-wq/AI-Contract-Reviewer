@@ -52,7 +52,7 @@ def benchmark_chunking(iterations: int = 50) -> Dict[str, Any]:
 
 
 def benchmark_embeddings(num_chunks: int = 20) -> Dict[str, Any]:
-    """Measures sentence-transformers embedding generation performance."""
+    """Measures Gemini embedding API performance."""
     chunker = ChunkService()
     embedding_svc = EmbeddingService()
     sample_chunks = chunker.chunk_text(SAMPLE_CONTRACT_TEXT)[:num_chunks]

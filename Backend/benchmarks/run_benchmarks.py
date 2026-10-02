@@ -23,7 +23,7 @@ def generate_markdown_report(metrics: dict, output_path: Path):
     md_content = f"""# 📊 AI Contract Reviewer - Performance Benchmark Report
 
 **Generated At**: {metrics.get("timestamp")}  
-**Environment**: Python, FastAPI, SentenceTransformers (`BAAI/bge-small-en-v1.5`), ChromaDB  
+**Environment**: Python, FastAPI, Gemini Embedding API, ChromaDB
 
 ---
 
@@ -33,7 +33,7 @@ def generate_markdown_report(metrics: dict, output_path: Path):
 | :--- | :--- | :--- |
 | **Chunking Speed** | `{chunk.get('chars_per_sec', 0):,} chars/sec` | Document splitting throughput (`ChunkService`) |
 | **Chunk Output Rate** | `{chunk.get('chunks_per_sec', 0)} chunks/sec` | Chunks generated per second |
-| **Embedding Speed** | `{emb.get('avg_ms_per_chunk', 0)} ms/chunk` | Latency per chunk (`sentence-transformers`) |
+| **Embedding Speed** | `{emb.get('avg_ms_per_chunk', 0)} ms/chunk` | Average Gemini embedding API latency per chunk |
 | **Embedding Rate** | `{emb.get('chunks_per_sec', 0)} chunks/sec` | Embedding generation throughput |
 | **Vector Store Insert** | `{vec.get('insertion_rate_vec_per_sec', 0)} vec/sec` | ChromaDB vector insertion throughput |
 | **Vector Search Latency** | `{vec.get('avg_query_latency_ms', 0)} ms` | Top-5 similarity search query latency |
