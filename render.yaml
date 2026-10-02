@@ -4,8 +4,8 @@ services:
     runtime: docker
     plan: starter
     region: virginia
-    dockerfilePath: ./Backend/Dockerfile
-    dockerContext: ./Backend
+    rootDir: ./Backend
+    dockerfilePath: ./Dockerfile
     healthCheckPath: /
     disk:
       name: contract-data
