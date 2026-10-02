@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
 from app.core.logger import get_app_logger
-from app.core.redis_setup import get_redis
+from app.core import redis_setup
 
 monitoring_logger = get_app_logger("monitoring")
 START_TIME = time.time()
@@ -126,7 +126,7 @@ async def get_redis_health() -> Dict[str, Any]:
     """Check Redis cache service connection status and latency."""
     start_t = time.time()
     try:
-        client = await get_redis()
+        client = redis_setup.redis_client
         if client is None:
             return {
                 "status": "disabled",
@@ -289,4 +289,3 @@ async def get_full_monitoring_report(db: AsyncSession) -> Dict[str, Any]:
         },
         "performance": perf_metrics
     }
-

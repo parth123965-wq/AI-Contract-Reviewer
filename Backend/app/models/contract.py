@@ -108,7 +108,11 @@ class Contract(Base):
     )
     analyses = relationship(
         "ContractAnalysis",
-        back_populates="contract"
+        back_populates="contract",
+        order_by=lambda: (
+            ContractAnalysis.analysis_version,
+            ContractAnalysis.id
+        )
     )
     
 class ContractAnalysis(Base):

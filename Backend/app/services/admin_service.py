@@ -55,18 +55,10 @@ class AdminService:
         )
 
     async def get_dashboard_stats(self, db: AsyncSession) -> AdminDashboardStats:
-        import asyncio
-        user_stats_task = self.user_repository.get_user_summary_stats(db=db)
-        total_contracts_task = self.contract_repository.count_all_contracts(db=db)
-        status_stats_task = self.contract_repository.count_contracts_by_status(db=db)
-        risk_stats_task = self.contract_repository.count_analyses_by_risk(db=db)
-
-        user_stats, total_contracts, contracts_by_status, analyses_by_risk = await asyncio.gather(
-            user_stats_task,
-            total_contracts_task,
-            status_stats_task,
-            risk_stats_task
-        )
+        user_stats = await self.user_repository.get_user_summary_stats(db=db)
+        total_contracts = await self.contract_repository.count_all_contracts(db=db)
+        contracts_by_status = await self.contract_repository.count_contracts_by_status(db=db)
+        analyses_by_risk = await self.contract_repository.count_analyses_by_risk(db=db)
 
         return AdminDashboardStats(
             total_users=user_stats["total_users"],
@@ -262,4 +254,3 @@ class AdminService:
 
 def get_admin_service() -> AdminService:
     return AdminService()
-
