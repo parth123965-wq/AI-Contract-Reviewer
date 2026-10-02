@@ -35,10 +35,6 @@ class Settings(BaseSettings):
     OTP_EXPIRE_SECONDS: int
     OTP_COOLDOWN_SECONDS: int
     OTP_MAX_ATTEMPTS: int
-    FORCE_HTTPS: bool = False
-    SSL_KEYFILE: str | None = None
-    SSL_CERTFILE: str | None = None
-    SECURE_COOKIES: bool = True
     ALLOWED_ORIGINS: list[str] = [
         "https://localhost",
         "https://127.0.0.1",
