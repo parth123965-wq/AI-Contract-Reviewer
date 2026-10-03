@@ -1,11 +1,10 @@
 from pathlib import Path
 from typing import Any, Dict
 from fastapi import HTTPException, status
-from fastapi_mail import MessageSchema, MessageType
+import httpx
 from jinja2 import Environment, FileSystemLoader
 
 from app.core.config import settings
-from app.core.email_setup import get_email
 from app.core.logger import get_app_logger
 
 logger = get_app_logger("services.email")
@@ -16,7 +15,7 @@ TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
 class EmailService:
     """
     Centralized email service for rendering HTML templates in app/templates
-    and dispatching emails via FastMail.
+    and dispatching emails via the Resend HTTPS API.
     """
 
     def __init__(self) -> None:
@@ -39,24 +38,60 @@ class EmailService:
 
     async def send_email(self, recipients: list[str], subject: str, body_html: str) -> None:
         """
-        Send HTML email message using FastMail instance.
+        Send an HTML email using Resend's HTTPS API.
         """
-        try:
-            fastmail = get_email()
-            message = MessageSchema(
-                subject=subject,
-                recipients=recipients,
-                body=body_html,
-                subtype=MessageType.html
+        if not settings.RESEND_API_KEY or not settings.EMAIL_FROM:
+            logger.error("Email delivery is not configured: Resend API key or sender is missing.")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Email service is not configured."
             )
-            await fastmail.send_message(message)
+
+        payload = {
+            "from": settings.EMAIL_FROM,
+            "to": recipients,
+            "subject": subject,
+            "html": body_html,
+        }
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(
+                    settings.RESEND_EMAILS_URL,
+                    headers={
+                        "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+                        "Content-Type": "application/json",
+                    },
+                    json=payload,
+                )
+                response.raise_for_status()
             logger.info(f"Email sent successfully to {recipients}")
+        except httpx.HTTPStatusError as exc:
+            logger.error(
+                "Resend rejected email delivery.",
+                extra={"status_code": exc.response.status_code, "recipients": recipients},
+            )
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Email provider rejected the message."
+            ) from exc
+        except httpx.HTTPError as exc:
+            logger.error(
+                "Resend email request failed.",
+                extra={"error_type": type(exc).__name__, "recipients": recipients},
+            )
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Email provider could not be reached."
+            ) from exc
         except Exception as e:
-            logger.error(f"Failed to send email to {recipients}: {e}")
+            logger.error(
+                "Unexpected error while sending email.",
+                extra={"error_type": type(e).__name__, "recipients": recipients},
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to send email message."
-            )
+            ) from e
 
     async def send_welcome_email(self, email: str, name: str) -> None:
         """
@@ -134,4 +169,3 @@ class EmailService:
 
 # Default service instance
 email_service = EmailService()
-

@@ -44,22 +44,10 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
-      - key: MAIL_USERNAME
+      - key: RESEND_API_KEY
         sync: false
-      - key: MAIL_PASSWORD
+      - key: EMAIL_FROM
         sync: false
-      - key: MAIL_FROM
-        sync: false
-      - key: MAIL_PORT
-        value: "587"
-      - key: MAIL_SERVER
-        value: smtp.gmail.com
-      - key: MAIL_FROM_NAME
-        value: AI Contract Reviewer
-      - key: MAIL_STARTTLS
-        value: "true"
-      - key: MAIL_SSL_TLS
-        value: "false"
       - key: OTP_LENGTH
         value: "6"
       - key: OTP_EXPIRE_SECONDS

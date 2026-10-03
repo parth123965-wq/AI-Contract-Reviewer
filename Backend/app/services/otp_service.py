@@ -1,11 +1,9 @@
 import secrets
 from typing import Tuple
 from fastapi import HTTPException, status
-from fastapi_mail import MessageSchema, MessageType
 
 from app.core.config import settings
 from app.core.redis_setup import get_redis
-from app.core.email_setup import get_email
 from app.services.email_service import email_service
 from app.core.logger import get_app_logger
 

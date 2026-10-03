@@ -3,7 +3,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Depends
 from app.core.config import settings
 from app.core.redis_setup import initialize_redis, close_redis
-from app.core.email_setup import initialize_email, close_email
 from app.core.logger import app_logger, get_app_logger
 from app.core.rate_limit import RateLimiter
 from app.api.auth import auth_router
@@ -26,19 +25,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         main_logger.warning("Redis initialization warning", extra={"error": str(e)})
     
-    try:
-        await initialize_email()
-        main_logger.info("Email service initialized successfully.")
-    except Exception as e:
-        main_logger.warning("Email initialization warning", extra={"error": str(e)})
-
     yield
 
     # Shutdown: close services
     main_logger.info("Shutting down Backend App service...")
     await close_redis()
-    await close_email()
-    main_logger.info("Services closed successfully.")
+    main_logger.info("Redis connection closed.")
 
 
 openapi_tags = [
