@@ -6,6 +6,7 @@ pydantic-settings>=2.0.0
 email-validator>=2.0.0
 python-multipart>=0.0.6
 python-dotenv>=1.0.0
+Jinja2>=3.1.0
 
 # Database, Caching & Migrations
 SQLAlchemy[asyncio]>=2.0.0
