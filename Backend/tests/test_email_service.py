@@ -1,4 +1,6 @@
-from unittest.mock import AsyncMock
+import base64
+from email import message_from_bytes
+from unittest.mock import Mock
 
 import httpx
 import pytest
@@ -11,7 +13,7 @@ from app.services.email_service import EmailService
 class FakeAsyncClient:
     def __init__(self, *, timeout):
         self.timeout = timeout
-        self.request = None
+        self.requests = []
 
     async def __aenter__(self):
         return self
@@ -19,37 +21,52 @@ class FakeAsyncClient:
     async def __aexit__(self, exc_type, exc, traceback):
         return False
 
-    async def post(self, url, *, headers, json):
-        self.request = {
-            "url": url,
-            "headers": headers,
-            "json": json,
-            "timeout": self.timeout,
-        }
-        response = httpx.Response(200, json={"id": "email-id"}, request=httpx.Request("POST", url))
+    async def post(self, url, **kwargs):
+        self.requests.append({"url": url, **kwargs})
+        if url == email_module.GMAIL_TOKEN_URL:
+            response = httpx.Response(
+                200,
+                json={"access_token": "test-access-token"},
+                request=httpx.Request("POST", url),
+            )
+        else:
+            response = httpx.Response(
+                200,
+                json={"id": "gmail-message-id"},
+                request=httpx.Request("POST", url),
+            )
         response.raise_for_status()
         return response
 
 
 @pytest.mark.asyncio
-async def test_welcome_email_renders_name_and_sends_through_resend(monkeypatch):
-    client = FakeAsyncClient(timeout=10.0)
+async def test_welcome_email_uses_gmail_oauth_and_sends_html(monkeypatch):
+    client = FakeAsyncClient(timeout=15.0)
     monkeypatch.setattr(email_module.httpx, "AsyncClient", lambda **kwargs: client)
 
     await EmailService().send_welcome_email("new@example.com", "New User")
 
-    assert client.request["url"] == "https://api.resend.com/emails"
-    assert client.request["headers"]["Authorization"] == "Bearer test-resend-key"
-    assert client.request["json"]["to"] == ["new@example.com"]
-    assert client.request["json"]["from"] == "Test Contract Reviewer <test@example.com>"
-    assert client.request["json"]["subject"] == "Welcome to Test Contract Reviewer!"
-    assert "New User" in client.request["json"]["html"]
-    assert client.request["timeout"] == 10.0
+    token_request, send_request = client.requests
+    assert token_request["url"] == email_module.GMAIL_TOKEN_URL
+    assert token_request["data"] == {
+        "client_id": "test-client-id",
+        "client_secret": "test-client-secret",
+        "refresh_token": "test-refresh-token",
+        "grant_type": "refresh_token",
+    }
+    assert send_request["url"] == email_module.GMAIL_SEND_URL
+    assert send_request["headers"]["Authorization"] == "Bearer test-access-token"
+    message_bytes = base64.urlsafe_b64decode(send_request["json"]["raw"] + "===")
+    message = message_from_bytes(message_bytes)
+    assert message["To"] == "new@example.com"
+    assert message["From"] == "sender@gmail.com"
+    assert message["Subject"] == "Welcome to Test Contract Reviewer!"
+    assert "New User" in message.get_payload()[1].get_payload(decode=True).decode()
 
 
 @pytest.mark.asyncio
-async def test_password_reset_email_renders_reset_link_for_resend(monkeypatch):
-    client = FakeAsyncClient(timeout=10.0)
+async def test_password_reset_email_is_encoded_for_gmail_api(monkeypatch):
+    client = FakeAsyncClient(timeout=15.0)
     monkeypatch.setattr(email_module.httpx, "AsyncClient", lambda **kwargs: client)
 
     await EmailService().send_password_reset_email(
@@ -57,8 +74,11 @@ async def test_password_reset_email_renders_reset_link_for_resend(monkeypatch):
         "https://example.com/reset?token=abc",
     )
 
-    assert client.request["json"]["to"] == ["user@example.com"]
-    assert "https://example.com/reset?token=abc" in client.request["json"]["html"]
+    message_bytes = base64.urlsafe_b64decode(client.requests[1]["json"]["raw"] + "===")
+    message = message_from_bytes(message_bytes)
+    html_content = message.get_payload()[1].get_payload(decode=True).decode()
+    assert message["To"] == "user@example.com"
+    assert "https://example.com/reset?token=abc" in html_content
 
 
 @pytest.mark.asyncio
@@ -86,43 +106,86 @@ async def test_password_reset_email_renders_reset_link_for_resend(monkeypatch):
         ),
     ],
 )
-async def test_notification_templates_use_resend_transport(
+async def test_notification_templates_use_gmail_transport(
     monkeypatch, method_name, args, subject_part, html_part
 ):
-    client = FakeAsyncClient(timeout=10.0)
+    client = FakeAsyncClient(timeout=15.0)
     monkeypatch.setattr(email_module.httpx, "AsyncClient", lambda **kwargs: client)
 
     await getattr(EmailService(), method_name)(*args)
 
-    assert client.request["url"] == "https://api.resend.com/emails"
-    assert client.request["json"]["to"] == ["user@example.com"]
-    assert subject_part in client.request["json"]["subject"]
-    assert html_part in client.request["json"]["html"]
+    assert len(client.requests) == 2
+    message_bytes = base64.urlsafe_b64decode(client.requests[1]["json"]["raw"] + "===")
+    message = message_from_bytes(message_bytes)
+    assert message["To"] == "user@example.com"
+    assert subject_part in message["Subject"]
+    assert html_part in message.get_payload()[1].get_payload(decode=True).decode()
 
 
 @pytest.mark.asyncio
-async def test_email_provider_http_failure_is_reported(monkeypatch):
+async def test_gmail_api_forbidden_error_is_reported(monkeypatch):
     class RejectingClient(FakeAsyncClient):
-        async def post(self, url, *, headers, json):
+        async def post(self, url, **kwargs):
+            if url == email_module.GMAIL_TOKEN_URL:
+                response = httpx.Response(
+                    200,
+                    json={"access_token": "test-access-token"},
+                    request=httpx.Request("POST", url),
+                )
+                return response
             request = httpx.Request("POST", url)
-            response = httpx.Response(403, json={"message": "not authorized"}, request=request)
-            raise httpx.HTTPStatusError("provider rejected request", request=request, response=response)
+            response = httpx.Response(
+                403,
+                json={"error": {"message": "Gmail API has not been enabled"}},
+                request=request,
+            )
+            raise httpx.HTTPStatusError(
+                "Gmail rejected request", request=request, response=response
+            )
 
     monkeypatch.setattr(email_module.httpx, "AsyncClient", RejectingClient)
+    log_error = Mock()
+    monkeypatch.setattr(email_module.logger, "error", log_error)
 
     with pytest.raises(HTTPException) as error:
         await EmailService().send_welcome_email("user@example.com", "User")
 
     assert error.value.status_code == 502
-    assert error.value.detail == "Email provider rejected the message."
+    assert "Gmail API is enabled" in error.value.detail
+    assert log_error.call_args.kwargs["extra"]["provider_message"] == (
+        "Gmail API has not been enabled"
+    )
 
 
 @pytest.mark.asyncio
-async def test_email_provider_network_failure_is_reported(monkeypatch):
-    class UnavailableClient(FakeAsyncClient):
-        async def post(self, url, *, headers, json):
+async def test_gmail_oauth_failure_is_reported(monkeypatch):
+    class InvalidTokenClient(FakeAsyncClient):
+        async def post(self, url, **kwargs):
             request = httpx.Request("POST", url)
-            raise httpx.ConnectTimeout("provider timed out", request=request)
+            response = httpx.Response(
+                400,
+                json={"error": "invalid_grant"},
+                request=request,
+            )
+            raise httpx.HTTPStatusError(
+                "OAuth refresh failed", request=request, response=response
+            )
+
+    monkeypatch.setattr(email_module.httpx, "AsyncClient", InvalidTokenClient)
+
+    with pytest.raises(HTTPException) as error:
+        await EmailService().send_welcome_email("user@example.com", "User")
+
+    assert error.value.status_code == 503
+    assert "refresh token" in error.value.detail
+
+
+@pytest.mark.asyncio
+async def test_gmail_network_failure_is_reported(monkeypatch):
+    class UnavailableClient(FakeAsyncClient):
+        async def post(self, url, **kwargs):
+            request = httpx.Request("POST", url)
+            raise httpx.ConnectTimeout("Google timed out", request=request)
 
     monkeypatch.setattr(email_module.httpx, "AsyncClient", UnavailableClient)
 
@@ -130,14 +193,14 @@ async def test_email_provider_network_failure_is_reported(monkeypatch):
         await EmailService().send_welcome_email("user@example.com", "User")
 
     assert error.value.status_code == 502
-    assert error.value.detail == "Email provider could not be reached."
+    assert error.value.detail == "Google email service could not be reached."
 
 
 @pytest.mark.asyncio
 async def test_email_service_fails_explicitly_when_not_configured(monkeypatch):
     from app.core import config
 
-    monkeypatch.setattr(config.settings, "RESEND_API_KEY", None)
+    monkeypatch.setattr(config.settings, "GMAIL_REFRESH_TOKEN", None)
 
     with pytest.raises(HTTPException) as error:
         await EmailService().send_welcome_email("user@example.com", "User")

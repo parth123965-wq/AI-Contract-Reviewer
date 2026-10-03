@@ -21,9 +21,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str | None = None
     GOOGLE_API_KEY: str | None = None
     REDIS_URL: str
-    RESEND_API_KEY: str | None = None
-    EMAIL_FROM: str | None = None
-    RESEND_EMAILS_URL: str
+    GMAIL_CLIENT_ID: str | None = None
+    GMAIL_CLIENT_SECRET: str | None = None
+    GMAIL_REFRESH_TOKEN: str | None = None
+    GMAIL_SENDER: str | None = None
     OTP_LENGTH: int
     OTP_EXPIRE_SECONDS: int
     OTP_COOLDOWN_SECONDS: int
