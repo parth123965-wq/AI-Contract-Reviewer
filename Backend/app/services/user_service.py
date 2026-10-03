@@ -46,8 +46,11 @@ class UserService:
                 old_username=old_username,
                 new_username=new_username
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning(
+                "Failed to send username-change notification.",
+                extra={"error_type": type(exc).__name__},
+            )
 
         return UserResponse.model_validate(updated_user)
 
@@ -97,8 +100,11 @@ class UserService:
                     username=current_user.username,
                     new_email=new_email
                 )
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning(
+                "Failed to send email-change notifications.",
+                extra={"error_type": type(exc).__name__},
+            )
 
         return UserResponse.model_validate(updated_user)
 
@@ -136,11 +142,13 @@ class UserService:
                 email=current_user.email,
                 username=current_user.username
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning(
+                "Failed to send password-change notification.",
+                extra={"error_type": type(exc).__name__},
+            )
 
         return {"message": "Password changed successfully."}
 
 def get_user_service() -> UserService:
     return UserService()
-

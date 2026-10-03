@@ -122,3 +122,23 @@ async def test_verify_otp_rejects_missing_or_expired_code(service, redis_client)
     assert error.value.status_code == status.HTTP_400_BAD_REQUEST
     assert "invalid or has expired" in error.value.detail
     redis_client.incr.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_send_otp_email_delegates_to_resend_backed_email_service(
+    service, monkeypatch
+):
+    email = AsyncMock()
+    monkeypatch.setattr(otp_module, "email_service", email)
+
+    await service.send_otp_email(
+        email="user@example.com",
+        otp_code="123456",
+        purpose="password_reset",
+    )
+
+    email.send_otp_email.assert_awaited_once_with(
+        email="user@example.com",
+        otp_code="123456",
+        purpose="password_reset",
+    )

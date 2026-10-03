@@ -39,6 +39,7 @@ async def test_register_creates_user_and_sends_verification_otp(service, monkeyp
     )
     saved_user = make_user(is_verified=False)
     service.user_repository.get_user_by_email.return_value = None
+    service.user_repository.get_user_by_username.return_value = None
     service.user_repository.create_user.return_value = saved_user
     otp = AsyncMock()
     otp.generate_otp.return_value = "123456"
@@ -78,6 +79,48 @@ async def test_register_rejects_existing_verified_email(service):
 
 
 @pytest.mark.asyncio
+async def test_register_rejects_username_owned_by_another_account(service):
+    service.user_repository.get_user_by_email.return_value = None
+    service.user_repository.get_user_by_username.return_value = make_user(
+        id=8,
+        username="taken-name",
+        email="other@example.com",
+    )
+    user = UserCreate(
+        username="taken-name",
+        email="new@example.com",
+        password="safe-password",
+    )
+
+    with pytest.raises(HTTPException) as error:
+        await service.register_user(AsyncMock(), user)
+
+    assert error.value.status_code == status.HTTP_409_CONFLICT
+    assert error.value.detail == "Username is already registered."
+    service.user_repository.create_user.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_reregistering_unverified_user_rejects_username_owned_by_another_account(
+    service,
+):
+    pending_user = make_user(is_verified=False)
+    username_owner = make_user(id=8, username="taken-name", email="other@example.com")
+    service.user_repository.get_user_by_email.return_value = pending_user
+    service.user_repository.get_user_by_username.return_value = username_owner
+    user = UserCreate(
+        username="taken-name",
+        email=pending_user.email,
+        password="safe-password",
+    )
+
+    with pytest.raises(HTTPException) as error:
+        await service.register_user(AsyncMock(), user)
+
+    assert error.value.status_code == status.HTTP_409_CONFLICT
+
+
+@pytest.mark.asyncio
 async def test_register_updates_existing_unverified_account(service, monkeypatch):
     db = AsyncMock()
     existing_user = make_user(is_verified=False)
@@ -87,6 +130,7 @@ async def test_register_updates_existing_unverified_account(service, monkeypatch
         password="safe-password",
     )
     service.user_repository.get_user_by_email.return_value = existing_user
+    service.user_repository.get_user_by_username.return_value = existing_user
     otp = AsyncMock()
     otp.generate_otp.return_value = "123456"
     otp.send_otp_email = AsyncMock()
@@ -100,6 +144,32 @@ async def test_register_updates_existing_unverified_account(service, monkeypatch
     assert existing_user.password_hash == "new-hash"
     db.commit.assert_awaited_once()
     db.refresh.assert_awaited_once_with(existing_user)
+
+
+@pytest.mark.asyncio
+async def test_register_translates_race_time_unique_conflict(service):
+    from sqlalchemy.exc import IntegrityError
+
+    db = AsyncMock()
+    service.user_repository.get_user_by_email.return_value = None
+    service.user_repository.get_user_by_username.return_value = None
+    service.user_repository.create_user.side_effect = IntegrityError(
+        "INSERT",
+        {},
+        Exception("duplicate key value violates unique constraint users_username_key"),
+    )
+    user = UserCreate(
+        username="raced-name",
+        email="new@example.com",
+        password="safe-password",
+    )
+
+    with pytest.raises(HTTPException) as error:
+        await service.register_user(db, user)
+
+    assert error.value.status_code == status.HTTP_409_CONFLICT
+    assert error.value.detail == "Email or username is already registered."
+    db.rollback.assert_awaited_once()
 
 
 @pytest.mark.asyncio

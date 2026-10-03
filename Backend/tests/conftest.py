@@ -27,6 +27,7 @@ os.environ.update(
         "REDIS_URL": "redis://localhost:6379/15",
         "RESEND_API_KEY": "test-resend-key",
         "EMAIL_FROM": "Test Contract Reviewer <test@example.com>",
+        "RESEND_EMAILS_URL": "https://api.resend.com/emails",
         "OTP_LENGTH": "6",
         "OTP_EXPIRE_SECONDS": "300",
         "OTP_COOLDOWN_SECONDS": "60",

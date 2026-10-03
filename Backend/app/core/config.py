@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     REDIS_URL: str
     RESEND_API_KEY: str | None = None
     EMAIL_FROM: str | None = None
-    RESEND_EMAILS_URL: str | None = None
+    RESEND_EMAILS_URL: str
     OTP_LENGTH: int
     OTP_EXPIRE_SECONDS: int
     OTP_COOLDOWN_SECONDS: int

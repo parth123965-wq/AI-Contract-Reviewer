@@ -62,6 +62,45 @@ async def test_password_reset_email_renders_reset_link_for_resend(monkeypatch):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("method_name", "args", "subject_part", "html_part"),
+    [
+        ("send_otp_email", ("user@example.com", "123456", "registration"), "Verification Code", "123456"),
+        (
+            "send_email_changed_notification",
+            ("user@example.com", "Reviewer", "new@example.com"),
+            "Email Address Has Been Changed",
+            "new@example.com",
+        ),
+        (
+            "send_password_changed_notification",
+            ("user@example.com", "Reviewer"),
+            "Password Has Been Changed",
+            "Reviewer",
+        ),
+        (
+            "send_username_changed_notification",
+            ("user@example.com", "old-name", "new-name"),
+            "Username Has Been Changed",
+            "new-name",
+        ),
+    ],
+)
+async def test_notification_templates_use_resend_transport(
+    monkeypatch, method_name, args, subject_part, html_part
+):
+    client = FakeAsyncClient(timeout=10.0)
+    monkeypatch.setattr(email_module.httpx, "AsyncClient", lambda **kwargs: client)
+
+    await getattr(EmailService(), method_name)(*args)
+
+    assert client.request["url"] == "https://api.resend.com/emails"
+    assert client.request["json"]["to"] == ["user@example.com"]
+    assert subject_part in client.request["json"]["subject"]
+    assert html_part in client.request["json"]["html"]
+
+
+@pytest.mark.asyncio
 async def test_email_provider_http_failure_is_reported(monkeypatch):
     class RejectingClient(FakeAsyncClient):
         async def post(self, url, *, headers, json):
