@@ -1,13 +1,8 @@
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
 from app.schemas.user import UserResponse
 from app.schemas.contract import ContractResponse
-from app.models.contract import ContractStatus, RiskLevel
-
-class AdminLoginRequest(BaseModel):
-    email: EmailStr = Field(description="Admin user email address", examples=["admin@example.com"])
-    password: str = Field(min_length=8, max_length=128, description="Admin password", examples=["AdminSecret123!"])
 
 class UserAdminDetailResponse(UserResponse):
     total_contracts: int = Field(default=0, description="Total contracts uploaded by this user", examples=[5])

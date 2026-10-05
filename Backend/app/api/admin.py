@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response, Query, status, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Annotated, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,7 +10,6 @@ from app.services.admin_service import AdminService, get_admin_service
 from app.schemas.user import UserResponse
 from app.schemas.contract import ContractResponse
 from app.schemas.admin import (
-    AdminLoginRequest,
     AdminUserListResponse,
     UserAdminDetailResponse,
     UserStatusUpdate,
@@ -29,40 +28,6 @@ admin_router = APIRouter(
     prefix="/admin",
     tags=["Admin"]
 )
-
-
-# =======================================================
-# ADMIN AUTHENTICATION
-# =======================================================
-
-@admin_router.post(
-    "/auth/login",
-    summary="Admin User Login",
-    description="Authenticate system administrator with email and password. Grants administrative JWT token and sets secure session cookie.",
-    dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="admin_login"))]
-)
-async def admin_login(
-    response: Response,
-    credentials: AdminLoginRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    service: Annotated[AdminService, Depends(get_admin_service)]
-):
-    login_response = await service.admin_login(db=db, credentials=credentials)
-
-    response.set_cookie(
-        key="ai_contract_session",
-        value=login_response.access_token,
-        httponly=True,
-        samesite="lax",
-        secure=False
-    )
-
-    return {
-        "message": "Admin login successful",
-        "access_token": login_response.access_token,
-        "token_type": "bearer",
-        "user": login_response.user
-    }
 
 
 # =======================================================

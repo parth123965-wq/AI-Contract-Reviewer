@@ -1,15 +1,11 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 from typing import Optional
-from sqlalchemy import select, func
 
-from app.auth.password import verify_password
-from app.auth.jwt import create_access_token
 from app.repositories.user_repository import UserRepository
 from app.repositories.contract_repository import ContractRepository
-from app.schemas.user import UserResponse, LoginResponse
+from app.schemas.user import UserResponse
 from app.schemas.admin import (
-    AdminLoginRequest,
     AdminUserListResponse,
     UserAdminDetailResponse,
     AdminContractListResponse,
@@ -17,7 +13,6 @@ from app.schemas.admin import (
     AdminDashboardStats
 )
 from app.models.contract import ContractStatus
-from app.models.user import User
 from app.core.logger import get_app_logger
 
 logger = get_app_logger("services.admin")
@@ -26,33 +21,6 @@ class AdminService:
     def __init__(self):
         self.user_repository = UserRepository()
         self.contract_repository = ContractRepository()
-
-    async def admin_login(self, db: AsyncSession, credentials: AdminLoginRequest) -> LoginResponse:
-        user = await self.user_repository.get_user_by_email(db=db, email=credentials.email)
-        if user is None or not verify_password(password=credentials.password, password_hash_value=user.password_hash):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid email or password"
-            )
-
-        if not user.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Account is inactive"
-            )
-
-        if not getattr(user, "is_admin", False):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied: Admin privileges required"
-            )
-
-        token = create_access_token(data={"sub": str(user.id)})
-        return LoginResponse(
-            access_token=token,
-            token_type="bearer",
-            user=UserResponse.model_validate(user)
-        )
 
     async def get_dashboard_stats(self, db: AsyncSession) -> AdminDashboardStats:
         user_stats = await self.user_repository.get_user_summary_stats(db=db)
