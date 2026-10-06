@@ -6,9 +6,7 @@ from app.models.contract import Contract , ContractStatus
 from app.models.user import User
 from app.repositories.contract_repository import ContractRepository
 from app.schemas.contract import ContractResponse , ContractListResponse
-from app.core.config import settings
-import shutil
-from typing import Optional
+from app.services.contract_storage import ContractStorage
 from app.core.logger import get_app_logger
 
 logger = get_app_logger("services.contract")
@@ -18,6 +16,7 @@ class ContractService:
     
     def __init__(self):
         self.contract_repository = ContractRepository()
+        self.contract_storage = ContractStorage()
         
     def _validate_extension(
         self,
@@ -84,24 +83,6 @@ class ContractService:
         filename = f"{uuid4()}{suffix}"
         return filename
     
-    def _save_file(
-        self,
-        file: UploadFile,
-        stored_filename: str
-    ) -> str:
-        upload_dir = Path(settings.UPLOAD_DIR)
-        upload_dir.mkdir(
-            parents=True,
-            exist_ok=True
-        )
-        file_path = upload_dir / stored_filename
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(
-                file.file,
-                buffer
-            )
-        return str(file_path)
-    
     async def upload_contract(
         self,
         db: AsyncSession,
@@ -109,16 +90,20 @@ class ContractService:
         file: UploadFile
     ) -> ContractResponse:
         file_path = None
+        uploaded_to_storage = False
         try:
             self._validate_extension(file=file)
             self._validate_content_type(file=file)
             file_size = self._validate_file_size(file=file)
             self._validate_magic_bytes(file=file)
             stored_filename = self._generate_filename(file=file)
-            file_path = self._save_file(
-                file=file,
-                stored_filename=stored_filename
+            file_path = f"{current_user.id}/{stored_filename}"
+            await self.contract_storage.upload(
+                object_path=file_path,
+                content=file.file.read(),
+                content_type=file.content_type,
             )
+            uploaded_to_storage = True
             contract = Contract(
                 user_id = current_user.id,
                 original_filename = file.filename,
@@ -137,8 +122,14 @@ class ContractService:
             )
         except Exception:
             await db.rollback()
-            if file_path is not None and Path(file_path).exists():
-                Path(file_path).unlink()
+            if file_path is not None and uploaded_to_storage:
+                try:
+                    await self.contract_storage.remove(file_path)
+                except Exception:
+                    logger.exception(
+                        "Failed to remove uploaded contract after upload transaction failed",
+                        extra={"object_path": file_path},
+                    )
             raise
     
     async def get_user_contracts(

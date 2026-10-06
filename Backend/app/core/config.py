@@ -10,9 +10,10 @@ class Settings(BaseSettings):
     PRODUCTION: bool = False
     DATABASE_URL: str
     SECRET_KEY: str
+    SUPABASE_URL: str
+    SUPABASE_SECRET_KEY: str
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
-    UPLOAD_DIR: str
     LOG_LEVEL: str
     EMBEDDING_MODEL: str
     PINECONE_API_KEY: str

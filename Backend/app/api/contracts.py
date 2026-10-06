@@ -153,14 +153,24 @@ async def ask_question_on_contract(
     # 2. Fallback: Extract directly from contract file if vector store returned empty chunks
     if not chunks:
         if hasattr(contract, "file_path") and contract.file_path:
+            temporary_file = None
             try:
+                temporary_file = await service.contract_storage.download_to_tempfile(
+                    contract.file_path
+                )
                 extractor = TextExtractor()
                 chunker = ChunkService()
-                raw_text = extractor.extract_text(contract.file_path)
+                raw_text = extractor.extract_text(str(temporary_file))
                 if raw_text:
                     chunks = chunker.chunk_text(raw_text)
-            except Exception:
-                pass
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=502,
+                    detail="Failed to read the contract file from storage.",
+                ) from exc
+            finally:
+                if temporary_file is not None:
+                    temporary_file.unlink(missing_ok=True)
 
     def event_generator():
         try:
