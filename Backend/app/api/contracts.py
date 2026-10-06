@@ -91,7 +91,7 @@ async def get_contract_by_id(
 @contract_router.delete(
     '/{id}',
     summary="Delete Contract Document",
-    description="Permanently delete a contract document, associated disk file, and historical analysis records.",
+    description="Soft-delete the contract from the user's active list. The record, analysis history, and private Supabase Storage object are retained.",
     dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="contracts_delete"))]
 )
 async def delete_contract(

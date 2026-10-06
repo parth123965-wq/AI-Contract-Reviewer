@@ -4,6 +4,7 @@ from typing import Optional
 
 from app.repositories.user_repository import UserRepository
 from app.repositories.contract_repository import ContractRepository
+from app.services.contract_storage import ContractStorage
 from app.schemas.user import UserResponse
 from app.schemas.admin import (
     AdminUserListResponse,
@@ -21,6 +22,7 @@ class AdminService:
     def __init__(self):
         self.user_repository = UserRepository()
         self.contract_repository = ContractRepository()
+        self.contract_storage = ContractStorage()
 
     async def get_dashboard_stats(self, db: AsyncSession) -> AdminDashboardStats:
         user_stats = await self.user_repository.get_user_summary_stats(db=db)
@@ -109,6 +111,26 @@ class AdminService:
         return UserResponse.model_validate(user)
 
     async def delete_user(self, db: AsyncSession, user_id: int) -> dict:
+        user = await self.user_repository.get_user_by_id(db=db, user_id=user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        object_paths = await self.contract_repository.get_storage_paths_by_user_id(
+            db=db,
+            user_id=user_id,
+        )
+        try:
+            await self.contract_storage.remove_many(object_paths)
+        except Exception as exc:
+            logger.exception(
+                "Failed to remove contract files before deleting user.",
+                extra={"user_id": user_id, "file_count": len(object_paths)},
+            )
+            raise HTTPException(
+                status_code=502,
+                detail="Failed to remove the user's contract files; the account was not deleted.",
+            ) from exc
+
         success = await self.user_repository.delete_user(db=db, user_id=user_id)
         if not success:
             raise HTTPException(status_code=404, detail="User not found")

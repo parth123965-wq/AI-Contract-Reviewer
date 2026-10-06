@@ -29,7 +29,12 @@ class ContractStorage:
         )
 
     async def remove(self, object_path: str) -> None:
+        await self.remove_many([object_path])
+
+    async def remove_many(self, object_paths: list[str]) -> None:
+        if not object_paths:
+            return
         await asyncio.to_thread(
             self.client.storage.from_(self.BUCKET_NAME).remove,
-            [object_path],
+            object_paths,
         )

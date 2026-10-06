@@ -7,6 +7,13 @@ from datetime import datetime, timezone
 from app.models.user import User
 
 class ContractRepository:
+
+    async def get_storage_paths_by_user_id(
+        self, db: AsyncSession, user_id: int
+    ) -> list[str]:
+        statement = select(Contract.file_path).where(Contract.user_id == user_id)
+        result = await db.execute(statement)
+        return list(result.scalars().all())
     
     async def create_contract(
         self,

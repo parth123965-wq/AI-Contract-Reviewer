@@ -1,7 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
-from sqlalchemy import select, or_, func
+from sqlalchemy import delete, select, or_, func
 from typing import Optional
+from app.models.contract import Contract, ContractAnalysis
 
 class UserRepository:
     async def create_user(self, db: AsyncSession, user: User) -> User:
@@ -101,7 +102,14 @@ class UserRepository:
     async def delete_user(self, db: AsyncSession, user_id: int) -> bool:
         user = await self.get_user_by_id(db=db, user_id=user_id)
         if user:
-            await db.delete(user)
+            contract_ids = select(Contract.id).where(Contract.user_id == user_id)
+            await db.execute(
+                delete(ContractAnalysis).where(
+                    ContractAnalysis.contract_id.in_(contract_ids)
+                )
+            )
+            await db.execute(delete(Contract).where(Contract.user_id == user_id))
+            await db.execute(delete(User).where(User.id == user_id))
             await db.commit()
             return True
         return False

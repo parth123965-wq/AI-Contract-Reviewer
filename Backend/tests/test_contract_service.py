@@ -196,3 +196,4 @@ async def test_delete_contract_soft_deletes_owned_contract(service):
         db=service.contract_repository.get_contract_by_id.await_args.kwargs["db"],
         contract=contract,
     )
+    service.contract_storage.remove.assert_not_awaited()
