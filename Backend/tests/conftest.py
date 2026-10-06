@@ -22,7 +22,7 @@ os.environ.update(
         "ACCESS_TOKEN_EXPIRE_MINUTES": "30",
         "UPLOAD_DIR": str(BACKEND_DIR / ".test-uploads"),
         "LOG_LEVEL": "CRITICAL",
-        "CHROMA_DB_PATH": str(BACKEND_DIR / ".test-vector-store"),
+        "PINECONE_API_KEY": "test-pinecone-key",
         "AI_MODEL_NAME": "test-model",
         "REDIS_URL": "redis://localhost:6379/15",
         "GMAIL_CLIENT_ID": "test-client-id",

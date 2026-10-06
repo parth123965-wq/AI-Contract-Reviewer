@@ -23,7 +23,7 @@ def generate_markdown_report(metrics: dict, output_path: Path):
     md_content = f"""# 📊 AI Contract Reviewer - Performance Benchmark Report
 
 **Generated At**: {metrics.get("timestamp")}  
-**Environment**: Python, FastAPI, Gemini Embedding API, ChromaDB
+**Environment**: Python, FastAPI, Gemini Embedding API, Pinecone
 
 ---
 
@@ -35,9 +35,9 @@ def generate_markdown_report(metrics: dict, output_path: Path):
 | **Chunk Output Rate** | `{chunk.get('chunks_per_sec', 0)} chunks/sec` | Chunks generated per second |
 | **Embedding Speed** | `{emb.get('avg_ms_per_chunk', 0)} ms/chunk` | Average Gemini embedding API latency per chunk |
 | **Embedding Rate** | `{emb.get('chunks_per_sec', 0)} chunks/sec` | Embedding generation throughput |
-| **Vector Store Insert** | `{vec.get('insertion_rate_vec_per_sec', 0)} vec/sec` | ChromaDB vector insertion throughput |
+| **Vector Store Insert** | `{vec.get('insertion_rate_vec_per_sec', 0)} vec/sec` | Pinecone remote insert benchmark (skipped to protect shared index) |
 | **Vector Search Latency** | `{vec.get('avg_query_latency_ms', 0)} ms` | Top-5 similarity search query latency |
-| **Vector Search Rate** | `{vec.get('queries_per_sec', 0)} queries/sec` | ChromaDB query throughput |
+| **Vector Search Rate** | `{vec.get('queries_per_sec', 0)} queries/sec` | Pinecone remote query benchmark (skipped to protect shared index) |
 
 ---
 
@@ -75,7 +75,7 @@ def main():
 
     start_time = time.perf_counter()
 
-    print("\n[1/3] Benchmarking AI Engine Pipeline (Chunking, Embeddings, ChromaDB)...")
+    print("\n[1/3] Benchmarking AI Engine Pipeline (Chunking, Embeddings, Pinecone)...")
     ai_metrics = run_all_ai_benchmarks()
 
     print("[2/3] Benchmarking API REST Endpoints & Security Overhead...")
@@ -109,7 +109,7 @@ def main():
     print("=" * 65)
     print(f"  * AI Chunking Speed      : {ai_metrics['chunking']['chars_per_sec']:,} chars/sec")
     print(f"  * AI Embedding Latency   : {ai_metrics['embeddings']['avg_ms_per_chunk']} ms / chunk")
-    print(f"  * ChromaDB Search Latency: {ai_metrics['vector_store']['avg_query_latency_ms']} ms")
+    print("  * Pinecone Search Latency: skipped (shared remote index is not modified)")
     print(f"  * JWT Encoding Speed     : {api_metrics['jwt_security']['creation_ops_per_sec']:,} ops/sec")
     print(f"  * API Request Rate       : {api_metrics['api_throughput']['requests_per_sec']:,} req/sec")
     print(f"  * Process RAM Usage      : {resource_metrics['memory_rss_mb']} MB")

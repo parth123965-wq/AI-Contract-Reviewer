@@ -284,7 +284,7 @@ async def get_monitoring_dashboard(
 @admin_router.get(
     "/benchmarks/report",
     summary="Get System Performance Benchmark Report (Admin Only)",
-    description="Retrieve stored JSON performance benchmark metrics (AI Engine chunking speed, embedding latency, ChromaDB search, JWT ops, API throughput).",
+    description="Retrieve stored JSON performance benchmark metrics (AI Engine chunking speed, embedding latency, Pinecone vector operations, JWT ops, API throughput).",
     dependencies=[Depends(RateLimiter(times=600, seconds=60, prefix="admin_benchmarks_report"))]
 )
 async def get_benchmark_report(
@@ -297,7 +297,7 @@ async def get_benchmark_report(
 @admin_router.post(
     "/benchmarks/run",
     summary="Trigger On-Demand Performance Benchmark Run (Admin Only)",
-    description="Executes system performance benchmark suite across AI Engine, ChromaDB, JWT security, and API endpoints, returning fresh metrics.",
+    description="Executes system performance benchmark suite across AI Engine, Pinecone, JWT security, and API endpoints. Pinecone benchmarks are skipped to avoid modifying the shared index.",
     dependencies=[Depends(RateLimiter(times=600, seconds=60, prefix="admin_benchmarks_run"))]
 )
 async def run_benchmark(
@@ -305,6 +305,5 @@ async def run_benchmark(
     service: Annotated[AdminService, Depends(get_admin_service)]
 ):
     return await service.run_performance_benchmark()
-
 
 

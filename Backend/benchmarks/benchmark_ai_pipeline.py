@@ -1,12 +1,9 @@
 import time
-import tempfile
-import shutil
 import os
 from typing import Dict, Any
 
 from ai_engine.services.chunk_service import ChunkService
 from ai_engine.services.embedding_service import EmbeddingService
-from ai_engine.services.vector_store_service import VectorStoreService
 
 
 SAMPLE_CONTRACT_TEXT = """
@@ -72,54 +69,19 @@ def benchmark_embeddings(num_chunks: int = 20) -> Dict[str, Any]:
 
 
 def benchmark_vector_store(vector_count: int = 50, num_queries: int = 20) -> Dict[str, Any]:
-    """Measures ChromaDB insertion rate and Top-K similarity search query latency."""
-    temp_dir = tempfile.mkdtemp(prefix="chroma_bench_")
-    try:
-        # Override temp path for isolated benchmark
-        from app.core.config import settings
-        orig_path = settings.CHROMA_DB_PATH
-        settings.CHROMA_DB_PATH = temp_dir
-        
-        vec_store = VectorStoreService()
-        chunker = ChunkService()
-        embedding_svc = EmbeddingService()
-
-        # Generate sample embeddings
-        chunks = [f"Contract clause sample chunk #{i}: {SAMPLE_CONTRACT_TEXT[:200]}" for i in range(vector_count)]
-        embeddings = embedding_svc.create_embeddings(chunks)
-
-        # Measure Insertion
-        store_start = time.perf_counter()
-        vec_store.store_embeddings(
-            contract_id=999,
-            user_id=1,
-            chunks=chunks,
-            embeddings=embeddings,
-            version=1
-        )
-        store_elapsed = time.perf_counter() - store_start
-
-        # Measure Search Latency
-        query_emb = embeddings[0]
-        query_start = time.perf_counter()
-        for _ in range(num_queries):
-            vec_store.search(contract_id=999, user_id=1, query_embedding=query_emb, top_k=5)
-        query_elapsed = time.perf_counter() - query_start
-
-        settings.CHROMA_DB_PATH = orig_path
-
-        return {
-            "benchmark": "vector_store_chromadb",
-            "vectors_stored": vector_count,
-            "insertion_time_sec": round(store_elapsed, 4),
-            "insertion_rate_vec_per_sec": round(vector_count / store_elapsed, 2),
-            "queries_executed": num_queries,
-            "total_query_time_sec": round(query_elapsed, 4),
-            "avg_query_latency_ms": round((query_elapsed / num_queries) * 1000, 2),
-            "queries_per_sec": round(num_queries / query_elapsed, 2)
-        }
-    finally:
-        shutil.rmtree(temp_dir, ignore_errors=True)
+    """Avoid modifying the shared remote Pinecone index during benchmarks."""
+    return {
+        "benchmark": "pinecone_remote_skipped",
+        "skipped": True,
+        "reason": "Vector-store benchmarks are disabled to avoid writing test vectors to the shared Pinecone index.",
+        "vectors_stored": 0,
+        "insertion_time_sec": 0,
+        "insertion_rate_vec_per_sec": 0,
+        "queries_executed": 0,
+        "total_query_time_sec": 0,
+        "avg_query_latency_ms": 0,
+        "queries_per_sec": 0,
+    }
 
 
 def run_all_ai_benchmarks() -> Dict[str, Any]:

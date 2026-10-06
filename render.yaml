@@ -34,10 +34,14 @@ services:
         value: INFO
       - key: EMBEDDING_MODEL
         value: gemini-embedding-001
-      - key: COLLECTION_NAME
-        value: contracts_gemini
-      - key: CHROMA_DB_PATH
-        value: /var/data/vector_store
+      - key: PINECONE_API_KEY
+        sync: false
+      - key: PINECONE_INDEX_NAME
+        value: contracts
+      - key: PINECONE_CLOUD
+        value: aws
+      - key: PINECONE_REGION
+        value: ap-southeast-1
       - key: AI_MODEL_NAME
         value: gemini-1.5-flash
       - key: GOOGLE_API_KEY

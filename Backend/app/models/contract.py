@@ -11,7 +11,6 @@ from sqlalchemy import (
     func,
     Text,
     JSON,
-    TIMESTAMP,
     Index
 )
 from enum import Enum
