@@ -1,15 +1,15 @@
 from datetime import datetime, timezone
 from io import BytesIO
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from fastapi import HTTPException, UploadFile
 from starlette.datastructures import Headers
 
-from app.core.config import settings
 from app.models.contract import Contract, ContractStatus
 from app.models.user import User
 from app.services.contract_service import ContractService
+from app.services.contract_storage import ContractStorage
 
 
 def make_upload(filename="agreement.pdf", content=b"%PDF-1.7 test", content_type="application/pdf"):
@@ -39,14 +39,12 @@ def make_contract(file_path):
 def service():
     instance = ContractService()
     instance.contract_repository = AsyncMock()
+    instance.contract_storage = AsyncMock()
     return instance
 
 
 @pytest.mark.asyncio
-async def test_upload_saves_valid_pdf_and_returns_contract(
-    service, monkeypatch, tmp_path
-):
-    monkeypatch.setattr(settings, "UPLOAD_DIR", str(tmp_path))
+async def test_upload_saves_valid_pdf_to_supabase_and_returns_contract(service):
     user = User(id=2, username="tester", email="test@example.com", password_hash="hash")
     file = make_upload()
     service.contract_repository.create_contract.side_effect = (
@@ -57,11 +55,14 @@ async def test_upload_saves_valid_pdf_and_returns_contract(
 
     assert result.original_filename == "agreement.pdf"
     assert result.status == ContractStatus.UPLOADED
-    stored_files = list(tmp_path.iterdir())
-    assert len(stored_files) == 1
-    assert stored_files[0].read_bytes() == b"%PDF-1.7 test"
     saved_contract = service.contract_repository.create_contract.await_args.kwargs["contract"]
     assert saved_contract.user_id == user.id
+    assert saved_contract.file_path == f"{user.id}/{saved_contract.stored_filename}"
+    service.contract_storage.upload.assert_awaited_once_with(
+        object_path=saved_contract.file_path,
+        content=b"%PDF-1.7 test",
+        content_type="application/pdf",
+    )
 
 
 @pytest.mark.asyncio
@@ -75,9 +76,8 @@ async def test_upload_saves_valid_pdf_and_returns_contract(
     ],
 )
 async def test_upload_rejects_invalid_files(
-    service, monkeypatch, tmp_path, filename, content, content_type, detail
+    service, filename, content, content_type, detail
 ):
-    monkeypatch.setattr(settings, "UPLOAD_DIR", str(tmp_path))
     db = AsyncMock()
 
     with pytest.raises(HTTPException) as error:
@@ -90,13 +90,12 @@ async def test_upload_rejects_invalid_files(
     assert error.value.status_code == 400
     assert detail.lower() in error.value.detail.lower()
     db.rollback.assert_awaited_once()
+    service.contract_storage.upload.assert_not_awaited()
     service.contract_repository.create_contract.assert_not_awaited()
-    assert list(tmp_path.iterdir()) == []
 
 
 @pytest.mark.asyncio
-async def test_upload_rejects_files_over_size_limit(service, monkeypatch, tmp_path):
-    monkeypatch.setattr(settings, "UPLOAD_DIR", str(tmp_path))
+async def test_upload_rejects_files_over_size_limit(service):
     content = b"%PDF" + (b"x" * ContractService.MAX_FILE_SIZE)
     db = AsyncMock()
 
@@ -108,14 +107,12 @@ async def test_upload_rejects_files_over_size_limit(service, monkeypatch, tmp_pa
         )
 
     db.rollback.assert_awaited_once()
+    service.contract_storage.upload.assert_not_awaited()
     service.contract_repository.create_contract.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_upload_rolls_back_and_removes_saved_file_if_repository_fails(
-    service, monkeypatch, tmp_path
-):
-    monkeypatch.setattr(settings, "UPLOAD_DIR", str(tmp_path))
+async def test_upload_rolls_back_and_removes_supabase_object_if_repository_fails(service):
     service.contract_repository.create_contract.side_effect = RuntimeError("database failed")
     db = AsyncMock()
 
@@ -127,7 +124,42 @@ async def test_upload_rolls_back_and_removes_saved_file_if_repository_fails(
         )
 
     db.rollback.assert_awaited_once()
-    assert list(tmp_path.iterdir()) == []
+    service.contract_storage.remove.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_contract_storage_downloads_private_object_to_temporary_file():
+    bucket = Mock()
+    bucket.download.return_value = b"%PDF-1.7 test"
+    client = Mock()
+    client.storage.from_.return_value = bucket
+    storage = ContractStorage(client)
+
+    temporary_file = await storage.download_to_tempfile("2/contract.pdf")
+
+    try:
+        assert temporary_file.read_bytes() == b"%PDF-1.7 test"
+        client.storage.from_.assert_called_once_with("uploads")
+        bucket.download.assert_called_once_with("2/contract.pdf")
+    finally:
+        temporary_file.unlink()
+
+
+@pytest.mark.asyncio
+async def test_contract_storage_reads_legacy_local_file_without_removing_it(tmp_path):
+    legacy_file = tmp_path / "legacy-contract.pdf"
+    legacy_file.write_bytes(b"%PDF-1.7 legacy")
+    client = Mock()
+    storage = ContractStorage(client)
+
+    temporary_file = await storage.download_to_tempfile(str(legacy_file))
+
+    try:
+        assert temporary_file.read_bytes() == b"%PDF-1.7 legacy"
+        assert legacy_file.read_bytes() == b"%PDF-1.7 legacy"
+        client.storage.from_.assert_not_called()
+    finally:
+        temporary_file.unlink()
 
 
 @pytest.mark.asyncio

@@ -5,6 +5,7 @@ from app.database.database import AsyncSessionLocal
 from app.models.contract import ContractAnalysis , ContractStatus
 from app.repositories.analysis_repository import AnalysisRepository
 from app.repositories.contract_repository import ContractRepository
+from app.services.contract_storage import ContractStorage
 
 from ai_engine.graph.graph import ContractGraph
 from ai_engine.schemas.analysis_result import AnalysisResult
@@ -18,6 +19,7 @@ class AnalysisService:
     def __init__(self):
         self.contract_repository = ContractRepository()
         self.analysis_repository = AnalysisRepository()
+        self.contract_storage = ContractStorage()
 
         # Compile only once
         self.graph = ContractGraph().compile_graph()
@@ -53,33 +55,39 @@ class AnalysisService:
 
                 start_time = time.perf_counter()
 
-                final_state = self.graph.invoke(
-                    {
-                        "db": db,
-                        "contract_id": contract.id,
-                        "user_id": contract.user_id,
-                        "file_path": contract.file_path,
-                        "analysis_version": version,
-
-                        "status": ContractStatus.PROCESSING,
-                        "error": None,
-
-                        "extracted_text": "",
-                        "chunks": [],
-                        "embeddings": [],
-                        "query_embedding": [],
-                        "retrieved_chunks": [],
-
-                        "summary": "",
-                        "risk_score": 0,
-                        "suggestions": [],
-
-                        "prompt": "",
-                        "llm_response": "",
-                        "analysis_result": None,
-                        "processing_time_ms": 0,
-                    }
+                temporary_file = await self.contract_storage.download_to_tempfile(
+                    contract.file_path
                 )
+                try:
+                    final_state = self.graph.invoke(
+                        {
+                            "db": db,
+                            "contract_id": contract.id,
+                            "user_id": contract.user_id,
+                            "file_path": str(temporary_file),
+                            "analysis_version": version,
+
+                            "status": ContractStatus.PROCESSING,
+                            "error": None,
+
+                            "extracted_text": "",
+                            "chunks": [],
+                            "embeddings": [],
+                            "query_embedding": [],
+                            "retrieved_chunks": [],
+
+                            "summary": "",
+                            "risk_score": 0,
+                            "suggestions": [],
+
+                            "prompt": "",
+                            "llm_response": "",
+                            "analysis_result": None,
+                            "processing_time_ms": 0,
+                        }
+                    )
+                finally:
+                    temporary_file.unlink(missing_ok=True)
 
                 if final_state and (final_state.get("error") or final_state.get("status") == ContractStatus.FAILED):
                     err_msg = final_state.get("error") or "AI pipeline analysis failed."
