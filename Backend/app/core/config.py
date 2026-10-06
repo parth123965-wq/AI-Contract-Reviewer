@@ -17,9 +17,9 @@ class Settings(BaseSettings):
     LOG_LEVEL: str
     EMBEDDING_MODEL: str
     PINECONE_API_KEY: str
-    PINECONE_INDEX_NAME: str
-    PINECONE_CLOUD: str 
-    PINECONE_REGION: str
+    PINECONE_INDEX_NAME: str = "contracts"
+    PINECONE_CLOUD: str = "aws"
+    PINECONE_REGION: str = "ap-southeast-1"
     AI_MODEL_NAME: str
     GEMINI_API_KEY: str | None = None
     GOOGLE_API_KEY: str | None = None
@@ -33,8 +33,6 @@ class Settings(BaseSettings):
     OTP_COOLDOWN_SECONDS: int
     OTP_MAX_ATTEMPTS: int
     ALLOWED_ORIGINS: str = "*"
-    SUPABASE_SECRET_KEY: str
-    SUPABASE_URL: str
     model_config = SettingsConfigDict(
         env_file=ENV_PATH,
         extra='ignore'

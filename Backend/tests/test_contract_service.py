@@ -128,38 +128,33 @@ async def test_upload_rolls_back_and_removes_supabase_object_if_repository_fails
 
 
 @pytest.mark.asyncio
-async def test_contract_storage_downloads_private_object_to_temporary_file():
+async def test_contract_storage_downloads_private_object_as_bytes():
     bucket = Mock()
     bucket.download.return_value = b"%PDF-1.7 test"
     client = Mock()
     client.storage.from_.return_value = bucket
     storage = ContractStorage(client)
 
-    temporary_file = await storage.download_to_tempfile("2/contract.pdf")
+    content = await storage.download("2/contract.pdf")
 
-    try:
-        assert temporary_file.read_bytes() == b"%PDF-1.7 test"
-        client.storage.from_.assert_called_once_with("uploads")
-        bucket.download.assert_called_once_with("2/contract.pdf")
-    finally:
-        temporary_file.unlink()
+    assert content == b"%PDF-1.7 test"
+    client.storage.from_.assert_called_once_with("uploads")
+    bucket.download.assert_called_once_with("2/contract.pdf")
 
 
 @pytest.mark.asyncio
-async def test_contract_storage_reads_legacy_local_file_without_removing_it(tmp_path):
-    legacy_file = tmp_path / "legacy-contract.pdf"
-    legacy_file.write_bytes(b"%PDF-1.7 legacy")
+async def test_contract_storage_never_reads_from_local_disk():
     client = Mock()
+    bucket = Mock()
+    bucket.download.return_value = b"%PDF-1.7 from storage"
+    client.storage.from_.return_value = bucket
     storage = ContractStorage(client)
 
-    temporary_file = await storage.download_to_tempfile(str(legacy_file))
+    content = await storage.download("/legacy/contract.pdf")
 
-    try:
-        assert temporary_file.read_bytes() == b"%PDF-1.7 legacy"
-        assert legacy_file.read_bytes() == b"%PDF-1.7 legacy"
-        client.storage.from_.assert_not_called()
-    finally:
-        temporary_file.unlink()
+    assert content == b"%PDF-1.7 from storage"
+    client.storage.from_.assert_called_once_with("uploads")
+    bucket.download.assert_called_once_with("/legacy/contract.pdf")
 
 
 @pytest.mark.asyncio
