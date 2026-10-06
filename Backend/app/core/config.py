@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     OTP_COOLDOWN_SECONDS: int
     OTP_MAX_ATTEMPTS: int
     ALLOWED_ORIGINS: str = "*"
+    SUPABASE_SECRET_KEY: str
+    SUPABASE_URL: str
     model_config = SettingsConfigDict(
         env_file=ENV_PATH,
         extra='ignore'
