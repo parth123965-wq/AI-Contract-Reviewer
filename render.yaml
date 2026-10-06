@@ -24,12 +24,14 @@ services:
         sync: false
       - key: SECRET_KEY
         generateValue: true
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
       - key: ALGORITHM
         value: HS256
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: "30"
-      - key: UPLOAD_DIR
-        value: /var/data/uploads/contracts
       - key: LOG_LEVEL
         value: INFO
       - key: EMBEDDING_MODEL
