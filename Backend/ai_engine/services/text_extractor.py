@@ -5,7 +5,7 @@ except ImportError:
     HAS_FITZ = False
 
 from pypdf import PdfReader
-from pathlib import Path
+from io import BytesIO
 from typing import Any
 import time
 import os
@@ -14,23 +14,21 @@ from app.core.config import settings
 
 class TextExtractor:
 
-    def _validate_file(
+    def _validate_file_content(
         self,
-        file_path: str
+        file_content: bytes
     ):
-        file_exists = Path(file_path)
-        if not file_exists.exists():
-            raise FileNotFoundError("File is not found.")
+        if not file_content:
+            raise ValueError("File content is empty.")
 
     def _open_pdf(
         self,
-        file_path: str
+        file_content: bytes
     ):
-        pdf_path = Path(file_path)
         if HAS_FITZ:
-            return ("fitz", fitz.open(pdf_path))
+            return ("fitz", fitz.open(stream=file_content, filetype="pdf"))
         else:
-            return ("pypdf", PdfReader(pdf_path))
+            return ("pypdf", PdfReader(BytesIO(file_content)))
 
     def _extract_text(
         self,
@@ -121,10 +119,10 @@ class TextExtractor:
 
     def extract_text(
         self,
-        file_path: str
+        file_content: bytes
     ) -> str:
-        self._validate_file(file_path=file_path)
-        doc_tuple = self._open_pdf(file_path=file_path)
+        self._validate_file_content(file_content=file_content)
+        doc_tuple = self._open_pdf(file_content=file_content)
         text_list = self._extract_text(doc_tuple=doc_tuple)
         single_string = " ".join(text_list).strip()
 

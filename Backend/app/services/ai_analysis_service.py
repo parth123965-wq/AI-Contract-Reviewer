@@ -55,39 +55,36 @@ class AnalysisService:
 
                 start_time = time.perf_counter()
 
-                temporary_file = await self.contract_storage.download_to_tempfile(
+                file_content = await self.contract_storage.download(
                     contract.file_path
                 )
-                try:
-                    final_state = self.graph.invoke(
-                        {
-                            "db": db,
-                            "contract_id": contract.id,
-                            "user_id": contract.user_id,
-                            "file_path": str(temporary_file),
-                            "analysis_version": version,
+                final_state = self.graph.invoke(
+                    {
+                        "db": db,
+                        "contract_id": contract.id,
+                        "user_id": contract.user_id,
+                        "file_content": file_content,
+                        "analysis_version": version,
 
-                            "status": ContractStatus.PROCESSING,
-                            "error": None,
+                        "status": ContractStatus.PROCESSING,
+                        "error": None,
 
-                            "extracted_text": "",
-                            "chunks": [],
-                            "embeddings": [],
-                            "query_embedding": [],
-                            "retrieved_chunks": [],
+                        "extracted_text": "",
+                        "chunks": [],
+                        "embeddings": [],
+                        "query_embedding": [],
+                        "retrieved_chunks": [],
 
-                            "summary": "",
-                            "risk_score": 0,
-                            "suggestions": [],
+                        "summary": "",
+                        "risk_score": 0,
+                        "suggestions": [],
 
-                            "prompt": "",
-                            "llm_response": "",
-                            "analysis_result": None,
-                            "processing_time_ms": 0,
-                        }
-                    )
-                finally:
-                    temporary_file.unlink(missing_ok=True)
+                        "prompt": "",
+                        "llm_response": "",
+                        "analysis_result": None,
+                        "processing_time_ms": 0,
+                    }
+                )
 
                 if final_state and (final_state.get("error") or final_state.get("status") == ContractStatus.FAILED):
                     err_msg = final_state.get("error") or "AI pipeline analysis failed."

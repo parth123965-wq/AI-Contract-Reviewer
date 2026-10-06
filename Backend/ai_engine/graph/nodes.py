@@ -32,7 +32,9 @@ class ContractNodes:
         if self._should_skip(state):
             return state
         try:
-            state['extracted_text'] = self.text_extractor.extract_text(file_path=state['file_path'])
+            state['extracted_text'] = self.text_extractor.extract_text(
+                file_content=state['file_content']
+            )
         except Exception as exc:
             logger.error(f"Error in extract_text_node: {exc}", exc_info=True)
             state['error'] = str(exc)
