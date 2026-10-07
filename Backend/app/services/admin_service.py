@@ -241,6 +241,23 @@ class AdminService:
             "contract_id": contract_id,
         }
 
+    async def recover_contract(self, db: AsyncSession, contract_id: int) -> dict:
+        contract = await self.contract_repository.get_contract_by_id(
+            db=db, contract_id=contract_id, include_deleted=True
+        )
+        if not contract:
+            raise HTTPException(status_code=404, detail="Contract not found")
+        if not contract.is_deleted:
+            raise HTTPException(
+                status_code=409, detail="Contract is not soft-deleted"
+            )
+
+        await self.contract_repository.recover_contract(db=db, contract=contract)
+        return {
+            "message": "Contract recovered successfully",
+            "contract_id": contract_id,
+        }
+
     async def get_benchmark_report(self) -> dict:
         import json
         from pathlib import Path

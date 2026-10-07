@@ -34,6 +34,10 @@ class AdminContractListResponse(BaseModel):
     limit: int = Field(description="Items per page limit", examples=[10])
     contracts: List[ContractAdminDetailResponse] = Field(description="List of admin contract records")
 
+class ContractAdminActionResponse(BaseModel):
+    message: str = Field(description="Result of the contract action")
+    contract_id: int = Field(description="ID of the contract affected by the action")
+
 class ContractStatusUpdate(BaseModel):
     status: str = Field(description="Update contract status (e.g. processing, completed, error)", examples=["completed"])
 

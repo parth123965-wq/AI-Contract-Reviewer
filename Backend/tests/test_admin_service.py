@@ -10,6 +10,7 @@ from app.models.user import User
 from app.repositories.contract_repository import ContractRepository
 from app.repositories.user_repository import UserRepository
 from app.services.admin_service import AdminService
+from app.main import app
 
 
 @pytest.mark.asyncio
@@ -263,3 +264,46 @@ async def test_admin_soft_delete_keeps_storage_and_rejects_deleted_contract():
         await service.soft_delete_contract(db=object(), contract_id=12)
 
     assert error.value.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_admin_recover_restores_deleted_contract_without_storage_operation():
+    service = AdminService()
+    service.contract_repository = AsyncMock()
+    service.contract_storage = AsyncMock()
+    deleted_contract = SimpleNamespace(is_deleted=True)
+    service.contract_repository.get_contract_by_id.return_value = deleted_contract
+
+    result = await service.recover_contract(db=object(), contract_id=12)
+
+    assert result == {
+        "message": "Contract recovered successfully",
+        "contract_id": 12,
+    }
+    service.contract_repository.recover_contract.assert_awaited_once()
+    service.contract_storage.remove.assert_not_awaited()
+
+    service.contract_repository.get_contract_by_id.return_value = SimpleNamespace(
+        is_deleted=False
+    )
+    with pytest.raises(HTTPException) as error:
+        await service.recover_contract(db=object(), contract_id=12)
+
+    assert error.value.status_code == 409
+
+
+def test_admin_contract_action_endpoints_declare_response_models():
+    paths = app.openapi()["paths"]
+    expected_schema = {
+        "$ref": "#/components/schemas/ContractAdminActionResponse"
+    }
+    action_routes = [
+        ("/admin/contracts/{contract_id}", "delete"),
+        ("/admin/contracts/{contract_id}/soft-delete", "patch"),
+        ("/admin/contracts/{contract_id}/recover", "patch"),
+    ]
+
+    for path, method in action_routes:
+        assert paths[path][method]["responses"]["200"]["content"][
+            "application/json"
+        ]["schema"] == expected_schema

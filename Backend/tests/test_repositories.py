@@ -151,6 +151,20 @@ async def test_contract_repository_soft_delete_hides_contract(db_session):
 
 
 @pytest.mark.asyncio
+async def test_contract_repository_recovers_soft_deleted_contract(db_session):
+    _, contract = await add_user_and_contract(db_session)
+    await db_session.commit()
+    repository = ContractRepository()
+    await repository.soft_delete_contract(db_session, contract)
+
+    await repository.recover_contract(db_session, contract)
+
+    assert contract.is_deleted is False
+    assert contract.deleted_at is None
+    assert await repository.get_contract_by_id(db_session, contract.id) is contract
+
+
+@pytest.mark.asyncio
 async def test_admin_contract_queries_include_soft_deleted_contracts(db_session):
     _, active_contract = await add_user_and_contract(
         db_session, user_id=31, filename="active.pdf"

@@ -79,6 +79,13 @@ class ContractRepository:
             contract=contract
         )
 
+    async def recover_contract(
+        self, db: AsyncSession, contract: Contract
+    ) -> Contract:
+        contract.is_deleted = False
+        contract.deleted_at = None
+        return await self.update_contract(db=db, contract=contract)
+
     async def permanently_delete_contract(
         self, db: AsyncSession, contract_id: int
     ) -> None:
