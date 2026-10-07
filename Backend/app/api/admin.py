@@ -21,8 +21,6 @@ from app.schemas.admin import (
     AdminDashboardStats
 )
 from app.core.rate_limit import RateLimiter
-from fastapi.responses import HTMLResponse
-from pathlib import Path
 
 
 admin_router = APIRouter(
@@ -256,86 +254,3 @@ async def recover_contract(
     service: Annotated[AdminService, Depends(get_admin_service)]
 ) -> ContractAdminActionResponse:
     return await service.recover_contract(db=db, contract_id=contract_id)
-
-
-# =======================================================
-# SYSTEM MONITORING (ADMIN ONLY)
-# =======================================================
-
-from app.core.monitoring import get_full_monitoring_report, get_db_health, get_redis_health
-
-@admin_router.get(
-    "/monitoring/system",
-    summary="Get System Resource & Health Monitoring Report (Admin Only)",
-    description="Retrieve comprehensive system resources (CPU, RAM, Disk), application process metrics, database connectivity, and Redis health status.",
-    dependencies=[Depends(RateLimiter(times=600, seconds=60, prefix="admin_monitoring_system"))]
-)
-async def get_system_monitoring(
-    admin: Annotated[User, Depends(get_current_admin)],
-    db: Annotated[AsyncSession, Depends(get_db)]
-):
-    return await get_full_monitoring_report(db=db)
-
-
-@admin_router.get(
-    "/monitoring/health",
-    summary="Get Subsystem Health Summary (Admin Only)",
-    description="Quick operational health check of database and Redis services.",
-    dependencies=[Depends(RateLimiter(times=600, seconds=60, prefix="admin_monitoring_health"))]
-)
-async def get_subsystem_health(
-    admin: Annotated[User, Depends(get_current_admin)],
-    db: Annotated[AsyncSession, Depends(get_db)]
-):
-    db_health = await get_db_health(db=db)
-    redis_health = await get_redis_health()
-    return {
-        "status": "healthy" if db_health.get("connected") and redis_health.get("status") in ["healthy", "disabled"] else "degraded",
-        "database": db_health,
-        "redis": redis_health
-    }
-
-@admin_router.get(
-    "/monitoring/dashboard",
-    response_class=HTMLResponse,
-    summary="Get System Monitoring Visual GUI Dashboard (Admin Only)",
-    description="Interactive visual HTML dashboard displaying real-time CPU, RAM, Disk, process metrics, and DB/Redis latency graphs.",
-    dependencies=[Depends(RateLimiter(times=600, seconds=60, prefix="admin_monitoring_dashboard"))]
-)
-async def get_monitoring_dashboard(
-    admin: Annotated[User, Depends(get_current_admin)]
-):
-    template_path = Path(__file__).resolve().parent.parent / "templates" / "monitoring_dashboard.html"
-    if not template_path.exists():
-        raise HTTPException(status_code=500, detail="Monitoring dashboard template missing")
-    return HTMLResponse(content=template_path.read_text(encoding="utf-8"))
-
-
-# =======================================================
-# PERFORMANCE BENCHMARKS (ADMIN ONLY)
-# =======================================================
-
-@admin_router.get(
-    "/benchmarks/report",
-    summary="Get System Performance Benchmark Report (Admin Only)",
-    description="Retrieve stored JSON performance benchmark metrics (AI Engine chunking speed, embedding latency, Pinecone vector operations, JWT ops, API throughput).",
-    dependencies=[Depends(RateLimiter(times=600, seconds=60, prefix="admin_benchmarks_report"))]
-)
-async def get_benchmark_report(
-    admin: Annotated[User, Depends(get_current_admin)],
-    service: Annotated[AdminService, Depends(get_admin_service)]
-):
-    return await service.get_benchmark_report()
-
-
-@admin_router.post(
-    "/benchmarks/run",
-    summary="Trigger On-Demand Performance Benchmark Run (Admin Only)",
-    description="Executes system performance benchmark suite across AI Engine, Pinecone, JWT security, and API endpoints. Pinecone benchmarks are skipped to avoid modifying the shared index.",
-    dependencies=[Depends(RateLimiter(times=600, seconds=60, prefix="admin_benchmarks_run"))]
-)
-async def run_benchmark(
-    admin: Annotated[User, Depends(get_current_admin)],
-    service: Annotated[AdminService, Depends(get_admin_service)]
-):
-    return await service.run_performance_benchmark()

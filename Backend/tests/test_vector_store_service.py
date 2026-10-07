@@ -139,13 +139,3 @@ def test_empty_query_returns_without_accessing_index(fake_client):
         query_embedding=[],
     ) == []
     assert fake_client.created_index is None
-
-
-def test_vector_store_benchmark_does_not_write_to_shared_index():
-    from benchmarks.benchmark_ai_pipeline import benchmark_vector_store
-
-    result = benchmark_vector_store()
-
-    assert result["skipped"] is True
-    assert result["benchmark"] == "pinecone_remote_skipped"
-    assert result["vectors_stored"] == 0
