@@ -151,3 +151,115 @@ async def test_user_repository_deletes_analyses_contracts_and_user(db_session):
     assert await db_session.scalar(select(func.count()).select_from(ContractAnalysis)) == 0
     assert await db_session.scalar(select(func.count()).select_from(Contract)) == 0
     assert await db_session.scalar(select(func.count()).select_from(User)) == 0
+
+
+@pytest.mark.asyncio
+async def test_admin_contract_listing_includes_soft_deleted_records():
+    service = AdminService()
+    service.contract_repository = AsyncMock()
+    service.contract_repository.get_all_contracts.return_value = []
+    service.contract_repository.count_all_contracts.return_value = 0
+    db = object()
+
+    result = await service.list_contracts(db=db)
+
+    service.contract_repository.get_all_contracts.assert_awaited_once_with(
+        db=db,
+        skip=0,
+        limit=20,
+        status=None,
+        user_id=None,
+        search=None,
+        include_deleted=True,
+    )
+    service.contract_repository.count_all_contracts.assert_awaited_once_with(
+        db=db,
+        status=None,
+        user_id=None,
+        search=None,
+        include_deleted=True,
+    )
+    assert result.contracts == []
+    assert result.total == 0
+
+
+@pytest.mark.asyncio
+async def test_admin_permanent_delete_removes_storage_before_database_records():
+    service = AdminService()
+    contract = SimpleNamespace(file_path="7/contract.pdf", is_deleted=True)
+    events = []
+    service.contract_repository = AsyncMock()
+    service.contract_storage = AsyncMock()
+    service.contract_repository.get_contract_by_id.return_value = contract
+
+    async def remove(path):
+        events.append(("storage", path))
+
+    async def permanently_delete_contract(*, db, contract_id):
+        events.append(("database", contract_id))
+
+    service.contract_storage.remove.side_effect = remove
+    service.contract_repository.permanently_delete_contract.side_effect = (
+        permanently_delete_contract
+    )
+    db = object()
+
+    result = await service.delete_contract(db=db, contract_id=12)
+
+    assert result == {
+        "message": "Contract permanently deleted successfully",
+        "contract_id": 12,
+    }
+    assert events == [
+        ("storage", "7/contract.pdf"),
+        ("database", 12),
+    ]
+    service.contract_repository.get_contract_by_id.assert_awaited_once_with(
+        db=db,
+        contract_id=12,
+        include_deleted=True,
+    )
+
+
+@pytest.mark.asyncio
+async def test_admin_permanent_delete_keeps_database_record_when_storage_fails():
+    service = AdminService()
+    service.contract_repository = AsyncMock()
+    service.contract_storage = AsyncMock()
+    service.contract_repository.get_contract_by_id.return_value = SimpleNamespace(
+        file_path="7/contract.pdf",
+        is_deleted=False,
+    )
+    service.contract_storage.remove.side_effect = RuntimeError("Storage unavailable")
+
+    with pytest.raises(HTTPException) as error:
+        await service.delete_contract(db=object(), contract_id=12)
+
+    assert error.value.status_code == 502
+    service.contract_repository.permanently_delete_contract.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_admin_soft_delete_keeps_storage_and_rejects_deleted_contract():
+    service = AdminService()
+    service.contract_repository = AsyncMock()
+    service.contract_storage = AsyncMock()
+    active_contract = SimpleNamespace(is_deleted=False)
+    service.contract_repository.get_contract_by_id.return_value = active_contract
+
+    result = await service.soft_delete_contract(db=object(), contract_id=12)
+
+    assert result == {
+        "message": "Contract soft-deleted successfully",
+        "contract_id": 12,
+    }
+    service.contract_repository.soft_delete_contract.assert_awaited_once()
+    service.contract_storage.remove.assert_not_awaited()
+
+    service.contract_repository.get_contract_by_id.return_value = SimpleNamespace(
+        is_deleted=True
+    )
+    with pytest.raises(HTTPException) as error:
+        await service.soft_delete_contract(db=object(), contract_id=12)
+
+    assert error.value.status_code == 409

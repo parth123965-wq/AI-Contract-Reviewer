@@ -24,6 +24,8 @@ class UserRoleUpdate(BaseModel):
 class ContractAdminDetailResponse(ContractResponse):
     username: Optional[str] = Field(default=None, description="Username of uploading user", examples=["john_doe"])
     user_email: Optional[str] = Field(default=None, description="Email of uploading user", examples=["john@example.com"])
+    is_deleted: bool = Field(description="Whether the contract has been soft-deleted")
+    deleted_at: Optional[datetime] = Field(default=None, description="When the contract was soft-deleted")
 
 class AdminContractListResponse(BaseModel):
     total: int = Field(description="Total contracts count", examples=[150])
@@ -42,4 +44,3 @@ class AdminDashboardStats(BaseModel):
     total_contracts: int = Field(description="Total contracts uploaded count", examples=[450])
     contracts_by_status: dict = Field(description="Breakdown of contracts by status string", examples=[{"completed": 400, "processing": 40, "error": 10}])
     analyses_by_risk: dict = Field(description="Breakdown of contract analyses by risk tier", examples=[{"low": 200, "medium": 180, "high": 50, "critical": 20}])
-

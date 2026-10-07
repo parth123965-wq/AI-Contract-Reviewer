@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 import pytest
+from sqlalchemy import select
 
 from app.models.contract import Contract, ContractAnalysis, ContractStatus, RiskLevel
 from app.models.user import User
@@ -147,6 +148,63 @@ async def test_contract_repository_soft_delete_hides_contract(db_session):
 
     assert await repository.get_contract_by_id(db_session, contract.id) is None
     assert contract.deleted_at is not None
+
+
+@pytest.mark.asyncio
+async def test_admin_contract_queries_include_soft_deleted_contracts(db_session):
+    _, active_contract = await add_user_and_contract(
+        db_session, user_id=31, filename="active.pdf"
+    )
+    _, deleted_contract = await add_user_and_contract(
+        db_session, user_id=32, filename="deleted.pdf"
+    )
+    repository = ContractRepository()
+    await repository.soft_delete_contract(db_session, deleted_contract)
+
+    contracts = await repository.get_all_contracts(db_session, include_deleted=True)
+    total = await repository.count_all_contracts(
+        db_session, include_deleted=True
+    )
+    fetched_deleted = await repository.get_contract_by_id(
+        db_session, deleted_contract.id, include_deleted=True
+    )
+    active_only = await repository.get_all_contracts(db_session)
+    active_only_total = await repository.count_all_contracts(db_session)
+
+    assert {contract.id for contract in contracts} == {
+        active_contract.id,
+        deleted_contract.id,
+    }
+    assert total == 2
+    assert fetched_deleted.is_deleted is True
+    assert [contract.id for contract in active_only] == [active_contract.id]
+    assert active_only_total == 1
+    assert await repository.get_contract_by_id(
+        db_session, deleted_contract.id
+    ) is None
+
+
+@pytest.mark.asyncio
+async def test_permanently_delete_contract_removes_analysis_and_record(db_session):
+    _, contract = await add_user_and_contract(db_session, user_id=41)
+    db_session.add(
+        ContractAnalysis(
+            contract_id=contract.id,
+            analysis_version=1,
+            summary="Analysis to remove",
+        )
+    )
+    await db_session.commit()
+    repository = ContractRepository()
+
+    await repository.permanently_delete_contract(db_session, contract.id)
+
+    assert await db_session.scalar(
+        select(Contract).where(Contract.id == contract.id)
+    ) is None
+    assert await db_session.scalar(
+        select(ContractAnalysis).where(ContractAnalysis.contract_id == contract.id)
+    ) is None
 
 
 @pytest.mark.asyncio

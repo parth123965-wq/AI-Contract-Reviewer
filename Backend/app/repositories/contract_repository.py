@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_
+from sqlalchemy import delete, select, func, or_
 from sqlalchemy.orm import selectinload
 from typing import Optional
 from app.models.contract import Contract, ContractAnalysis, ContractStatus
@@ -28,12 +28,12 @@ class ContractRepository:
         self,
         db: AsyncSession,
         contract_id: int,
-        user_id: Optional[int] = None
+        user_id: Optional[int] = None,
+        include_deleted: bool = False,
     ) -> Optional[Contract]:
-        conditions = [
-            Contract.id == contract_id,
-            Contract.is_deleted.is_(False)
-        ]
+        conditions = [Contract.id == contract_id]
+        if not include_deleted:
+            conditions.append(Contract.is_deleted.is_(False))
         if user_id is not None:
             conditions.append(Contract.user_id == user_id)
         statement = select(Contract).options(
@@ -78,6 +78,17 @@ class ContractRepository:
             db=db,
             contract=contract
         )
+
+    async def permanently_delete_contract(
+        self, db: AsyncSession, contract_id: int
+    ) -> None:
+        await db.execute(
+            delete(ContractAnalysis).where(
+                ContractAnalysis.contract_id == contract_id
+            )
+        )
+        await db.execute(delete(Contract).where(Contract.id == contract_id))
+        await db.commit()
     
     async def get_next_analysis_version(
         self,
@@ -113,12 +124,15 @@ class ContractRepository:
         limit: int = 20,
         status: Optional[ContractStatus] = None,
         user_id: Optional[int] = None,
-        search: Optional[str] = None
+        search: Optional[str] = None,
+        include_deleted: bool = False,
     ) -> list[Contract]:
         statement = select(Contract).options(
             selectinload(Contract.user),
             selectinload(Contract.analyses)
-        ).outerjoin(User, Contract.user_id == User.id).where(Contract.is_deleted.is_(False))
+        ).outerjoin(User, Contract.user_id == User.id)
+        if not include_deleted:
+            statement = statement.where(Contract.is_deleted.is_(False))
 
         if status:
             statement = statement.where(Contract.status == status)
@@ -144,9 +158,14 @@ class ContractRepository:
         db: AsyncSession,
         status: Optional[ContractStatus] = None,
         user_id: Optional[int] = None,
-        search: Optional[str] = None
+        search: Optional[str] = None,
+        include_deleted: bool = False,
     ) -> int:
-        statement = select(func.count(Contract.id)).outerjoin(User, Contract.user_id == User.id).where(Contract.is_deleted.is_(False))
+        statement = select(func.count(Contract.id)).outerjoin(
+            User, Contract.user_id == User.id
+        )
+        if not include_deleted:
+            statement = statement.where(Contract.is_deleted.is_(False))
         if status:
             statement = statement.where(Contract.status == status)
         if user_id:

@@ -147,10 +147,12 @@ class AdminService:
     ) -> AdminContractListResponse:
         skip = (page - 1) * limit
         contracts = await self.contract_repository.get_all_contracts(
-            db=db, skip=skip, limit=limit, status=status_filter, user_id=user_id, search=search
+            db=db, skip=skip, limit=limit, status=status_filter, user_id=user_id,
+            search=search, include_deleted=True
         )
         total = await self.contract_repository.count_all_contracts(
-            db=db, status=status_filter, user_id=user_id, search=search
+            db=db, status=status_filter, user_id=user_id, search=search,
+            include_deleted=True
         )
 
         contract_responses = []
@@ -171,7 +173,9 @@ class AdminService:
         )
 
     async def get_contract_detail(self, db: AsyncSession, contract_id: int) -> ContractAdminDetailResponse:
-        contract = await self.contract_repository.get_contract_by_id(db=db, contract_id=contract_id)
+        contract = await self.contract_repository.get_contract_by_id(
+            db=db, contract_id=contract_id, include_deleted=True
+        )
         if not contract:
             raise HTTPException(status_code=404, detail="Contract not found")
 
@@ -182,7 +186,9 @@ class AdminService:
         return resp
 
     async def update_contract_status(self, db: AsyncSession, contract_id: int, new_status: ContractStatus):
-        contract = await self.contract_repository.get_contract_by_id(db=db, contract_id=contract_id)
+        contract = await self.contract_repository.get_contract_by_id(
+            db=db, contract_id=contract_id, include_deleted=True
+        )
         if not contract:
             raise HTTPException(status_code=404, detail="Contract not found")
 
@@ -190,12 +196,50 @@ class AdminService:
         return updated
 
     async def delete_contract(self, db: AsyncSession, contract_id: int) -> dict:
-        contract = await self.contract_repository.get_contract_by_id(db=db, contract_id=contract_id)
+        contract = await self.contract_repository.get_contract_by_id(
+            db=db, contract_id=contract_id, include_deleted=True
+        )
         if not contract:
             raise HTTPException(status_code=404, detail="Contract not found")
 
+        try:
+            await self.contract_storage.remove(contract.file_path)
+        except Exception as exc:
+            logger.exception(
+                "Failed to remove contract file before permanent deletion.",
+                extra={"contract_id": contract_id},
+            )
+            raise HTTPException(
+                status_code=502,
+                detail="Failed to remove the contract file; the contract was not deleted.",
+            ) from exc
+
+        await self.contract_repository.permanently_delete_contract(
+            db=db, contract_id=contract_id
+        )
+        return {
+            "message": "Contract permanently deleted successfully",
+            "contract_id": contract_id,
+        }
+
+    async def soft_delete_contract(
+        self, db: AsyncSession, contract_id: int
+    ) -> dict:
+        contract = await self.contract_repository.get_contract_by_id(
+            db=db, contract_id=contract_id, include_deleted=True
+        )
+        if not contract:
+            raise HTTPException(status_code=404, detail="Contract not found")
+        if contract.is_deleted:
+            raise HTTPException(
+                status_code=409, detail="Contract is already soft-deleted"
+            )
+
         await self.contract_repository.soft_delete_contract(db=db, contract=contract)
-        return {"message": "Contract deleted successfully", "contract_id": contract_id}
+        return {
+            "message": "Contract soft-deleted successfully",
+            "contract_id": contract_id,
+        }
 
     async def get_benchmark_report(self) -> dict:
         import json

@@ -212,7 +212,7 @@ async def update_contract_status(
 @admin_router.delete(
     "/contracts/{contract_id}",
     summary="Delete Contract Document (Admin)",
-    description="Administrative deletion of any contract document from the system.",
+    description="Permanently delete a contract, its analysis history, and its Supabase Storage file.",
     dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_contracts"))]
 )
 async def delete_contract(
@@ -222,6 +222,21 @@ async def delete_contract(
     service: Annotated[AdminService, Depends(get_admin_service)]
 ):
     return await service.delete_contract(db=db, contract_id=contract_id)
+
+
+@admin_router.patch(
+    "/contracts/{contract_id}/soft-delete",
+    summary="Soft-delete Contract Document (Admin)",
+    description="Hide a contract from the user's active list while retaining its database record, analysis history, and Supabase Storage file.",
+    dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_contracts"))]
+)
+async def soft_delete_contract(
+    contract_id: int,
+    admin: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    service: Annotated[AdminService, Depends(get_admin_service)]
+):
+    return await service.soft_delete_contract(db=db, contract_id=contract_id)
 
 
 # =======================================================
@@ -305,5 +320,4 @@ async def run_benchmark(
     service: Annotated[AdminService, Depends(get_admin_service)]
 ):
     return await service.run_performance_benchmark()
-
 
