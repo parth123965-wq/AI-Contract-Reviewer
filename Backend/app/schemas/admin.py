@@ -58,6 +58,10 @@ class ContractStatusUpdate(BaseModel):
 class AdminDashboardStats(BaseModel):
     total_users: int = Field(description="Total registered platform users count", examples=[120])
     active_users: int = Field(description="Active user count", examples=[115])
+    inactive_users: int = Field(
+        description="Inactive or suspended user count",
+        examples=[5],
+    )
     admin_users: int = Field(description="Administrator count", examples=[3])
     total_contracts: int = Field(
         description="Total uploaded contracts that have not been soft-deleted",

@@ -54,7 +54,12 @@ async def test_dashboard_queries_run_sequentially_on_shared_session():
 
     async def user_stats(**kwargs):
         events.append("users")
-        return {"total_users": 10, "active_users": 8, "admin_users": 2}
+        return {
+            "total_users": 10,
+            "active_users": 8,
+            "inactive_users": 2,
+            "admin_users": 2,
+        }
 
     async def contracts_by_deletion_status(*, db, is_deleted):
         events.append("deleted" if is_deleted else "non_deleted")
@@ -88,6 +93,8 @@ async def test_dashboard_queries_run_sequentially_on_shared_session():
         "risk",
     ]
     assert result.total_users == 10
+    assert result.active_users == 8
+    assert result.inactive_users == 2
     assert result.total_contracts == 7
     assert result.total_non_deleted_contracts == 7
     assert result.total_deleted_contracts == 2
@@ -154,6 +161,23 @@ async def test_dashboard_stats_exclude_soft_deleted_contracts_from_all_metrics(
 
 @pytest.mark.asyncio
 async def test_dashboard_stats_endpoint_returns_live_database_metrics(db_session):
+    db_session.add_all(
+        [
+            User(
+                username="active-dashboard-user",
+                email="active-dashboard-user@example.com",
+                password_hash="test-hash",
+                is_active=True,
+            ),
+            User(
+                username="inactive-dashboard-user",
+                email="inactive-dashboard-user@example.com",
+                password_hash="test-hash",
+                is_active=False,
+            ),
+        ]
+    )
+    await db_session.commit()
     overrides_before = app.dependency_overrides.copy()
 
     async def override_get_db():
@@ -177,8 +201,9 @@ async def test_dashboard_stats_endpoint_returns_live_database_metrics(db_session
 
     assert response.status_code == 200
     assert response.json() == {
-        "total_users": 0,
-        "active_users": 0,
+        "total_users": 2,
+        "active_users": 1,
+        "inactive_users": 1,
         "admin_users": 0,
         "total_contracts": 0,
         "total_non_deleted_contracts": 0,

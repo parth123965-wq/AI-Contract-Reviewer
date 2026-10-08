@@ -86,6 +86,7 @@ class AdminService:
         return AdminDashboardStats(
             total_users=user_stats["total_users"],
             active_users=user_stats["active_users"],
+            inactive_users=user_stats["inactive_users"],
             admin_users=user_stats["admin_users"],
             total_contracts=total_non_deleted_contracts,
             total_non_deleted_contracts=total_non_deleted_contracts,

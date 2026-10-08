@@ -143,18 +143,25 @@ class UserRepository:
         return False
 
     async def get_user_summary_stats(self, db: AsyncSession) -> dict[str, int]:
-        """Calculates total_users, active_users, and admin_users in a single SQL query."""
+        """Calculates account totals and status counts in a single SQL query."""
         statement = select(
             func.count(User.id).label("total_users"),
             func.count(func.nullif(User.is_active, False)).label("active_users"),
+            func.count(func.nullif(User.is_active, True)).label("inactive_users"),
             func.count(func.nullif(User.is_admin, False)).label("admin_users")
         )
         result = await db.execute(statement)
         row = result.one_or_none()
         if not row:
-            return {"total_users": 0, "active_users": 0, "admin_users": 0}
+            return {
+                "total_users": 0,
+                "active_users": 0,
+                "inactive_users": 0,
+                "admin_users": 0,
+            }
         return {
             "total_users": row.total_users or 0,
             "active_users": row.active_users or 0,
+            "inactive_users": row.inactive_users or 0,
             "admin_users": row.admin_users or 0
         }
