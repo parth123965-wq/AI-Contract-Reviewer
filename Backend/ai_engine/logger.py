@@ -4,6 +4,7 @@ import sys
 from datetime import datetime, timezone
 from typing import Any, Dict
 from app.core.config import settings
+from app.core.logger import recent_log_buffer
 
 
 class AIEngineJSONFormatter(logging.Formatter):
@@ -48,6 +49,9 @@ def setup_ai_engine_logging() -> logging.Logger:
         handler.setFormatter(AIEngineJSONFormatter())
         logger.addHandler(handler)
         logger.propagate = False
+
+    if recent_log_buffer not in logger.handlers:
+        logger.addHandler(recent_log_buffer)
 
     return logger
 

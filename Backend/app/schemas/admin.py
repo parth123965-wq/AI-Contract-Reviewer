@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Literal, Optional
 from datetime import datetime
 from pydantic import EmailStr
 from app.schemas.user import UserResponse
@@ -53,3 +53,33 @@ class AdminDashboardStats(BaseModel):
     total_contracts: int = Field(description="Total contracts uploaded count", examples=[450])
     contracts_by_status: dict = Field(description="Breakdown of contracts by status string", examples=[{"completed": 400, "processing": 40, "error": 10}])
     analyses_by_risk: dict = Field(description="Breakdown of contract analyses by risk tier", examples=[{"low": 200, "medium": 180, "high": 50, "critical": 20}])
+
+
+class DatabaseDiagnostics(BaseModel):
+    connected: bool
+    status: Literal["healthy", "critical"]
+    latency_ms: Optional[float]
+    error: Optional[str] = None
+
+
+class AdminDiagnosticsResponse(BaseModel):
+    overall_status: Literal["healthy", "warning", "critical"] = Field(
+        description=(
+            "Critical when the database is down or CPU/memory/disk reach 95%/90%/95%; "
+            "warning at CPU/memory/disk 80%/80%/85% or database latency >= 1000 ms."
+        )
+    )
+    uptime_seconds: float
+    cpu_percent: float = Field(description="Backend process CPU use relative to its container CPU quota")
+    process_memory_bytes: int = Field(description="Resident memory used by this backend process")
+    memory_limit_bytes: int = Field(description="Container memory limit when available, otherwise host memory")
+    memory_percent: float = Field(description="Backend process memory as a percentage of the memory limit")
+    disk_used_bytes: int
+    disk_total_bytes: int
+    disk_percent: float
+    database: DatabaseDiagnostics
+    active_thread_count: int
+
+
+class AdminLogTailResponse(BaseModel):
+    logs: List[str] = Field(description="Recent structured JSON log lines from this backend instance")

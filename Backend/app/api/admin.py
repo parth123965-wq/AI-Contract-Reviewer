@@ -12,6 +12,8 @@ from app.schemas.contract import ContractResponse
 from app.schemas.admin import (
     AdminUserListResponse,
     AdminEmailChangeRequestResponse,
+    AdminDiagnosticsResponse,
+    AdminLogTailResponse,
     UserAdminDetailResponse,
     UserStatusUpdate,
     UserRoleUpdate,
@@ -27,12 +29,41 @@ from app.schemas.user import (
     VerifyEmailChangeRequest,
 )
 from app.core.rate_limit import RateLimiter
+from app.services.health_diagnostics import get_log_tail, get_system_diagnostics
 
 
 admin_router = APIRouter(
     prefix="/admin",
     tags=["Admin"]
 )
+
+
+@admin_router.get(
+    "/diagnostics",
+    response_model=AdminDiagnosticsResponse,
+    summary="Get Backend Health Diagnostics",
+    description="View this backend instance's uptime, CPU, memory, disk, database latency, active threads, and overall status.",
+    dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_diagnostics"))],
+)
+async def get_admin_diagnostics(
+    admin: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AdminDiagnosticsResponse:
+    return await get_system_diagnostics(db=db)
+
+
+@admin_router.get(
+    "/diagnostics/logs",
+    response_model=AdminLogTailResponse,
+    summary="Get Recent Backend Logs",
+    description="View the latest structured logs held in memory by this running backend instance.",
+    dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_diagnostics_logs"))],
+)
+async def get_admin_log_tail(
+    admin: Annotated[User, Depends(get_current_admin)],
+    limit: int = Query(default=100, ge=50, le=100),
+) -> AdminLogTailResponse:
+    return get_log_tail(limit=limit)
 
 
 # =======================================================
