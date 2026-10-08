@@ -1,7 +1,9 @@
+import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 from typing import Optional
 
+from app.auth.password import hash_password
 from app.repositories.user_repository import UserRepository
 from app.repositories.contract_repository import ContractRepository
 from app.services.contract_storage import ContractStorage
@@ -10,7 +12,8 @@ from app.schemas.admin import (
     UserAdminDetailResponse,
     AdminContractListResponse,
     ContractAdminDetailResponse,
-    AdminDashboardStats
+    AdminDashboardStats,
+    AdminPasswordChangeRequest
 )
 from app.models.contract import ContractStatus
 from app.core.logger import get_app_logger
@@ -216,6 +219,37 @@ class AdminService:
             action="An administrator changed your username.",
             details=f"Your username is now {new_username}.",
         )
+        await self._commit_admin_change(db)
+        await db.refresh(user)
+        return UserResponse.model_validate(user)
+
+    async def update_user_password(
+        self,
+        db: AsyncSession,
+        user_id: int,
+        request: AdminPasswordChangeRequest,
+    ) -> UserResponse:
+        user = await self.user_repository.get_user_by_id(db=db, user_id=user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        user.password_hash = await asyncio.to_thread(
+            hash_password, request.new_password
+        )
+        await self.user_repository.update_user(db=db, user=user, commit=False)
+        try:
+            await self.email_service.send_password_changed_notification(
+                email=user.email,
+                username=user.username,
+            )
+        except Exception:
+            await db.rollback()
+            logger.exception(
+                "Failed to notify user about an administrator password change.",
+                extra={"user_id": user_id},
+            )
+            raise
+
         await self._commit_admin_change(db)
         await db.refresh(user)
         return UserResponse.model_validate(user)

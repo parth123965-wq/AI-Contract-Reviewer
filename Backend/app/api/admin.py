@@ -12,6 +12,7 @@ from app.schemas.contract import ContractResponse
 from app.schemas.admin import (
     AdminUserListResponse,
     AdminEmailChangeRequestResponse,
+    AdminPasswordChangeRequest,
     AdminDiagnosticsResponse,
     AdminLogTailResponse,
     UserAdminDetailResponse,
@@ -175,6 +176,25 @@ async def update_user_username(
     service: Annotated[AdminService, Depends(get_admin_service)]
 ) -> UserResponse:
     return await service.update_user_username(
+        db=db, user_id=user_id, request=body
+    )
+
+
+@admin_router.patch(
+    "/users/{user_id}/password",
+    response_model=UserResponse,
+    summary="Change User Password (Admin)",
+    description="Set a new password for a user and notify them by email. The password is never included in the response or notification.",
+    dependencies=[Depends(RateLimiter(times=10, seconds=60, prefix="admin_user_password"))]
+)
+async def update_user_password(
+    user_id: int,
+    body: AdminPasswordChangeRequest,
+    admin: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    service: Annotated[AdminService, Depends(get_admin_service)]
+) -> UserResponse:
+    return await service.update_user_password(
         db=db, user_id=user_id, request=body
     )
 

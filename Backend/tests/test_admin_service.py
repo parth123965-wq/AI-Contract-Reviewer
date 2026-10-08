@@ -8,6 +8,8 @@ from sqlalchemy import func, select
 
 from app.models.contract import Contract, ContractAnalysis, ContractStatus, RiskLevel
 from app.models.user import User
+from app.auth.password import verify_password
+from app.schemas.admin import AdminPasswordChangeRequest
 from app.repositories.contract_repository import ContractRepository
 from app.repositories.user_repository import UserRepository
 from app.services.admin_service import AdminService
@@ -399,6 +401,64 @@ async def test_admin_username_change_rolls_back_when_notification_fails(db_sessi
 
 
 @pytest.mark.asyncio
+async def test_admin_password_change_hashes_password_notifies_and_returns_user(
+    db_session,
+):
+    user = User(
+        username="password-change-user",
+        email="password-change-user@example.com",
+        password_hash="old-hash",
+    )
+    db_session.add(user)
+    await db_session.commit()
+    service = AdminService()
+    service.email_service = AsyncMock()
+
+    result = await service.update_user_password(
+        db_session,
+        user.id,
+        AdminPasswordChangeRequest(new_password="NewSecurePass456!"),
+    )
+
+    await db_session.refresh(user)
+    assert verify_password("NewSecurePass456!", user.password_hash)
+    assert user.password_hash != "NewSecurePass456!"
+    assert result.id == user.id
+    assert "password" not in result.model_dump()
+    service.email_service.send_password_changed_notification.assert_awaited_once_with(
+        email=user.email,
+        username=user.username,
+    )
+
+
+@pytest.mark.asyncio
+async def test_admin_password_change_rolls_back_when_notification_fails(db_session):
+    original_hash = "old-password-hash"
+    user = User(
+        username="password-change-fail-user",
+        email="password-change-fail-user@example.com",
+        password_hash=original_hash,
+    )
+    db_session.add(user)
+    await db_session.commit()
+    service = AdminService()
+    service.email_service = AsyncMock()
+    service.email_service.send_password_changed_notification.side_effect = (
+        HTTPException(status_code=502, detail="Email delivery failed")
+    )
+
+    with pytest.raises(HTTPException):
+        await service.update_user_password(
+            db_session,
+            user.id,
+            AdminPasswordChangeRequest(new_password="NewSecurePass456!"),
+        )
+
+    await db_session.refresh(user)
+    assert user.password_hash == original_hash
+
+
+@pytest.mark.asyncio
 async def test_admin_email_change_request_stores_pending_email_and_sends_otp(
     db_session, monkeypatch
 ):
@@ -584,9 +644,12 @@ async def test_admin_email_confirmation_rolls_back_when_notice_fails(
 def test_new_admin_user_change_routes_are_rate_limited():
     from app.core.rate_limit import RateLimiter
     from app.api.admin import admin_router
+    from app.dependencies.auth import get_current_admin
+    from app.schemas.user import UserResponse
 
     expected_paths = {
         "/admin/users/{user_id}/username",
+        "/admin/users/{user_id}/password",
         "/admin/users/{user_id}/email/request",
         "/admin/users/{user_id}/email/confirm",
     }
@@ -602,6 +665,13 @@ def test_new_admin_user_change_routes_are_rate_limited():
             isinstance(dependency.call, RateLimiter)
             for dependency in route.dependant.dependencies
         )
+        assert any(
+            dependency.call is get_current_admin
+            for dependency in route.dependant.dependencies
+        )
+
+    password_route = routes["/admin/users/{user_id}/password"]
+    assert password_route.response_model is UserResponse
 
 
 @pytest.mark.asyncio

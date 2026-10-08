@@ -26,6 +26,15 @@ class AdminEmailChangeRequestResponse(BaseModel):
     message: str = Field(description="Email verification status")
     email: EmailStr = Field(description="Target email address awaiting OTP verification")
 
+
+class AdminPasswordChangeRequest(BaseModel):
+    new_password: str = Field(
+        min_length=8,
+        max_length=128,
+        description="New account password set by an administrator",
+    )
+
+
 class ContractAdminDetailResponse(ContractResponse):
     username: Optional[str] = Field(default=None, description="Username of uploading user", examples=["john_doe"])
     user_email: Optional[str] = Field(default=None, description="Email of uploading user", examples=["john@example.com"])
