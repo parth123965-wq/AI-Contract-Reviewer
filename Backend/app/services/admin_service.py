@@ -70,7 +70,16 @@ class AdminService:
 
     async def get_dashboard_stats(self, db: AsyncSession) -> AdminDashboardStats:
         user_stats = await self.user_repository.get_user_summary_stats(db=db)
-        total_contracts = await self.contract_repository.count_all_contracts(db=db)
+        total_non_deleted_contracts = (
+            await self.contract_repository.count_contracts_by_deletion_status(
+                db=db, is_deleted=False
+            )
+        )
+        total_deleted_contracts = (
+            await self.contract_repository.count_contracts_by_deletion_status(
+                db=db, is_deleted=True
+            )
+        )
         contracts_by_status = await self.contract_repository.count_contracts_by_status(db=db)
         analyses_by_risk = await self.contract_repository.count_analyses_by_risk(db=db)
 
@@ -78,7 +87,9 @@ class AdminService:
             total_users=user_stats["total_users"],
             active_users=user_stats["active_users"],
             admin_users=user_stats["admin_users"],
-            total_contracts=total_contracts,
+            total_contracts=total_non_deleted_contracts,
+            total_non_deleted_contracts=total_non_deleted_contracts,
+            total_deleted_contracts=total_deleted_contracts,
             contracts_by_status=contracts_by_status,
             analyses_by_risk=analyses_by_risk
         )

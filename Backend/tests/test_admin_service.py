@@ -56,9 +56,9 @@ async def test_dashboard_queries_run_sequentially_on_shared_session():
         events.append("users")
         return {"total_users": 10, "active_users": 8, "admin_users": 2}
 
-    async def total_contracts(**kwargs):
-        events.append("contracts")
-        return 7
+    async def contracts_by_deletion_status(*, db, is_deleted):
+        events.append("deleted" if is_deleted else "non_deleted")
+        return 2 if is_deleted else 7
 
     async def contracts_by_status(**kwargs):
         events.append("status")
@@ -71,16 +71,26 @@ async def test_dashboard_queries_run_sequentially_on_shared_session():
     service.user_repository = AsyncMock()
     service.contract_repository = AsyncMock()
     service.user_repository.get_user_summary_stats.side_effect = user_stats
-    service.contract_repository.count_all_contracts.side_effect = total_contracts
+    service.contract_repository.count_contracts_by_deletion_status.side_effect = (
+        contracts_by_deletion_status
+    )
     service.contract_repository.count_contracts_by_status.side_effect = contracts_by_status
     service.contract_repository.count_analyses_by_risk.side_effect = analyses_by_risk
     db = object()
 
     result = await service.get_dashboard_stats(db)
 
-    assert events == ["users", "contracts", "status", "risk"]
+    assert events == [
+        "users",
+        "non_deleted",
+        "deleted",
+        "status",
+        "risk",
+    ]
     assert result.total_users == 10
     assert result.total_contracts == 7
+    assert result.total_non_deleted_contracts == 7
+    assert result.total_deleted_contracts == 2
     assert result.contracts_by_status == {"COMPLETED": 7}
     assert result.analyses_by_risk == {"LOW": 3}
 
@@ -136,6 +146,8 @@ async def test_dashboard_stats_exclude_soft_deleted_contracts_from_all_metrics(
     stats = await AdminService().get_dashboard_stats(db_session)
 
     assert stats.total_contracts == 1
+    assert stats.total_non_deleted_contracts == 1
+    assert stats.total_deleted_contracts == 1
     assert stats.contracts_by_status == {"COMPLETED": 1}
     assert stats.analyses_by_risk == {"LOW": 1}
 
@@ -169,6 +181,8 @@ async def test_dashboard_stats_endpoint_returns_live_database_metrics(db_session
         "active_users": 0,
         "admin_users": 0,
         "total_contracts": 0,
+        "total_non_deleted_contracts": 0,
+        "total_deleted_contracts": 0,
         "contracts_by_status": {},
         "analyses_by_risk": {},
     }

@@ -202,6 +202,17 @@ class ContractRepository:
         result = await db.execute(statement)
         return result.scalar() or 0
 
+    async def count_contracts_by_deletion_status(
+        self,
+        db: AsyncSession,
+        is_deleted: bool,
+    ) -> int:
+        statement = select(func.count(Contract.id)).where(
+            Contract.is_deleted.is_(is_deleted)
+        )
+        result = await db.execute(statement)
+        return result.scalar() or 0
+
     async def count_contracts_by_status(self, db: AsyncSession) -> dict:
         statement = select(Contract.status, func.count(Contract.id)).where(
             Contract.is_deleted.is_(False)

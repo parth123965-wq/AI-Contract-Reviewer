@@ -63,6 +63,14 @@ class AdminDashboardStats(BaseModel):
         description="Total uploaded contracts that have not been soft-deleted",
         examples=[450],
     )
+    total_non_deleted_contracts: int = Field(
+        description="Count of contracts where is_deleted is false",
+        examples=[450],
+    )
+    total_deleted_contracts: int = Field(
+        description="Count of soft-deleted contracts where is_deleted is true",
+        examples=[12],
+    )
     contracts_by_status: dict[str, int] = Field(
         description="Non-deleted contracts grouped by their status",
         examples=[{"COMPLETED": 400, "PROCESSING": 40, "FAILED": 10}],
