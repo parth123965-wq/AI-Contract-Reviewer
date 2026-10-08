@@ -2,14 +2,17 @@ from unittest.mock import AsyncMock
 from types import SimpleNamespace
 
 import pytest
+import httpx
 from fastapi import HTTPException
 from sqlalchemy import func, select
 
-from app.models.contract import Contract, ContractAnalysis, ContractStatus
+from app.models.contract import Contract, ContractAnalysis, ContractStatus, RiskLevel
 from app.models.user import User
 from app.repositories.contract_repository import ContractRepository
 from app.repositories.user_repository import UserRepository
 from app.services.admin_service import AdminService
+from app.database.database import get_db
+from app.dependencies.auth import get_current_admin
 from app.main import app
 from app.schemas.user import (
     RequestEmailChangeRequest,
@@ -78,6 +81,95 @@ async def test_dashboard_queries_run_sequentially_on_shared_session():
     assert result.total_contracts == 7
     assert result.contracts_by_status == {"COMPLETED": 7}
     assert result.analyses_by_risk == {"LOW": 3}
+
+
+@pytest.mark.asyncio
+async def test_dashboard_stats_exclude_soft_deleted_contracts_from_all_metrics(
+    db_session,
+):
+    user = User(
+        username="dashboard-user",
+        email="dashboard-user@example.com",
+        password_hash="test-hash",
+    )
+    active_contract = Contract(
+        user=user,
+        original_filename="active.pdf",
+        stored_filename="active.pdf",
+        file_path="1/active.pdf",
+        file_size=10,
+        content_type="application/pdf",
+        status=ContractStatus.COMPLETED,
+    )
+    active_contract.analyses.append(
+        ContractAnalysis(
+            summary="Active contract analysis",
+            risk_score=25,
+            risk_level=RiskLevel.LOW,
+            analysis_version=1,
+        )
+    )
+    deleted_contract = Contract(
+        user=user,
+        original_filename="deleted.pdf",
+        stored_filename="deleted.pdf",
+        file_path="1/deleted.pdf",
+        file_size=10,
+        content_type="application/pdf",
+        status=ContractStatus.FAILED,
+        is_deleted=True,
+    )
+    deleted_contract.analyses.append(
+        ContractAnalysis(
+            summary="Deleted contract analysis",
+            risk_score=90,
+            risk_level=RiskLevel.HIGH,
+            analysis_version=1,
+        )
+    )
+    db_session.add(user)
+    db_session.add_all([active_contract, deleted_contract])
+    await db_session.commit()
+
+    stats = await AdminService().get_dashboard_stats(db_session)
+
+    assert stats.total_contracts == 1
+    assert stats.contracts_by_status == {"COMPLETED": 1}
+    assert stats.analyses_by_risk == {"LOW": 1}
+
+
+@pytest.mark.asyncio
+async def test_dashboard_stats_endpoint_returns_live_database_metrics(db_session):
+    overrides_before = app.dependency_overrides.copy()
+
+    async def override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_admin] = lambda: SimpleNamespace(
+        id=1,
+        is_admin=True,
+        is_active=True,
+    )
+    try:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://test",
+        ) as client:
+            response = await client.get("/admin/dashboard/stats")
+    finally:
+        app.dependency_overrides.clear()
+        app.dependency_overrides.update(overrides_before)
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "total_users": 0,
+        "active_users": 0,
+        "admin_users": 0,
+        "total_contracts": 0,
+        "contracts_by_status": {},
+        "analyses_by_risk": {},
+    }
 
 
 @pytest.mark.asyncio

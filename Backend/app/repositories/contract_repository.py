@@ -210,7 +210,15 @@ class ContractRepository:
         return {status.value if hasattr(status, 'value') else str(status): count for status, count in results}
 
     async def count_analyses_by_risk(self, db: AsyncSession) -> dict:
-        statement = select(ContractAnalysis.risk_level, func.count(ContractAnalysis.id)).group_by(ContractAnalysis.risk_level)
+        statement = (
+            select(
+                ContractAnalysis.risk_level,
+                func.count(ContractAnalysis.id),
+            )
+            .join(Contract, ContractAnalysis.contract_id == Contract.id)
+            .where(Contract.is_deleted.is_(False))
+            .group_by(ContractAnalysis.risk_level)
+        )
         results = (await db.execute(statement)).all()
         return {
             (risk.value if hasattr(risk, 'value') else str(risk)) if risk is not None else "UNANALYZED": count

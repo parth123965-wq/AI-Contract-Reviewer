@@ -50,9 +50,18 @@ class AdminDashboardStats(BaseModel):
     total_users: int = Field(description="Total registered platform users count", examples=[120])
     active_users: int = Field(description="Active user count", examples=[115])
     admin_users: int = Field(description="Administrator count", examples=[3])
-    total_contracts: int = Field(description="Total contracts uploaded count", examples=[450])
-    contracts_by_status: dict = Field(description="Breakdown of contracts by status string", examples=[{"completed": 400, "processing": 40, "error": 10}])
-    analyses_by_risk: dict = Field(description="Breakdown of contract analyses by risk tier", examples=[{"low": 200, "medium": 180, "high": 50, "critical": 20}])
+    total_contracts: int = Field(
+        description="Total uploaded contracts that have not been soft-deleted",
+        examples=[450],
+    )
+    contracts_by_status: dict[str, int] = Field(
+        description="Non-deleted contracts grouped by their status",
+        examples=[{"COMPLETED": 400, "PROCESSING": 40, "FAILED": 10}],
+    )
+    analyses_by_risk: dict[str, int] = Field(
+        description="Analyses of non-deleted contracts grouped by risk level",
+        examples=[{"LOW": 200, "MEDIUM": 180, "HIGH": 50, "UNANALYZED": 20}],
+    )
 
 
 class DatabaseDiagnostics(BaseModel):
