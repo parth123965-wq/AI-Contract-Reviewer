@@ -78,7 +78,7 @@ def test_store_embeddings_creates_index_using_actual_embedding_dimension(fake_cl
     assert fake_client.created_index["dimension"] == 3
     assert fake_client.created_index["metric"] == "cosine"
     assert fake_client.created_index["spec"].cloud == "aws"
-    assert fake_client.created_index["spec"].region == "ap-southeast-1"
+    assert fake_client.created_index["spec"].region == "us-east-1"
     assert [vector["id"] for vector in fake_client.index.upserted_vectors] == [
         "contract_7_v2_chunk_0",
         "contract_7_v2_chunk_1",

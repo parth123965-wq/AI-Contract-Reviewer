@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     PINECONE_API_KEY: str
     PINECONE_INDEX_NAME: str = "contracts"
     PINECONE_CLOUD: str = "aws"
-    PINECONE_REGION: str = "ap-southeast-1"
+    PINECONE_REGION: str = "us-east-1"
     AI_MODEL_NAME: str
     GEMINI_API_KEY: str | None = None
     GOOGLE_API_KEY: str | None = None

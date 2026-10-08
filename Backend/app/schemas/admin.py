@@ -38,6 +38,10 @@ class AdminPasswordChangeRequest(BaseModel):
 class ContractAdminDetailResponse(ContractResponse):
     username: Optional[str] = Field(default=None, description="Username of uploading user", examples=["john_doe"])
     user_email: Optional[str] = Field(default=None, description="Email of uploading user", examples=["john@example.com"])
+    last_error: Optional[str] = Field(
+        default=None,
+        description="Most recent analysis failure reason, if the contract failed",
+    )
     is_deleted: bool = Field(description="Whether the contract has been soft-deleted")
     deleted_at: Optional[datetime] = Field(default=None, description="When the contract was soft-deleted")
 

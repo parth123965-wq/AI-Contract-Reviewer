@@ -27,7 +27,7 @@ os.environ.update(
         "PINECONE_API_KEY": "test-pinecone-key",
         "PINECONE_INDEX_NAME": "contracts",
         "PINECONE_CLOUD": "aws",
-        "PINECONE_REGION": "ap-southeast-1",
+        "PINECONE_REGION": "us-east-1",
         "AI_MODEL_NAME": "test-model",
         "REDIS_URL": "redis://localhost:6379/15",
         "GMAIL_CLIENT_ID": "test-client-id",

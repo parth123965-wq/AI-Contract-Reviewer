@@ -776,6 +776,33 @@ async def test_admin_contract_listing_includes_soft_deleted_records():
 
 
 @pytest.mark.asyncio
+async def test_admin_contract_detail_exposes_analysis_failure_reason(db_session):
+    user = User(
+        username="failed-contract-owner",
+        email="failed-contract-owner@example.com",
+        password_hash="test-hash",
+    )
+    contract = Contract(
+        user=user,
+        original_filename="failed-agreement.pdf",
+        stored_filename="failed-agreement.pdf",
+        file_path="1/failed-agreement.pdf",
+        file_size=10,
+        content_type="application/pdf",
+        status=ContractStatus.FAILED,
+        last_error="Failed to generate embeddings",
+    )
+    db_session.add(user)
+    db_session.add(contract)
+    await db_session.commit()
+
+    result = await AdminService().get_contract_detail(db_session, contract.id)
+
+    assert result.status is ContractStatus.FAILED
+    assert result.last_error == "Failed to generate embeddings"
+
+
+@pytest.mark.asyncio
 async def test_admin_permanent_delete_removes_storage_before_database_records():
     service = AdminService()
     contract = SimpleNamespace(
