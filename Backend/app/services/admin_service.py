@@ -15,6 +15,7 @@ from app.schemas.admin import (
 )
 from app.models.contract import ContractStatus
 from app.core.logger import get_app_logger
+from app.services.email_service import email_service
 
 logger = get_app_logger("services.admin")
 
@@ -23,6 +24,37 @@ class AdminService:
         self.user_repository = UserRepository()
         self.contract_repository = ContractRepository()
         self.contract_storage = ContractStorage()
+        self.email_service = email_service
+
+    async def _notify_admin_change(
+        self,
+        db: AsyncSession,
+        email: str,
+        username: str,
+        action: str,
+        details: str,
+    ) -> None:
+        try:
+            await self.email_service.send_admin_change_notification(
+                email=email,
+                username=username,
+                action=action,
+                details=details,
+            )
+        except Exception:
+            await db.rollback()
+            logger.exception(
+                "Failed to notify user about an admin change.",
+                extra={"action": action},
+            )
+            raise
+
+    async def _commit_admin_change(self, db: AsyncSession) -> None:
+        try:
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            raise
 
     async def get_dashboard_stats(self, db: AsyncSession) -> AdminDashboardStats:
         user_stats = await self.user_repository.get_user_summary_stats(db=db)
@@ -99,15 +131,47 @@ class AdminService:
         )
 
     async def update_user_status(self, db: AsyncSession, user_id: int, is_active: bool) -> UserResponse:
-        user = await self.user_repository.update_user_status(db=db, user_id=user_id, is_active=is_active)
+        user = await self.user_repository.get_user_by_id(db=db, user_id=user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
+        if user.is_active == is_active:
+            return UserResponse.model_validate(user)
+
+        await self.user_repository.update_user_status(
+            db=db, user_id=user_id, is_active=is_active, commit=False
+        )
+        state = "active" if is_active else "suspended"
+        await self._notify_admin_change(
+            db=db,
+            email=user.email,
+            username=user.username,
+            action="An administrator changed your account status.",
+            details=f"Your account is now {state}.",
+        )
+        await self._commit_admin_change(db)
+        await db.refresh(user)
         return UserResponse.model_validate(user)
 
     async def update_user_role(self, db: AsyncSession, user_id: int, is_admin: bool) -> UserResponse:
-        user = await self.user_repository.update_user_role(db=db, user_id=user_id, is_admin=is_admin)
+        user = await self.user_repository.get_user_by_id(db=db, user_id=user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
+        if user.is_admin == is_admin:
+            return UserResponse.model_validate(user)
+
+        await self.user_repository.update_user_role(
+            db=db, user_id=user_id, is_admin=is_admin, commit=False
+        )
+        role = "administrator" if is_admin else "standard user"
+        await self._notify_admin_change(
+            db=db,
+            email=user.email,
+            username=user.username,
+            action="An administrator changed your account role.",
+            details=f"Your account role is now {role}.",
+        )
+        await self._commit_admin_change(db)
+        await db.refresh(user)
         return UserResponse.model_validate(user)
 
     async def delete_user(self, db: AsyncSession, user_id: int) -> dict:
@@ -119,9 +183,17 @@ class AdminService:
             db=db,
             user_id=user_id,
         )
+        await self._notify_admin_change(
+            db=db,
+            email=user.email,
+            username=user.username,
+            action="An administrator requested permanent deletion of your account.",
+            details="Your account and its associated contract data are being permanently deleted.",
+        )
         try:
             await self.contract_storage.remove_many(object_paths)
         except Exception as exc:
+            await db.rollback()
             logger.exception(
                 "Failed to remove contract files before deleting user.",
                 extra={"user_id": user_id, "file_count": len(object_paths)},
@@ -131,9 +203,13 @@ class AdminService:
                 detail="Failed to remove the user's contract files; the account was not deleted.",
             ) from exc
 
-        success = await self.user_repository.delete_user(db=db, user_id=user_id)
+        success = await self.user_repository.delete_user(
+            db=db, user_id=user_id, commit=False
+        )
         if not success:
+            await db.rollback()
             raise HTTPException(status_code=404, detail="User not found")
+        await self._commit_admin_change(db)
         return {"message": "User deleted successfully", "user_id": user_id}
 
     async def list_contracts(
@@ -191,9 +267,29 @@ class AdminService:
         )
         if not contract:
             raise HTTPException(status_code=404, detail="Contract not found")
+        if contract.status == new_status:
+            return contract
 
-        updated = await self.contract_repository.update_status(db=db, contract=contract, status=new_status)
-        return updated
+        old_status = contract.status.value
+        await self.contract_repository.update_status(
+            db=db, contract=contract, status=new_status, commit=False
+        )
+        if not contract.user:
+            await db.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail="Contract owner is unavailable; the change was not applied.",
+            )
+        await self._notify_admin_change(
+            db=db,
+            email=contract.user.email,
+            username=contract.user.username,
+            action=f'An administrator changed the status of your contract "{contract.original_filename}".',
+            details=f"The contract status changed from {old_status} to {new_status.value}.",
+        )
+        await self._commit_admin_change(db)
+        await db.refresh(contract)
+        return contract
 
     async def delete_contract(self, db: AsyncSession, contract_id: int) -> dict:
         contract = await self.contract_repository.get_contract_by_id(
@@ -202,9 +298,26 @@ class AdminService:
         if not contract:
             raise HTTPException(status_code=404, detail="Contract not found")
 
+        await self.contract_repository.permanently_delete_contract(
+            db=db, contract_id=contract_id, commit=False
+        )
+        if not contract.user:
+            await db.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail="Contract owner is unavailable; the contract was not deleted.",
+            )
+        await self._notify_admin_change(
+            db=db,
+            email=contract.user.email,
+            username=contract.user.username,
+            action=f'An administrator requested permanent deletion of your contract "{contract.original_filename}".',
+            details="The contract, its analysis history, and its stored PDF are being permanently deleted.",
+        )
         try:
             await self.contract_storage.remove(contract.file_path)
         except Exception as exc:
+            await db.rollback()
             logger.exception(
                 "Failed to remove contract file before permanent deletion.",
                 extra={"contract_id": contract_id},
@@ -214,9 +327,7 @@ class AdminService:
                 detail="Failed to remove the contract file; the contract was not deleted.",
             ) from exc
 
-        await self.contract_repository.permanently_delete_contract(
-            db=db, contract_id=contract_id
-        )
+        await self._commit_admin_change(db)
         return {
             "message": "Contract permanently deleted successfully",
             "contract_id": contract_id,
@@ -235,7 +346,22 @@ class AdminService:
                 status_code=409, detail="Contract is already soft-deleted"
             )
 
-        await self.contract_repository.soft_delete_contract(db=db, contract=contract)
+        if not contract.user:
+            raise HTTPException(
+                status_code=409,
+                detail="Contract owner is unavailable; the change was not applied.",
+            )
+        await self.contract_repository.soft_delete_contract(
+            db=db, contract=contract, commit=False
+        )
+        await self._notify_admin_change(
+            db=db,
+            email=contract.user.email,
+            username=contract.user.username,
+            action=f'An administrator moved your contract "{contract.original_filename}" to deleted contracts.',
+            details="The contract can be recovered by an administrator. Its PDF and analysis history remain stored.",
+        )
+        await self._commit_admin_change(db)
         return {
             "message": "Contract soft-deleted successfully",
             "contract_id": contract_id,
@@ -252,7 +378,22 @@ class AdminService:
                 status_code=409, detail="Contract is not soft-deleted"
             )
 
-        await self.contract_repository.recover_contract(db=db, contract=contract)
+        if not contract.user:
+            raise HTTPException(
+                status_code=409,
+                detail="Contract owner is unavailable; the change was not applied.",
+            )
+        await self.contract_repository.recover_contract(
+            db=db, contract=contract, commit=False
+        )
+        await self._notify_admin_change(
+            db=db,
+            email=contract.user.email,
+            username=contract.user.username,
+            action=f'An administrator recovered your contract "{contract.original_filename}".',
+            details="The contract is available in your active contracts again.",
+        )
+        await self._commit_admin_change(db)
         return {
             "message": "Contract recovered successfully",
             "contract_id": contract_id,

@@ -75,20 +75,38 @@ class UserRepository:
         result = await db.execute(statement)
         return result.scalar() or 0
 
-    async def update_user_status(self, db: AsyncSession, user_id: int, is_active: bool) -> Optional[User]:
+    async def update_user_status(
+        self,
+        db: AsyncSession,
+        user_id: int,
+        is_active: bool,
+        commit: bool = True,
+    ) -> Optional[User]:
         user = await self.get_user_by_id(db=db, user_id=user_id)
         if user:
             user.is_active = is_active
-            await db.commit()
-            await db.refresh(user)
+            if commit:
+                await db.commit()
+                await db.refresh(user)
+            else:
+                await db.flush()
         return user
 
-    async def update_user_role(self, db: AsyncSession, user_id: int, is_admin: bool) -> Optional[User]:
+    async def update_user_role(
+        self,
+        db: AsyncSession,
+        user_id: int,
+        is_admin: bool,
+        commit: bool = True,
+    ) -> Optional[User]:
         user = await self.get_user_by_id(db=db, user_id=user_id)
         if user:
             user.is_admin = is_admin
-            await db.commit()
-            await db.refresh(user)
+            if commit:
+                await db.commit()
+                await db.refresh(user)
+            else:
+                await db.flush()
         return user
 
     async def mark_user_verified(self, db: AsyncSession, user_id: int) -> Optional[User]:
@@ -99,7 +117,9 @@ class UserRepository:
             await db.refresh(user)
         return user
 
-    async def delete_user(self, db: AsyncSession, user_id: int) -> bool:
+    async def delete_user(
+        self, db: AsyncSession, user_id: int, commit: bool = True
+    ) -> bool:
         user = await self.get_user_by_id(db=db, user_id=user_id)
         if user:
             contract_ids = select(Contract.id).where(Contract.user_id == user_id)
@@ -110,7 +130,10 @@ class UserRepository:
             )
             await db.execute(delete(Contract).where(Contract.user_id == user_id))
             await db.execute(delete(User).where(User.id == user_id))
-            await db.commit()
+            if commit:
+                await db.commit()
+            else:
+                await db.flush()
             return True
         return False
 

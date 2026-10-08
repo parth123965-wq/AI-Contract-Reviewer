@@ -70,24 +70,28 @@ class ContractRepository:
     async def soft_delete_contract(
         self,
         db: AsyncSession,
-        contract: Contract
+        contract: Contract,
+        commit: bool = True,
     ) -> Contract:
         contract.is_deleted = True
         contract.deleted_at = datetime.now(timezone.utc)
-        return await self.update_contract(
-            db=db,
-            contract=contract
-        )
+        if commit:
+            return await self.update_contract(db=db, contract=contract)
+        await db.flush()
+        return contract
 
     async def recover_contract(
-        self, db: AsyncSession, contract: Contract
+        self, db: AsyncSession, contract: Contract, commit: bool = True
     ) -> Contract:
         contract.is_deleted = False
         contract.deleted_at = None
-        return await self.update_contract(db=db, contract=contract)
+        if commit:
+            return await self.update_contract(db=db, contract=contract)
+        await db.flush()
+        return contract
 
     async def permanently_delete_contract(
-        self, db: AsyncSession, contract_id: int
+        self, db: AsyncSession, contract_id: int, commit: bool = True
     ) -> None:
         await db.execute(
             delete(ContractAnalysis).where(
@@ -95,7 +99,10 @@ class ContractRepository:
             )
         )
         await db.execute(delete(Contract).where(Contract.id == contract_id))
-        await db.commit()
+        if commit:
+            await db.commit()
+        else:
+            await db.flush()
     
     async def get_next_analysis_version(
         self,
@@ -117,11 +124,15 @@ class ContractRepository:
         self,
         db: AsyncSession,
         contract: Contract,
-        status: ContractStatus
+        status: ContractStatus,
+        commit: bool = True,
     ) -> Contract:
         contract.status = status
-        await db.commit()
-        await db.refresh(contract)
+        if commit:
+            await db.commit()
+            await db.refresh(contract)
+        else:
+            await db.flush()
         return contract
 
     async def get_all_contracts(

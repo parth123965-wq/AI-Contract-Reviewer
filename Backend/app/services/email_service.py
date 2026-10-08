@@ -212,5 +212,23 @@ class EmailService:
         subject = f"Your {settings.APP_NAME} Username Has Been Changed"
         await self.send_email([email], subject, html_content)
 
+    async def send_admin_change_notification(
+        self,
+        email: str,
+        username: str,
+        action: str,
+        details: str,
+    ) -> None:
+        html_content = self._render_template(
+            "admin_change_notification.html",
+            {
+                "username": username,
+                "action": action,
+                "details": details,
+            },
+        )
+        subject = f"An administrator updated your {settings.APP_NAME} account"
+        await self.send_email([email], subject, html_content)
+
 
 email_service = EmailService()

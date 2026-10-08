@@ -1,6 +1,6 @@
 import base64
 from email import message_from_bytes
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import httpx
 import pytest
@@ -207,3 +207,23 @@ async def test_email_service_fails_explicitly_when_not_configured(monkeypatch):
 
     assert error.value.status_code == 503
     assert error.value.detail == "Email service is not configured."
+
+
+@pytest.mark.asyncio
+async def test_admin_change_notification_uses_async_email_transport():
+    service = EmailService()
+    service.send_email = AsyncMock()
+
+    await service.send_admin_change_notification(
+        "user@example.com",
+        "Example User",
+        "An administrator changed your account role.",
+        "Your role is now <administrator>.",
+    )
+
+    service.send_email.assert_awaited_once()
+    recipients, subject, body = service.send_email.await_args.args
+    assert recipients == ["user@example.com"]
+    assert "administrator" in subject
+    assert "Example User" in body
+    assert "&lt;administrator&gt;" in body
