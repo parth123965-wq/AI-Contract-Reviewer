@@ -11,6 +11,35 @@ from app.repositories.contract_repository import ContractRepository
 from app.repositories.user_repository import UserRepository
 from app.services.admin_service import AdminService
 from app.main import app
+from app.schemas.user import (
+    RequestEmailChangeRequest,
+    UpdateUsernameRequest,
+    VerifyEmailChangeRequest,
+)
+from app.services import admin_service as admin_service_module
+
+
+class FakeRedis:
+    def __init__(self):
+        self.values = {}
+        self.expirations = {}
+
+    async def set(self, key, value, ex=None):
+        self.values[key] = value
+        self.expirations[key] = ex
+        return True
+
+    async def get(self, key):
+        return self.values.get(key)
+
+    async def delete(self, *keys):
+        removed = 0
+        for key in keys:
+            if key in self.values:
+                del self.values[key]
+                self.expirations.pop(key, None)
+                removed += 1
+        return removed
 
 
 @pytest.mark.asyncio
@@ -228,6 +257,259 @@ async def test_admin_user_status_change_skips_email_when_value_is_unchanged(db_s
 
     assert result.is_active is True
     service.email_service.send_admin_change_notification.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_admin_username_change_checks_duplicates_and_notifies(db_session):
+    user = User(
+        username="old-name",
+        email="username-user@example.com",
+        password_hash="hash",
+    )
+    db_session.add(user)
+    await db_session.commit()
+    service = AdminService()
+    service.email_service = AsyncMock()
+
+    result = await service.update_user_username(
+        db_session, user.id, UpdateUsernameRequest(username=" new-name ")
+    )
+
+    assert result.username == "new-name"
+    service.email_service.send_admin_change_notification.assert_awaited_once()
+    assert service.email_service.send_admin_change_notification.await_args.kwargs[
+        "email"
+    ] == user.email
+
+
+@pytest.mark.asyncio
+async def test_admin_username_change_rolls_back_when_notification_fails(db_session):
+    user = User(
+        username="old-name-fail",
+        email="username-fail@example.com",
+        password_hash="hash",
+    )
+    db_session.add(user)
+    await db_session.commit()
+    service = AdminService()
+    service.email_service = AsyncMock()
+    service.email_service.send_admin_change_notification.side_effect = HTTPException(
+        status_code=502, detail="Email delivery failed"
+    )
+
+    with pytest.raises(HTTPException):
+        await service.update_user_username(
+            db_session, user.id, UpdateUsernameRequest(username="new-name-fail")
+        )
+
+    await db_session.refresh(user)
+    assert user.username == "old-name-fail"
+
+
+@pytest.mark.asyncio
+async def test_admin_email_change_request_stores_pending_email_and_sends_otp(
+    db_session, monkeypatch
+):
+    user = User(
+        username="email-request-user",
+        email="old-email@example.com",
+        password_hash="hash",
+    )
+    db_session.add(user)
+    await db_session.commit()
+    redis = FakeRedis()
+    monkeypatch.setattr(admin_service_module, "get_redis", lambda: redis)
+    service = AdminService()
+    service.otp_service = AsyncMock()
+    service.otp_service.generate_otp.return_value = "123456"
+    service.otp_service.send_otp_email.return_value = None
+
+    result = await service.request_user_email_change(
+        db_session,
+        user.id,
+        RequestEmailChangeRequest(new_email=" New.Email@example.com "),
+    )
+
+    assert result["email"] == "new.email@example.com"
+    assert redis.values[f"admin:email_change:{user.id}"] == "new.email@example.com"
+    service.otp_service.generate_otp.assert_awaited_once_with(
+        purpose="admin_email_change",
+        identifier=f"{user.id}:new.email@example.com",
+    )
+    service.otp_service.send_otp_email.assert_awaited_once_with(
+        email="new.email@example.com",
+        otp_code="123456",
+        purpose="email change",
+    )
+    assert user.email == "old-email@example.com"
+
+
+@pytest.mark.asyncio
+async def test_admin_email_change_request_cleans_redis_if_otp_send_fails(
+    db_session, monkeypatch
+):
+    user = User(
+        username="email-fail-user",
+        email="email-fail-old@example.com",
+        password_hash="hash",
+    )
+    db_session.add(user)
+    await db_session.commit()
+    redis = FakeRedis()
+    monkeypatch.setattr(admin_service_module, "get_redis", lambda: redis)
+    service = AdminService()
+    service.otp_service = AsyncMock()
+    service.otp_service.generate_otp.return_value = "654321"
+    service.otp_service.send_otp_email.side_effect = HTTPException(
+        status_code=502, detail="Email delivery failed"
+    )
+
+    with pytest.raises(HTTPException):
+        await service.request_user_email_change(
+            db_session,
+            user.id,
+            RequestEmailChangeRequest(new_email="email-fail-new@example.com"),
+        )
+
+    assert f"admin:email_change:{user.id}" not in redis.values
+    service.otp_service.invalidate_otp.assert_awaited_once_with(
+        purpose="admin_email_change",
+        identifier=f"{user.id}:email-fail-new@example.com",
+    )
+
+
+@pytest.mark.asyncio
+async def test_admin_email_confirmation_updates_only_after_otp_and_notifies_both(
+    db_session, monkeypatch
+):
+    user = User(
+        username="email-confirm-user",
+        email="confirm-old@example.com",
+        password_hash="hash",
+    )
+    db_session.add(user)
+    await db_session.commit()
+    redis = FakeRedis()
+    redis.values[f"admin:email_change:{user.id}"] = "confirm-new@example.com"
+    monkeypatch.setattr(admin_service_module, "get_redis", lambda: redis)
+    service = AdminService()
+    service.otp_service = AsyncMock()
+    service.email_service = AsyncMock()
+
+    result = await service.confirm_user_email_change(
+        db_session,
+        user.id,
+        VerifyEmailChangeRequest(
+            new_email="confirm-new@example.com",
+            otp_code="123456",
+        ),
+    )
+
+    assert result.email == "confirm-new@example.com"
+    service.otp_service.verify_otp.assert_awaited_once_with(
+        purpose="admin_email_change",
+        identifier=f"{user.id}:confirm-new@example.com",
+        input_otp="123456",
+    )
+    assert [
+        call.kwargs["email"]
+        for call in service.email_service.send_email_changed_notification.await_args_list
+    ] == ["confirm-old@example.com", "confirm-new@example.com"]
+    assert f"admin:email_change:{user.id}" not in redis.values
+
+
+@pytest.mark.asyncio
+async def test_admin_email_confirmation_keeps_old_email_when_otp_is_invalid(
+    db_session, monkeypatch
+):
+    user = User(
+        username="email-invalid-user",
+        email="invalid-old@example.com",
+        password_hash="hash",
+    )
+    db_session.add(user)
+    await db_session.commit()
+    redis = FakeRedis()
+    redis.values[f"admin:email_change:{user.id}"] = "invalid-new@example.com"
+    monkeypatch.setattr(admin_service_module, "get_redis", lambda: redis)
+    service = AdminService()
+    service.otp_service = AsyncMock()
+    service.email_service = AsyncMock()
+    service.otp_service.verify_otp.side_effect = HTTPException(
+        status_code=400, detail="OTP is invalid or has expired."
+    )
+
+    with pytest.raises(HTTPException):
+        await service.confirm_user_email_change(
+            db_session,
+            user.id,
+            VerifyEmailChangeRequest(
+                new_email="invalid-new@example.com",
+                otp_code="000000",
+            ),
+        )
+
+    await db_session.refresh(user)
+    assert user.email == "invalid-old@example.com"
+    service.email_service.send_email_changed_notification.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_admin_email_confirmation_rolls_back_when_notice_fails(
+    db_session, monkeypatch
+):
+    user = User(
+        username="email-notice-fail-user",
+        email="notice-fail-old@example.com",
+        password_hash="hash",
+    )
+    db_session.add(user)
+    await db_session.commit()
+    redis = FakeRedis()
+    redis.values[f"admin:email_change:{user.id}"] = "notice-fail-new@example.com"
+    monkeypatch.setattr(admin_service_module, "get_redis", lambda: redis)
+    service = AdminService()
+    service.otp_service = AsyncMock()
+    service.email_service = AsyncMock()
+    service.email_service.send_email_changed_notification.side_effect = HTTPException(
+        status_code=502, detail="Email delivery failed"
+    )
+
+    with pytest.raises(HTTPException):
+        await service.confirm_user_email_change(
+            db_session,
+            user.id,
+            VerifyEmailChangeRequest(
+                new_email="notice-fail-new@example.com",
+                otp_code="123456",
+            ),
+        )
+
+    await db_session.refresh(user)
+    assert user.email == "notice-fail-old@example.com"
+
+
+def test_new_admin_user_change_routes_are_rate_limited():
+    from app.core.rate_limit import RateLimiter
+    from app.api.admin import admin_router
+
+    expected_paths = {
+        "/admin/users/{user_id}/username",
+        "/admin/users/{user_id}/email/request",
+        "/admin/users/{user_id}/email/confirm",
+    }
+    routes = {
+        route.path: route
+        for route in admin_router.routes
+        if route.path in expected_paths
+    }
+
+    assert set(routes) == expected_paths
+    for route in routes.values():
+        assert any(
+            isinstance(dependency.call, RateLimiter)
+            for dependency in route.dependant.dependencies
+        )
 
 
 @pytest.mark.asyncio

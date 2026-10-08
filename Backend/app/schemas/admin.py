@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
+from pydantic import EmailStr
 from app.schemas.user import UserResponse
 from app.schemas.contract import ContractResponse
 
@@ -20,6 +21,10 @@ class UserStatusUpdate(BaseModel):
 
 class UserRoleUpdate(BaseModel):
     is_admin: bool = Field(description="Grant (True) or revoke (False) admin administrative role", examples=[True])
+
+class AdminEmailChangeRequestResponse(BaseModel):
+    message: str = Field(description="Email verification status")
+    email: EmailStr = Field(description="Target email address awaiting OTP verification")
 
 class ContractAdminDetailResponse(ContractResponse):
     username: Optional[str] = Field(default=None, description="Username of uploading user", examples=["john_doe"])

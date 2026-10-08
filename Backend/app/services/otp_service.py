@@ -101,6 +101,12 @@ class OTPService:
             detail=f"Invalid OTP code. {remaining} attempt(s) remaining."
         )
 
+    async def invalidate_otp(self, purpose: str, identifier: str) -> None:
+        """Remove all Redis state associated with a failed OTP delivery."""
+        redis = get_redis()
+        code_key, attempts_key, cooldown_key = self._get_keys(purpose, identifier)
+        await redis.delete(code_key, attempts_key, cooldown_key)
+
     async def send_otp_email(self, email: str, otp_code: str, purpose: str = "verification") -> None:
         """
         Dispatch the OTP code to the target email address using EmailService template rendering.

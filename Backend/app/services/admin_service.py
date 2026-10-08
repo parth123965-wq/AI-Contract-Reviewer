@@ -5,7 +5,6 @@ from typing import Optional
 from app.repositories.user_repository import UserRepository
 from app.repositories.contract_repository import ContractRepository
 from app.services.contract_storage import ContractStorage
-from app.schemas.user import UserResponse
 from app.schemas.admin import (
     AdminUserListResponse,
     UserAdminDetailResponse,
@@ -16,6 +15,15 @@ from app.schemas.admin import (
 from app.models.contract import ContractStatus
 from app.core.logger import get_app_logger
 from app.services.email_service import email_service
+from app.services.otp_service import otp_service
+from app.core.config import settings
+from app.core.redis_setup import get_redis
+from app.schemas.user import (
+    RequestEmailChangeRequest,
+    UpdateUsernameRequest,
+    UserResponse,
+    VerifyEmailChangeRequest,
+)
 
 logger = get_app_logger("services.admin")
 
@@ -25,6 +33,7 @@ class AdminService:
         self.contract_repository = ContractRepository()
         self.contract_storage = ContractStorage()
         self.email_service = email_service
+        self.otp_service = otp_service
 
     async def _notify_admin_change(
         self,
@@ -171,6 +180,177 @@ class AdminService:
             details=f"Your account role is now {role}.",
         )
         await self._commit_admin_change(db)
+        await db.refresh(user)
+        return UserResponse.model_validate(user)
+
+    async def update_user_username(
+        self,
+        db: AsyncSession,
+        user_id: int,
+        request: UpdateUsernameRequest,
+    ) -> UserResponse:
+        user = await self.user_repository.get_user_by_id(db=db, user_id=user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        new_username = request.username.strip()
+        if not 3 <= len(new_username) <= 100:
+            raise HTTPException(
+                status_code=400,
+                detail="Username must contain between 3 and 100 characters.",
+            )
+        if new_username == user.username:
+            return UserResponse.model_validate(user)
+        existing_user = await self.user_repository.get_user_by_username(
+            db=db, username=new_username
+        )
+        if existing_user and existing_user.id != user.id:
+            raise HTTPException(status_code=409, detail="Username is already taken.")
+
+        user.username = new_username
+        await self.user_repository.update_user(db=db, user=user, commit=False)
+        await self._notify_admin_change(
+            db=db,
+            email=user.email,
+            username=new_username,
+            action="An administrator changed your username.",
+            details=f"Your username is now {new_username}.",
+        )
+        await self._commit_admin_change(db)
+        await db.refresh(user)
+        return UserResponse.model_validate(user)
+
+    async def request_user_email_change(
+        self,
+        db: AsyncSession,
+        user_id: int,
+        request: RequestEmailChangeRequest,
+    ) -> dict:
+        user = await self.user_repository.get_user_by_id(db=db, user_id=user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        new_email = request.new_email.lower().strip()
+        if new_email == user.email.lower():
+            raise HTTPException(
+                status_code=400,
+                detail="New email must be different from the current email.",
+            )
+        existing_user = await self.user_repository.get_user_by_email(
+            db=db, email=new_email
+        )
+        if existing_user and existing_user.id != user.id:
+            raise HTTPException(
+                status_code=409,
+                detail="Email is already registered by another account.",
+            )
+
+        purpose = "admin_email_change"
+        identifier = f"{user_id}:{new_email}"
+        pending_key = f"admin:email_change:{user_id}"
+        otp_code = await self.otp_service.generate_otp(
+            purpose=purpose, identifier=identifier
+        )
+        redis = get_redis()
+        try:
+            await redis.set(
+                pending_key,
+                new_email,
+                ex=settings.OTP_EXPIRE_SECONDS,
+            )
+            await self.otp_service.send_otp_email(
+                email=new_email,
+                otp_code=otp_code,
+                purpose="email change",
+            )
+        except Exception:
+            logger.exception(
+                "Failed to send admin-initiated email change OTP.",
+                extra={"user_id": user_id},
+            )
+            try:
+                await redis.delete(pending_key)
+                await self.otp_service.invalidate_otp(
+                    purpose=purpose, identifier=identifier
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to clean up Redis state after admin email OTP delivery failed.",
+                    extra={"user_id": user_id},
+                )
+            raise
+
+        return {
+            "message": f"Verification OTP sent to {new_email}.",
+            "email": new_email,
+        }
+
+    async def confirm_user_email_change(
+        self,
+        db: AsyncSession,
+        user_id: int,
+        request: VerifyEmailChangeRequest,
+    ) -> UserResponse:
+        user = await self.user_repository.get_user_by_id(db=db, user_id=user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        new_email = request.new_email.lower().strip()
+        if new_email == user.email.lower():
+            raise HTTPException(
+                status_code=400,
+                detail="New email must be different from the current email.",
+            )
+        redis = get_redis()
+        pending_key = f"admin:email_change:{user_id}"
+        pending_email = await redis.get(pending_key)
+        if pending_email != new_email:
+            raise HTTPException(
+                status_code=400,
+                detail="No matching pending email change. Request a new verification code.",
+            )
+
+        existing_user = await self.user_repository.get_user_by_email(
+            db=db, email=new_email
+        )
+        if existing_user and existing_user.id != user.id:
+            raise HTTPException(
+                status_code=409,
+                detail="Email is already registered by another account.",
+            )
+
+        await self.otp_service.verify_otp(
+            purpose="admin_email_change",
+            identifier=f"{user_id}:{new_email}",
+            input_otp=request.otp_code,
+        )
+        old_email = user.email
+        user.email = new_email
+        await self.user_repository.update_user(db=db, user=user, commit=False)
+
+        try:
+            for recipient in dict.fromkeys((old_email, new_email)):
+                await self.email_service.send_email_changed_notification(
+                    email=recipient,
+                    username=user.username,
+                    new_email=new_email,
+                )
+        except Exception:
+            await db.rollback()
+            logger.exception(
+                "Failed to send email-change notifications; database change rolled back.",
+                extra={"user_id": user_id},
+            )
+            raise
+
+        await self._commit_admin_change(db)
+        try:
+            await redis.delete(pending_key)
+        except Exception:
+            logger.exception(
+                "Failed to clear pending admin email after successful confirmation.",
+                extra={"user_id": user_id},
+            )
         await db.refresh(user)
         return UserResponse.model_validate(user)
 

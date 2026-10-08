@@ -26,9 +26,14 @@ class UserRepository:
         result = (await db.execute(statement=statement)).scalar_one_or_none()
         return result
 
-    async def update_user(self, db: AsyncSession, user: User) -> User:
-        await db.commit()
-        await db.refresh(user)
+    async def update_user(
+        self, db: AsyncSession, user: User, commit: bool = True
+    ) -> User:
+        if commit:
+            await db.commit()
+            await db.refresh(user)
+        else:
+            await db.flush()
         return user
 
 

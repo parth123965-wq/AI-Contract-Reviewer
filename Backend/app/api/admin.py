@@ -11,6 +11,7 @@ from app.schemas.user import UserResponse
 from app.schemas.contract import ContractResponse
 from app.schemas.admin import (
     AdminUserListResponse,
+    AdminEmailChangeRequestResponse,
     UserAdminDetailResponse,
     UserStatusUpdate,
     UserRoleUpdate,
@@ -19,6 +20,11 @@ from app.schemas.admin import (
     ContractAdminActionResponse,
     ContractStatusUpdate,
     AdminDashboardStats
+)
+from app.schemas.user import (
+    RequestEmailChangeRequest,
+    UpdateUsernameRequest,
+    VerifyEmailChangeRequest,
 )
 from app.core.rate_limit import RateLimiter
 
@@ -121,6 +127,63 @@ async def update_user_role(
     service: Annotated[AdminService, Depends(get_admin_service)]
 ) -> UserResponse:
     return await service.update_user_role(db=db, user_id=user_id, is_admin=body.is_admin)
+
+
+@admin_router.patch(
+    "/users/{user_id}/username",
+    response_model=UserResponse,
+    summary="Change User Username (Admin)",
+    description="Change a user's username and notify them by email.",
+    dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_users"))]
+)
+async def update_user_username(
+    user_id: int,
+    body: UpdateUsernameRequest,
+    admin: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    service: Annotated[AdminService, Depends(get_admin_service)]
+) -> UserResponse:
+    return await service.update_user_username(
+        db=db, user_id=user_id, request=body
+    )
+
+
+@admin_router.post(
+    "/users/{user_id}/email/request",
+    response_model=AdminEmailChangeRequestResponse,
+    summary="Request User Email Change (Admin)",
+    description="Send an OTP to a proposed email address. The user's stored email is unchanged until the OTP is verified.",
+    dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="admin_user_email_request"))]
+)
+async def request_user_email_change(
+    user_id: int,
+    body: RequestEmailChangeRequest,
+    admin: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    service: Annotated[AdminService, Depends(get_admin_service)]
+) -> AdminEmailChangeRequestResponse:
+    return await service.request_user_email_change(
+        db=db, user_id=user_id, request=body
+    )
+
+
+@admin_router.post(
+    "/users/{user_id}/email/confirm",
+    response_model=UserResponse,
+    summary="Confirm User Email Change (Admin)",
+    description="Verify the OTP sent to the proposed email address and then update the user's stored email.",
+    dependencies=[Depends(RateLimiter(times=10, seconds=60, prefix="admin_user_email_confirm"))]
+)
+async def confirm_user_email_change(
+    user_id: int,
+    body: VerifyEmailChangeRequest,
+    admin: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    service: Annotated[AdminService, Depends(get_admin_service)]
+) -> UserResponse:
+    return await service.confirm_user_email_change(
+        db=db, user_id=user_id, request=body
+    )
 
 
 @admin_router.delete(
