@@ -23,16 +23,15 @@ class Settings(BaseSettings):
     AI_MODEL_NAME: str
     GEMINI_API_KEY: str | None = None
     GOOGLE_API_KEY: str | None = None
+    BREVO_API_KEY: str | None = None
     REDIS_URL: str
-    GMAIL_CLIENT_ID: str | None = None
-    GMAIL_CLIENT_SECRET: str | None = None
-    GMAIL_REFRESH_TOKEN: str | None = None
     GMAIL_SENDER: str | None = None
     OTP_LENGTH: int
     OTP_EXPIRE_SECONDS: int
     OTP_COOLDOWN_SECONDS: int
     OTP_MAX_ATTEMPTS: int
     ALLOWED_ORIGINS: str = "*"
+    BREVO_SEND_URL: str
     model_config = SettingsConfigDict(
         env_file=ENV_PATH,
         extra='ignore'

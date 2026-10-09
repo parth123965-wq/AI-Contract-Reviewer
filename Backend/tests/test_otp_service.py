@@ -125,7 +125,7 @@ async def test_verify_otp_rejects_missing_or_expired_code(service, redis_client)
 
 
 @pytest.mark.asyncio
-async def test_send_otp_email_delegates_to_resend_backed_email_service(
+async def test_send_otp_email_delegates_to_email_service(
     service, monkeypatch
 ):
     email = AsyncMock()

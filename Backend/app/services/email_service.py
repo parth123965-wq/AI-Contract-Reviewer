@@ -1,5 +1,3 @@
-import base64
-from email.message import EmailMessage
 from pathlib import Path
 from typing import Any, Dict
 
@@ -13,12 +11,11 @@ from app.core.logger import get_app_logger
 logger = get_app_logger("services.email")
 
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
-GMAIL_TOKEN_URL = "https://oauth2.googleapis.com/token"
-GMAIL_SEND_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
+
 
 
 class EmailService:
-    """Render email templates and dispatch messages through the Gmail API."""
+    """Render email templates and dispatch messages through the Brevo API."""
 
     def __init__(self) -> None:
         self.jinja_env = Environment(
@@ -38,76 +35,51 @@ class EmailService:
     async def send_email(
         self, recipients: list[str], subject: str, body_html: str
     ) -> None:
-        """Send an HTML email as the configured Gmail account using OAuth."""
-        credentials = (
-            settings.GMAIL_CLIENT_ID,
-            settings.GMAIL_CLIENT_SECRET,
-            settings.GMAIL_REFRESH_TOKEN,
-            settings.GMAIL_SENDER,
-        )
-        if not all(credentials):
-            logger.error("Email delivery is not configured: Gmail credentials are missing.")
+        """Send an HTML email through Brevo using the configured verified sender."""
+        if not settings.BREVO_API_KEY or not settings.GMAIL_SENDER:
+            logger.error(
+                "Email delivery is not configured: Brevo API key or sender is missing."
+            )
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Email service is not configured.",
             )
 
-        message = EmailMessage()
-        message["From"] = settings.GMAIL_SENDER
-        message["To"] = ", ".join(recipients)
-        message["Subject"] = subject
-        message.set_content(
-            "This message contains HTML content. Please view it in an HTML-capable email client."
-        )
-        message.add_alternative(body_html, subtype="html")
-        encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode("ascii")
-        raw_message = encoded_message.rstrip("=")
+        payload = {
+            "sender": {
+                "name": settings.APP_NAME,
+                "email": settings.GMAIL_SENDER,
+            },
+            "to": [{"email": recipient} for recipient in recipients],
+            "subject": subject,
+            "htmlContent": body_html,
+        }
 
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
-                token_response = await client.post(
-                    GMAIL_TOKEN_URL,
-                    data={
-                        "client_id": settings.GMAIL_CLIENT_ID,
-                        "client_secret": settings.GMAIL_CLIENT_SECRET,
-                        "refresh_token": settings.GMAIL_REFRESH_TOKEN,
-                        "grant_type": "refresh_token",
+                response = await client.post(
+                    settings.BREVO_SEND_URL,
+                    headers={
+                        "api-key": settings.BREVO_API_KEY,
+                        "accept": "application/json",
                     },
+                    json=payload,
                 )
-                token_response.raise_for_status()
-                access_token = token_response.json().get("access_token")
-                if not access_token:
-                    logger.error("Google OAuth response did not include an access token.")
-                    raise HTTPException(
-                        status_code=status.HTTP_502_BAD_GATEWAY,
-                        detail="Google authorization failed. Reauthorize the Gmail account.",
-                    )
-
-                send_response = await client.post(
-                    GMAIL_SEND_URL,
-                    headers={"Authorization": f"Bearer {access_token}"},
-                    json={"raw": raw_message},
-                )
-                send_response.raise_for_status()
-            logger.info("Email sent via Gmail API to %s", recipients)
+                response.raise_for_status()
+            logger.info("Email accepted by Brevo for %s", recipients)
         except httpx.HTTPStatusError as exc:
             try:
                 provider_response = exc.response.json()
             except ValueError:
                 provider_response = {}
-            provider_error = (
-                provider_response.get("error")
-                if isinstance(provider_response, dict)
-                else None
-            )
-            provider_message = (
-                provider_error.get("message")
-                if isinstance(provider_error, dict)
-                else provider_error
-            )
-            is_token_error = str(exc.request.url) == GMAIL_TOKEN_URL
+            provider_message = None
+            if isinstance(provider_response, dict):
+                provider_message = (
+                    provider_response.get("message")
+                    or provider_response.get("error")
+                )
             logger.error(
-                "Gmail API rejected email delivery.",
+                "Brevo API rejected email delivery.",
                 extra={
                     "status_code": exc.response.status_code,
                     "endpoint": str(exc.request.url),
@@ -117,40 +89,32 @@ class EmailService:
                     "recipients": recipients,
                 },
             )
-            if is_token_error:
-                raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail=(
-                        "Google OAuth failed. Check the Gmail client credentials and "
-                        "refresh token, then authorize again if needed."
-                    ),
-                ) from exc
-            if exc.response.status_code == status.HTTP_403_FORBIDDEN:
+            if exc.response.status_code in {
+                status.HTTP_401_UNAUTHORIZED,
+                status.HTTP_403_FORBIDDEN,
+            }:
                 detail = (
-                    "Gmail denied email sending. Check that Gmail API is enabled, the "
-                    "authorized account has gmail.send permission, and Gmail sending "
-                    "limits have not been reached."
+                    "Brevo rejected email sending. Check the API key and verify that "
+                    "the configured sender address is active in Brevo."
                 )
             else:
-                detail = "Gmail API rejected the email."
+                detail = "Brevo API rejected the email."
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=detail,
             ) from exc
         except httpx.HTTPError as exc:
             logger.error(
-                "Gmail API request failed.",
+                "Brevo API request failed.",
                 extra={"error_type": type(exc).__name__, "recipients": recipients},
             )
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Google email service could not be reached.",
+                detail="Brevo email service could not be reached.",
             ) from exc
-        except HTTPException:
-            raise
         except Exception as exc:
             logger.exception(
-                "Unexpected error while sending email via Gmail API.",
+                "Unexpected error while sending email via Brevo.",
                 extra={"recipients": recipients},
             )
             raise HTTPException(
