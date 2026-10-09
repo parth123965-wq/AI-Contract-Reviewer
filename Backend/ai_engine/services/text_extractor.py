@@ -1,8 +1,8 @@
 try:
-    import fitz
-    HAS_FITZ = True
+    import pymupdf
+    HAS_PYMUPDF = True
 except ImportError:
-    HAS_FITZ = False
+    HAS_PYMUPDF = False
 
 from pypdf import PdfReader
 from io import BytesIO
@@ -25,8 +25,8 @@ class TextExtractor:
         self,
         file_content: bytes
     ):
-        if HAS_FITZ:
-            return ("fitz", fitz.open(stream=file_content, filetype="pdf"))
+        if HAS_PYMUPDF:
+            return ("pymupdf", pymupdf.open(stream=file_content, filetype="pdf"))
         else:
             return ("pypdf", PdfReader(BytesIO(file_content)))
 
@@ -36,7 +36,7 @@ class TextExtractor:
     ) -> list[str]:
         engine, doc = doc_tuple
         text_list = []
-        if engine == "fitz":
+        if engine == "pymupdf":
             for page_number, page in enumerate(doc, start=1):
                 text = page.get_text()
                 if text and len(text.strip()) > 5:
@@ -66,7 +66,7 @@ class TextExtractor:
             model_name = getattr(settings, "AI_MODEL_NAME", "gemini-3.6-flash") or "gemini-3.6-flash"
             client = genai.Client(api_key=api_key)
             
-            if engine == "fitz":
+            if engine == "pymupdf":
                 for page in doc:
                     pix = page.get_pixmap()
                     img_bytes = pix.tobytes("png")
