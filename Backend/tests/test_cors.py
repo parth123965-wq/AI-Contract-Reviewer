@@ -1,7 +1,21 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from app.main import app
+from app.main import _get_cors_origins, app
+
+
+def test_cors_ignores_wildcard_and_keeps_explicit_origins():
+    assert _get_cors_origins(
+        "https://ai-contract-reviewer.ai.studio, *"
+    ) == ["https://ai-contract-reviewer.ai.studio"]
+
+
+def test_cors_with_only_wildcard_has_no_allowed_origins():
+    assert _get_cors_origins("*") == []
+
+
+def test_cors_with_empty_setting_has_no_allowed_origins():
+    assert _get_cors_origins("  , ") == []
 
 
 @pytest.mark.asyncio

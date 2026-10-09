@@ -122,13 +122,25 @@ async def enforce_security_headers(request: Request, call_next):
     return response
 
 
-cors_origins_list = [
-    origin.strip()
-    for origin in settings.ALLOWED_ORIGINS.split(",")
-    if origin.strip()
-]
-if not cors_origins_list or "*" in cors_origins_list:
-    raise ValueError("ALLOWED_ORIGINS must contain explicit origins and cannot include '*'.")
+def _get_cors_origins(configured_origins: str) -> list[str]:
+    configured = [
+        origin.strip()
+        for origin in configured_origins.split(",")
+        if origin.strip()
+    ]
+    origins = [origin for origin in configured if origin != "*"]
+    if "*" in configured:
+        main_logger.error(
+            "Ignoring wildcard in ALLOWED_ORIGINS; configure explicit frontend origins."
+        )
+    if not origins:
+        main_logger.error(
+            "ALLOWED_ORIGINS has no valid origins; browser cross-origin requests will be denied."
+        )
+    return origins
+
+
+cors_origins_list = _get_cors_origins(settings.ALLOWED_ORIGINS)
 
 app.add_middleware(
     CORSMiddleware,
