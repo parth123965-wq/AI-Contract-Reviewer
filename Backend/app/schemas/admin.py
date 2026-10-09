@@ -89,9 +89,9 @@ class AdminDashboardStats(BaseModel):
     )
 
 
-class DatabaseDiagnostics(BaseModel):
+class DependencyDiagnostics(BaseModel):
     connected: bool
-    status: Literal["healthy", "critical"]
+    status: Literal["healthy", "warning", "critical", "unavailable"]
     latency_ms: Optional[float]
     error: Optional[str] = None
 
@@ -99,8 +99,9 @@ class DatabaseDiagnostics(BaseModel):
 class AdminDiagnosticsResponse(BaseModel):
     overall_status: Literal["healthy", "warning", "critical"] = Field(
         description=(
-            "Critical when the database is down or CPU/memory/disk reach 95%/90%/95%; "
-            "warning at CPU/memory/disk 80%/80%/85% or database latency >= 1000 ms."
+            "Critical when the database, vector store, Supabase storage, Redis, or email "
+            "is unavailable, or CPU/memory/disk reach 95%/90%/95%; warning at "
+            "CPU/memory/disk 80%/80%/85% or database latency >= 1000 ms."
         )
     )
     uptime_seconds: float
@@ -111,7 +112,12 @@ class AdminDiagnosticsResponse(BaseModel):
     disk_used_bytes: int
     disk_total_bytes: int
     disk_percent: float
-    database: DatabaseDiagnostics
+    disk_path: str
+    database: DependencyDiagnostics
+    vector_store: DependencyDiagnostics
+    supabase_storage: DependencyDiagnostics
+    redis: DependencyDiagnostics
+    email: DependencyDiagnostics
     active_thread_count: int
 
 

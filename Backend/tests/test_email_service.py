@@ -39,7 +39,7 @@ async def test_welcome_email_uses_brevo_api_and_sends_html(monkeypatch):
 
     assert len(client.requests) == 1
     request = client.requests[0]
-    assert request["url"] == email_module.BREVO_SEND_URL
+    assert request["url"] == email_module.settings.BREVO_SEND_URL
     assert request["headers"] == {
         "api-key": "test-brevo-key",
         "accept": "application/json",
