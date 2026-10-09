@@ -65,4 +65,4 @@ services:
       - key: OTP_MAX_ATTEMPTS
         value: "5"
       - key: ALLOWED_ORIGINS
-        sync: false
+        value: https://ai-contract-reviewer.ai.studio

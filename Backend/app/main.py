@@ -122,27 +122,22 @@ async def enforce_security_headers(request: Request, call_next):
     return response
 
 
-# Flexible CORS configuration for easy Docker deployment
-cors_origins_list = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",")] if settings.ALLOWED_ORIGINS else []
+cors_origins_list = [
+    origin.strip()
+    for origin in settings.ALLOWED_ORIGINS.split(",")
+    if origin.strip()
+]
+if not cors_origins_list or "*" in cors_origins_list:
+    raise ValueError("ALLOWED_ORIGINS must contain explicit origins and cannot include '*'.")
 
-if "*" in cors_origins_list:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origin_regex=".*",  # Allows any origin, but supports credentials unlike allow_origins=["*"]
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-        max_age=600,
-    )
-else:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=cors_origins_list,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-        max_age=600,
-    )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    max_age=600,
+)
 
 app.include_router(router=auth_router)
 app.include_router(router=users_router)

@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     OTP_EXPIRE_SECONDS: int
     OTP_COOLDOWN_SECONDS: int
     OTP_MAX_ATTEMPTS: int
-    ALLOWED_ORIGINS: str = "*"
+    ALLOWED_ORIGINS: str
     BREVO_SEND_URL: str
     model_config = SettingsConfigDict(
         env_file=ENV_PATH,
