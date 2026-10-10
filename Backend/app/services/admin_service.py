@@ -176,6 +176,26 @@ class AdminService:
         await db.refresh(user)
         return UserResponse.model_validate(user)
 
+    async def unverify_user(self, db: AsyncSession, user_id: int) -> UserResponse:
+        user = await self.user_repository.get_user_by_id(db=db, user_id=user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        if not user.is_verified:
+            return UserResponse.model_validate(user)
+
+        user.is_verified = False
+        await self.user_repository.update_user(db=db, user=user, commit=False)
+        await self._notify_admin_change(
+            db=db,
+            email=user.email,
+            username=user.username,
+            action="An administrator changed your account verification status.",
+            details="Your account is no longer verified.",
+        )
+        await self._commit_admin_change(db)
+        await db.refresh(user)
+        return UserResponse.model_validate(user)
+
     async def update_user_role(self, db: AsyncSession, user_id: int, is_admin: bool) -> UserResponse:
         user = await self.user_repository.get_user_by_id(db=db, user_id=user_id)
         if not user:

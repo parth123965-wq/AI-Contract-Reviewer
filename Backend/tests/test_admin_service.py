@@ -393,6 +393,73 @@ async def test_admin_user_status_change_skips_email_when_value_is_unchanged(db_s
 
 
 @pytest.mark.asyncio
+async def test_admin_unverify_user_notifies_then_commits(db_session):
+    user = User(
+        username="verified-user",
+        email="verified-user@example.com",
+        password_hash="hash",
+        is_verified=True,
+    )
+    db_session.add(user)
+    await db_session.commit()
+    service = AdminService()
+    service.email_service = AsyncMock()
+
+    result = await service.unverify_user(db_session, user.id)
+
+    assert result.is_verified is False
+    service.email_service.send_admin_change_notification.assert_awaited_once_with(
+        email=user.email,
+        username=user.username,
+        action="An administrator changed your account verification status.",
+        details="Your account is no longer verified.",
+    )
+
+
+@pytest.mark.asyncio
+async def test_admin_unverify_user_does_nothing_when_already_unverified(db_session):
+    user = User(
+        username="unverified-user",
+        email="unverified-user@example.com",
+        password_hash="hash",
+        is_verified=False,
+    )
+    db_session.add(user)
+    await db_session.commit()
+    service = AdminService()
+    service.email_service = AsyncMock()
+
+    result = await service.unverify_user(db_session, user.id)
+
+    assert result.is_verified is False
+    service.email_service.send_admin_change_notification.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_admin_unverify_user_rolls_back_if_notification_fails(db_session):
+    user = User(
+        username="unverify-fail-user",
+        email="unverify-fail@example.com",
+        password_hash="hash",
+        is_verified=True,
+    )
+    db_session.add(user)
+    await db_session.commit()
+    service = AdminService()
+    service.email_service = AsyncMock()
+    service.email_service.send_admin_change_notification.side_effect = HTTPException(
+        status_code=502, detail="Email delivery failed"
+    )
+
+    with pytest.raises(HTTPException) as error:
+        await service.unverify_user(db_session, user.id)
+
+    assert error.value.status_code == 502
+    await db_session.refresh(user)
+    assert user.is_verified is True
+
+
+@pytest.mark.asyncio
 async def test_admin_username_change_checks_duplicates_and_notifies(db_session):
     user = User(
         username="old-name",
@@ -691,6 +758,7 @@ def test_new_admin_user_change_routes_are_rate_limited():
         "/admin/users/{user_id}/password",
         "/admin/users/{user_id}/email/request",
         "/admin/users/{user_id}/email/confirm",
+        "/admin/users/{user_id}/verification",
     }
     routes = {
         route.path: route
@@ -711,6 +779,7 @@ def test_new_admin_user_change_routes_are_rate_limited():
 
     password_route = routes["/admin/users/{user_id}/password"]
     assert password_route.response_model is UserResponse
+    assert routes["/admin/users/{user_id}/verification"].response_model is UserResponse
 
 
 @pytest.mark.asyncio

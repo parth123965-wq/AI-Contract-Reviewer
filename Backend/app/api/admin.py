@@ -145,6 +145,22 @@ async def update_user_status(
 
 
 @admin_router.patch(
+    "/users/{user_id}/verification",
+    response_model=UserResponse,
+    summary="Revoke User Verification",
+    description="Set a verified user's verification status to false and notify them by email. Already-unverified accounts remain unchanged.",
+    dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_users"))]
+)
+async def unverify_user(
+    user_id: int,
+    admin: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    service: Annotated[AdminService, Depends(get_admin_service)]
+) -> UserResponse:
+    return await service.unverify_user(db=db, user_id=user_id)
+
+
+@admin_router.patch(
     "/users/{user_id}/role",
     response_model=UserResponse,
     summary="Update User Role",
