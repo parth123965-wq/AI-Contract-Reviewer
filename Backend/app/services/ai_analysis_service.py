@@ -15,6 +15,20 @@ from app.core.logger import get_app_logger
 logger = get_app_logger("services.ai_analysis")
 
 
+def _format_user_error(error_detail: str) -> str:
+    """Converts internal technical exceptions into clean, user-friendly diagnostic messages."""
+    err_lower = str(error_detail).lower()
+    if "429" in err_lower or "quota" in err_lower or "resource_exhausted" in err_lower:
+        return "AI capacity temporarily reached. Please retry in a few moments."
+    if "pdf" in err_lower or "corrupt" in err_lower or "empty" in err_lower:
+        return "The uploaded PDF appears unreadable or corrupted. Please verify the document."
+    if "timeout" in err_lower or "timed out" in err_lower:
+        return "Document processing timed out during analysis. Please click Retry."
+    if "storage" in err_lower or "download" in err_lower:
+        return "Unable to retrieve document from cloud storage. Please try again."
+    return f"Analysis failed: {str(error_detail)[:200]}"
+
+
 class AnalysisService:
 
     def __init__(self):
@@ -87,7 +101,7 @@ class AnalysisService:
                 final_state = await asyncio.to_thread(self.graph.invoke, graph_input)
 
                 if final_state and (final_state.get("error") or final_state.get("status") == ContractStatus.FAILED):
-                    err_msg = final_state.get("error") or "AI pipeline analysis failed."
+                    err_msg = _format_user_error(final_state.get("error") or "AI pipeline analysis failed.")
                     contract.last_error = err_msg
                     await self.contract_repository.update_status(
                         db=db,
@@ -102,7 +116,8 @@ class AnalysisService:
 
                 # Persist the analysis if result is available
                 if not final_state or not final_state.get("analysis_result"):
-                    err_msg = (final_state.get("error") if final_state else None) or "Analysis pipeline produced no valid result."
+                    raw_err = (final_state.get("error") if final_state else None) or "Analysis pipeline produced no valid result."
+                    err_msg = _format_user_error(raw_err)
                     contract.last_error = err_msg
                     await self.contract_repository.update_status(
                         db=db,
@@ -141,8 +156,8 @@ class AnalysisService:
                 )
 
                 if contract is not None:
-
-                    contract.last_error = str(exc)
+                    logger.exception("Contract analysis pipeline threw unhandled exception for contract_id=%s", contract_id)
+                    contract.last_error = _format_user_error(str(exc))
 
                     await self.contract_repository.update_status(
                         db=db,

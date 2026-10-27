@@ -88,6 +88,32 @@ async def get_contract_by_id(
         current_user=current_user   
     )
     
+@contract_router.post(
+    '/{contract_id}/retry',
+    response_model=ContractResponse,
+    summary="Retry Failed Contract Analysis",
+    description="Re-queue an AI analysis pipeline job for a failed or stuck contract document without having to re-upload the original PDF.",
+    dependencies=[Depends(RateLimiter(times=5, seconds=60, prefix="contracts_retry"))]
+)
+async def retry_analysis(
+    contract_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[ContractService, Depends(contract_service)],
+    background_task: BackgroundTasks,
+    ai_analysis_service: Annotated[AnalysisService, Depends(get_analysis_service)]
+) -> ContractResponse:
+    contract = await service.retry_contract_analysis(
+        db=db,
+        contract_id=contract_id,
+        current_user=current_user
+    )
+    background_task.add_task(
+        ai_analysis_service.analyze_contract,
+        contract.id
+    )
+    return contract
+
 @contract_router.delete(
     '/{id}',
     summary="Delete Contract Document",

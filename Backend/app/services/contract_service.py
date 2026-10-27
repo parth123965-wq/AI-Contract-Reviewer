@@ -153,19 +153,38 @@ class ContractService:
             contract_id=contract_id,
             user_id=current_user.id
         )
-        if contract == None:
+        if contract is None or contract.is_deleted:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Contract Not Found."
             )
-        elif contract.is_deleted == True:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Contract Not Found."
-            )
-        else:
-            return contract
+        return contract
         
+    async def retry_contract_analysis(
+        self,
+        db: AsyncSession,
+        contract_id: int,
+        current_user: User
+    ) -> Contract:
+        contract = await self.get_contract_by_id(
+            db=db,
+            contract_id=contract_id,
+            current_user=current_user
+        )
+        if contract.status == ContractStatus.PROCESSING:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Contract analysis is already in progress."
+            )
+        
+        contract.last_error = None
+        await self.contract_repository.update_status(
+            db=db,
+            contract=contract,
+            status=ContractStatus.PROCESSING
+        )
+        return contract
+
     async def delete_contract(
         self,
         db: AsyncSession,
