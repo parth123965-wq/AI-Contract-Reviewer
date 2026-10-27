@@ -45,7 +45,8 @@ class AuthService:
             raise
         
     async def register_user(self, db: AsyncSession, user: UserCreate) -> User:
-        existing_user = await self.user_repository.get_user_by_email(db=db, email=user.email)
+        normalized_email = user.email.strip().lower()
+        existing_user = await self.user_repository.get_user_by_email(db=db, email=normalized_email)
         if existing_user is not None and existing_user.is_verified:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -75,7 +76,7 @@ class AuthService:
         else:
             new_user = User(
                 username=user.username,
-                email=user.email,
+                email=normalized_email,
                 password_hash=hashed_password,
                 is_verified=False
             )
@@ -195,7 +196,8 @@ class AuthService:
         await otp_service.send_otp_email(email=email, otp_code=otp_code, purpose="registration")
 
     async def login_user(self, db: AsyncSession, user: UserLogin) -> LoginResponse:
-        existing_user = await self.user_repository.get_user_by_email(db=db, email=user.email)
+        normalized_email = user.email.strip().lower()
+        existing_user = await self.user_repository.get_user_by_email(db=db, email=normalized_email)
         if existing_user is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -205,6 +207,11 @@ class AuthService:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid Email and Password."
+            )
+        if not existing_user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail='Account is deactivated or suspended. Please contact support.'
             )
         if not existing_user.is_verified:
             raise HTTPException(

@@ -21,7 +21,7 @@ class RecentLogBuffer(logging.Handler):
     def get_records(self, limit: int) -> List[str]:
         self.acquire()
         try:
-            return list(self.records)[-limit:]
+            return list(self.records)[-limit:] if limit > 0 else []
         finally:
             self.release()
 
@@ -55,7 +55,7 @@ class AppJSONFormatter(logging.Formatter):
         if extra:
             log_data["extra"] = extra
 
-        return json.dumps(log_data)
+        return json.dumps(log_data, default=str)
 
 
 recent_log_buffer = RecentLogBuffer()

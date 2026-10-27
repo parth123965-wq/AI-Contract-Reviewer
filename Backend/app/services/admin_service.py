@@ -534,8 +534,10 @@ class AdminService:
             details=f"The contract status changed from {old_status} to {new_status.value}.",
         )
         await self._commit_admin_change(db)
-        await db.refresh(contract)
-        return contract
+        refetched_contract = await self.contract_repository.get_contract_by_id(
+            db=db, contract_id=contract_id, include_deleted=True
+        )
+        return refetched_contract or contract
 
     async def delete_contract(self, db: AsyncSession, contract_id: int) -> dict:
         contract = await self.contract_repository.get_contract_by_id(
@@ -544,24 +546,28 @@ class AdminService:
         if not contract:
             raise HTTPException(status_code=404, detail="Contract not found")
 
-        await self.contract_repository.permanently_delete_contract(
-            db=db, contract_id=contract_id, commit=False
-        )
         if not contract.user:
-            await db.rollback()
             raise HTTPException(
                 status_code=409,
                 detail="Contract owner is unavailable; the contract was not deleted.",
             )
+
+        owner_email = contract.user.email
+        owner_username = contract.user.username
+        contract_filename = contract.original_filename
+        file_path_to_delete = contract.file_path
+
         await self._notify_admin_change(
             db=db,
-            email=contract.user.email,
-            username=contract.user.username,
-            action=f'An administrator requested permanent deletion of your contract "{contract.original_filename}".',
+            email=owner_email,
+            username=owner_username,
+            action=f'An administrator requested permanent deletion of your contract "{contract_filename}".',
             details="The contract, its analysis history, and its stored PDF are being permanently deleted.",
         )
+
         try:
-            await self.contract_storage.remove(contract.file_path)
+            if file_path_to_delete:
+                await self.contract_storage.remove(file_path_to_delete)
         except Exception as exc:
             await db.rollback()
             logger.exception(
@@ -573,6 +579,9 @@ class AdminService:
                 detail="Failed to remove the contract file; the contract was not deleted.",
             ) from exc
 
+        await self.contract_repository.permanently_delete_contract(
+            db=db, contract_id=contract_id, commit=False
+        )
         await self._commit_admin_change(db)
         return {
             "message": "Contract permanently deleted successfully",

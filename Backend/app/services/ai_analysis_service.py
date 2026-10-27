@@ -1,3 +1,4 @@
+import asyncio
 import time
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -58,33 +59,32 @@ class AnalysisService:
                 file_content = await self.contract_storage.download(
                     contract.file_path
                 )
-                final_state = self.graph.invoke(
-                    {
-                        "db": db,
-                        "contract_id": contract.id,
-                        "user_id": contract.user_id,
-                        "file_content": file_content,
-                        "analysis_version": version,
+                graph_input = {
+                    "contract_id": contract.id,
+                    "user_id": contract.user_id,
+                    "file_content": file_content,
+                    "analysis_version": version,
 
-                        "status": ContractStatus.PROCESSING,
-                        "error": None,
+                    "status": ContractStatus.PROCESSING,
+                    "error": None,
 
-                        "extracted_text": "",
-                        "chunks": [],
-                        "embeddings": [],
-                        "query_embedding": [],
-                        "retrieved_chunks": [],
+                    "extracted_text": "",
+                    "chunks": [],
+                    "embeddings": [],
+                    "query_embedding": [],
+                    "retrieved_chunks": [],
 
-                        "summary": "",
-                        "risk_score": 0,
-                        "suggestions": [],
+                    "summary": "",
+                    "risk_score": 0,
+                    "suggestions": [],
 
-                        "prompt": "",
-                        "llm_response": "",
-                        "analysis_result": None,
-                        "processing_time_ms": 0,
-                    }
-                )
+                    "prompt": "",
+                    "llm_response": "",
+                    "analysis_result": None,
+                    "processing_time_ms": 0,
+                }
+                # Run the blocking LangGraph invocation in a worker thread to prevent event loop freeze
+                final_state = await asyncio.to_thread(self.graph.invoke, graph_input)
 
                 if final_state and (final_state.get("error") or final_state.get("status") == ContractStatus.FAILED):
                     err_msg = final_state.get("error") or "AI pipeline analysis failed."
@@ -100,17 +100,26 @@ class AnalysisService:
                     time.perf_counter() - start_time
                 ) * 1000
 
-                # Bug Fix: Await the analysis save here safely while the db session is open
-                if final_state and final_state.get("analysis_result"):
-                    from app.core.config import settings
-                    await self.save_analysis(
+                # Persist the analysis if result is available
+                if not final_state or not final_state.get("analysis_result"):
+                    err_msg = (final_state.get("error") if final_state else None) or "Analysis pipeline produced no valid result."
+                    contract.last_error = err_msg
+                    await self.contract_repository.update_status(
                         db=db,
-                        contract_id=contract.id,
-                        version=version,
-                        result=final_state["analysis_result"],
-                        model_name=settings.AI_MODEL_NAME or "gemini",
-                        processing_time=processing_time
+                        contract=contract,
+                        status=ContractStatus.FAILED
                     )
+                    raise RuntimeError(err_msg)
+
+                from app.core.config import settings
+                await self.save_analysis(
+                    db=db,
+                    contract_id=contract.id,
+                    version=version,
+                    result=final_state["analysis_result"],
+                    model_name=settings.AI_MODEL_NAME or "gemini",
+                    processing_time=processing_time
+                )
 
                 await self.contract_repository.update_status(
                     db=db,

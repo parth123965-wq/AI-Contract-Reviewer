@@ -50,13 +50,12 @@ class RateLimiter:
             # Increment current counter atomically
             current = await redis_client.incr(key)
 
-            # Set expiration on key creation
-            if current == 1:
-                await redis_client.expire(key, self.seconds)
-
             # Get remaining time-to-live for the key
             ttl = await redis_client.ttl(key)
-            if ttl < 0:
+
+            # Set expiration on key creation or if key has no expiration (-1)
+            if current == 1 or ttl < 0:
+                await redis_client.expire(key, self.seconds)
                 ttl = self.seconds
 
             remaining = max(0, self.times - current)

@@ -1,3 +1,4 @@
+from app.core.config import settings
 from fastapi import APIRouter , Depends , Response
 from app.database.database import get_db
 from app.services.auth_service import AuthService , auth_service
@@ -141,7 +142,7 @@ async def login(
         value=login_response.access_token,
         httponly=True,
         samesite="lax",
-        secure=False
+        secure=settings.PRODUCTION
     )
 
     return {
@@ -179,7 +180,7 @@ async def token(
         value=login_response.access_token,
         httponly=True,
         samesite="lax",
-        secure=False
+        secure=settings.PRODUCTION
     )
 
     return {
@@ -197,7 +198,10 @@ async def token(
 )
 async def logout(response: Response):
     response.delete_cookie(
-        key="ai_contract_session"
+        key="ai_contract_session",
+        httponly=True,
+        samesite="lax",
+        secure=settings.PRODUCTION
     )
 
     return {

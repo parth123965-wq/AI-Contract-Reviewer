@@ -63,14 +63,14 @@ class TextExtractor:
             if not api_key:
                 return ""
 
-            model_name = getattr(settings, "AI_MODEL_NAME", "gemini-3.6-flash") or "gemini-3.6-flash"
+            model_name = getattr(settings, "AI_MODEL_NAME", "gemini-1.5-flash") or "gemini-1.5-flash"
             client = genai.Client(api_key=api_key)
             
             if engine == "pymupdf":
                 for page in doc:
                     pix = page.get_pixmap()
                     img_bytes = pix.tobytes("png")
-                    models_to_try = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-flash-latest"]
+                    models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-flash-latest"]
 
 
                     extracted = False
@@ -104,7 +104,7 @@ class TextExtractor:
                                 model=model_name,
                                 contents=[
                                     "Extract all text, tables, dates, and numbers from this document image cleanly and completely:",
-                                    genai.types.Part.from_bytes(data=img_bytes, mime_type=f"image/{img.name.split('.')[-1]}")
+                                    genai.types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg" if img.name.lower().endswith((".jpg", ".jpeg")) else f"image/{img.name.split('.')[-1].lower()}")
                                 ]
                             )
                             if response and response.text:

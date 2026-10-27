@@ -145,10 +145,8 @@ async def ask_question_on_contract(
                 top_k=5
             )
     except Exception as exc:
-        raise HTTPException(
-            status_code=502,
-            detail="Failed to retrieve contract context."
-        ) from exc
+        # Gracefully fall back to direct file extraction if vector store is unavailable
+        chunks = []
 
     # 2. Fallback: Extract directly from contract file if vector store returned empty chunks
     if not chunks:

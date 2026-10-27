@@ -36,7 +36,7 @@ class AIEngineJSONFormatter(logging.Formatter):
         if extra:
             log_data["extra"] = extra
 
-        return json.dumps(log_data)
+        return json.dumps(log_data, default=str)
 
 
 def setup_ai_engine_logging() -> logging.Logger:

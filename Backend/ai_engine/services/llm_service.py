@@ -271,7 +271,12 @@ class LLMService:
         """Dynamically analyzes the text of the actual uploaded contract to produce unique metrics and summaries."""
         # Isolate actual document context from prompt wrapper
         document_text = text
-        if "--- CONTEXT START ---" in text and "--- CONTEXT END ---" in text:
+        if "<context>" in text and "</context>" in text:
+            try:
+                document_text = text.split("<context>")[1].split("</context>")[0]
+            except Exception:
+                document_text = text
+        elif "--- CONTEXT START ---" in text and "--- CONTEXT END ---" in text:
             try:
                 document_text = text.split("--- CONTEXT START ---")[1].split("--- CONTEXT END ---")[0]
             except Exception:
@@ -344,4 +349,4 @@ class LLMService:
             "risk": risk_level,
             "suggestions": suggestions,
             "confidence": 0.89
-        })
+        })

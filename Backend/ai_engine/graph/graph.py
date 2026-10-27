@@ -23,16 +23,9 @@ class FallbackCompiledGraph:
         state = self.node.prompt_node(state)
         state = self.node.llm_node(state)
         state = self.node.parser_node(state)
-        if state.get("db") is not None and not (state.get("error") or state.get("status") == "FAILED"):
+        if not (state.get("error") or state.get("status") == "FAILED"):
             try:
-                try:
-                    loop = asyncio.get_running_loop()
-                except RuntimeError:
-                    loop = None
-                if loop and loop.is_running():
-                    loop.create_task(self.node.save_analysis_node(state))
-                else:
-                    asyncio.run(self.node.save_analysis_node(state))
+                state = self.node.save_analysis_node(state)
             except Exception:
                 pass
         return state

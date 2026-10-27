@@ -14,9 +14,11 @@ from app.models.contract import Contract, ContractAnalysis
 # Alembic Config object
 config = context.config
 
-# Automatically transform postgresql:// to postgresql+asyncpg:// if needed
+# Automatically transform postgres:// or postgresql:// to postgresql+asyncpg:// if needed
 db_url = settings.DATABASE_URL
-if db_url.startswith("postgresql://"):
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql+asyncpg://", 1)
+elif db_url.startswith("postgresql://"):
     db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
 config.set_main_option("sqlalchemy.url", db_url)
@@ -52,8 +54,11 @@ def do_run_migrations(connection):
 
 async def run_async_migrations() -> None:
     """Run migrations in 'online' mode with AsyncEngine."""
+    section = config.get_section(config.config_ini_section, {})
+    section["sqlalchemy.url"] = db_url
+
     connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        section,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

@@ -60,28 +60,29 @@ class OTPService:
 
     async def verify_otp(self, purpose: str, identifier: str, input_otp: str) -> bool:
         """
-        Verify the provided OTP against Redis storage with attempt limit tracking.
+        Verify the provided OTP against Redis storage with atomic attempt limit tracking.
         """
         redis = get_redis()
         code_key, attempts_key, cooldown_key = self._get_keys(purpose, identifier)
 
-        # Check attempt count
-        attempts_str = await redis.get(attempts_key)
-        current_attempts = int(attempts_str) if attempts_str else 0
-
-        if current_attempts >= settings.OTP_MAX_ATTEMPTS:
-            await redis.delete(code_key, attempts_key)
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Maximum OTP verification attempts exceeded. Please request a new OTP."
-            )
-
+        # Check stored OTP first
         stored_otp = await redis.get(code_key)
-
         if not stored_otp:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="OTP is invalid or has expired."
+            )
+
+        # Increment attempts atomically to prevent TOCTOU race condition
+        current_attempts = await redis.incr(attempts_key)
+        if current_attempts == 1:
+            await redis.expire(attempts_key, settings.OTP_EXPIRE_SECONDS)
+
+        if current_attempts > settings.OTP_MAX_ATTEMPTS:
+            await redis.delete(code_key, attempts_key)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Maximum OTP verification attempts exceeded. Please request a new OTP."
             )
 
         if secrets.compare_digest(stored_otp.strip(), input_otp.strip()):
@@ -90,12 +91,15 @@ class OTPService:
             logger.info(f"Successfully verified OTP for purpose '{purpose}' and identifier '{identifier}'")
             return True
 
-        # Incorrect OTP: increment attempts
-        new_attempts = await redis.incr(attempts_key)
-        if new_attempts == 1:
-            await redis.expire(attempts_key, settings.OTP_EXPIRE_SECONDS)
+        # If this was the last allowed attempt, delete code immediately
+        if current_attempts >= settings.OTP_MAX_ATTEMPTS:
+            await redis.delete(code_key, attempts_key)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Maximum OTP verification attempts exceeded. Please request a new OTP."
+            )
 
-        remaining = settings.OTP_MAX_ATTEMPTS - new_attempts
+        remaining = settings.OTP_MAX_ATTEMPTS - current_attempts
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid OTP code. {remaining} attempt(s) remaining."
