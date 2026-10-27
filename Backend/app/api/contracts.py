@@ -1,11 +1,11 @@
-from fastapi import APIRouter , Depends , UploadFile , File , BackgroundTasks, HTTPException
+from fastapi import APIRouter , Depends , UploadFile , File , BackgroundTasks, HTTPException, Response, Query
 from typing import Annotated 
 from app.database.database import get_db
 from app.dependencies.auth import get_current_user
 from app.services.contract_service import contract_service , ContractService
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
-from app.schemas.contract import ContractResponse , ContractListResponse, QuestionRequest
+from app.schemas.contract import ContractResponse , ContractListResponse, QuestionRequest, ClauseRewriteRequest, ClauseRewriteResponse
 from app.services.ai_analysis_service import AnalysisService , get_analysis_service
 from pydantic import BaseModel
 from ai_engine.services.text_extractor import TextExtractor
@@ -16,6 +16,7 @@ from ai_engine.services.llm_service import LLMService
 from fastapi.responses import StreamingResponse
 import json
 from app.core.rate_limit import RateLimiter
+from app.services.report_export_service import export_service
 
 contract_router = APIRouter(
     prefix="/contracts",
@@ -202,3 +203,75 @@ async def ask_question_on_contract(
             yield f"data: {err_data}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+@contract_router.post(
+    '/{contract_id}/clauses/rewrite',
+    response_model=ClauseRewriteResponse,
+    summary="Suggest Safe Clause Redline / Revision",
+    description="Rewrite a specific high-risk contract clause under a selected negotiation stance (neutral, customer-favorable, vendor-favorable).",
+    dependencies=[Depends(RateLimiter(times=15, seconds=60, prefix="contracts_rewrite"))]
+)
+async def rewrite_clause(
+    contract_id: int,
+    body: ClauseRewriteRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[ContractService, Depends(contract_service)]
+) -> ClauseRewriteResponse:
+    # Ensure contract exists and belongs to current user
+    await service.get_contract_by_id(
+        db=db,
+        contract_id=contract_id,
+        current_user=current_user
+    )
+
+    llm = LLMService()
+    result = llm.rewrite_clause(
+        clause_text=body.clause_text,
+        stance=body.stance,
+        instructions=body.instructions
+    )
+    return ClauseRewriteResponse(**result)
+
+
+@contract_router.get(
+    '/{contract_id}/export',
+    summary="Export Contract Review Audit Report",
+    description="Export a printable executive audit report for the contract in HTML, Markdown, or JSON formats.",
+    dependencies=[Depends(RateLimiter(times=20, seconds=60, prefix="contracts_export"))]
+)
+async def export_contract_report(
+    contract_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[ContractService, Depends(contract_service)],
+    format: str = Query(default="html", regex="^(html|json|md|markdown)$", description="Export format: html, md, or json")
+):
+    contract = await service.get_contract_by_id(
+        db=db,
+        contract_id=contract_id,
+        current_user=current_user
+    )
+
+    filename_base = contract.original_filename.rsplit(".", 1)[0] if contract.original_filename else f"contract_{contract_id}"
+
+    if format == "json":
+        data = export_service.generate_json_report(contract)
+        return data
+
+    if format in ("md", "markdown"):
+        content = export_service.generate_markdown_report(contract)
+        return Response(
+            content=content,
+            media_type="text/markdown",
+            headers={"Content-Disposition": f'attachment; filename="{filename_base}_audit.md"'}
+        )
+
+    # Default: Printable modern HTML report
+    content = export_service.generate_html_report(contract)
+    return Response(
+        content=content,
+        media_type="text/html",
+        headers={"Content-Disposition": f'inline; filename="{filename_base}_audit.html"'}
+    )

@@ -350,3 +350,90 @@ class LLMService:
             "suggestions": suggestions,
             "confidence": 0.89
         })
+
+    def rewrite_clause(
+        self,
+        clause_text: str,
+        stance: str = "neutral",
+        instructions: str = None
+    ) -> dict:
+        """
+        Rewrites a high-risk or problematic contractual clause into a balanced, professional revision.
+        Supports 'neutral', 'customer_favorable', or 'vendor_favorable' negotiation postures.
+        """
+        stance_descriptions = {
+            "neutral": "Balanced and mutually protective, reflecting standard industry compromise between buyer and seller.",
+            "customer_favorable": "Protective of the customer/buyer, capping liabilities, limiting indemnities, and adding cure periods.",
+            "vendor_favorable": "Protective of the vendor/provider, limiting warranty exposure, protecting intellectual property, and establishing payment clarity."
+        }
+        stance_guide = stance_descriptions.get(stance, stance_descriptions["neutral"])
+        user_instructions = f"\nSpecific instructions: {instructions}" if instructions else ""
+
+        prompt = f"""You are a senior corporate contracts attorney specializing in commercial contract redlines.
+Please rewrite the following contract clause to significantly improve clarity and reduce legal exposure.
+
+NEGOTIATION STANCE: {stance.upper()}
+GUIDANCE: {stance_guide}
+{user_instructions}
+
+ORIGINAL CLAUSE:
+<clause>
+{clause_text.strip()}
+</clause>
+
+You MUST respond strictly with a valid JSON object matching this schema:
+{{
+  "rewritten_clause": "<full text of the rewritten legal clause>",
+  "key_changes": [
+    "<concise bullet point 1 of what was added, modified, or removed>",
+    "<concise bullet point 2>"
+  ],
+  "risk_reduction_explanation": "<clear explanation of how this revision protects the parties and lowers legal or financial risk>"
+}}
+Do NOT include any commentary outside the JSON object.
+"""
+        raw_response = self.generate(prompt)
+
+        # Attempt to parse JSON response
+        try:
+            cleaned = raw_response.strip()
+            if cleaned.startswith("```"):
+                cleaned = re.sub(r"^```[a-zA-Z]*\n", "", cleaned)
+                cleaned = re.sub(r"\n```$", "", cleaned)
+            
+            match = re.search(r"(\{.*\})", cleaned, re.DOTALL)
+            if match:
+                cleaned = match.group(1)
+
+            parsed = json.loads(cleaned)
+            if "rewritten_clause" in parsed and "key_changes" in parsed:
+                return {
+                    "original_clause": clause_text,
+                    "rewritten_clause": str(parsed["rewritten_clause"]).strip(),
+                    "stance": stance,
+                    "key_changes": list(parsed.get("key_changes", [])),
+                    "risk_reduction_explanation": str(parsed.get("risk_reduction_explanation", "Standard legal protections applied."))
+                }
+        except Exception as parse_err:
+            logger.warning("Failed to parse LLM clause rewrite JSON: %s. Using heuristic fallback.", parse_err)
+
+        # Heuristic / deterministic fallback if LLM output fails
+        safe_clause = clause_text.strip()
+        changes = []
+        if "indemnif" in safe_clause.lower() and "cap" not in safe_clause.lower():
+            safe_clause += " Each party's total aggregate indemnification liability hereunder shall be strictly capped at the total fees paid or payable by Customer in the preceding twelve (12) month period."
+            changes.append("Added mutual liability cap to avoid uncapped exposure.")
+        if "sole discretion" in safe_clause.lower():
+            safe_clause = re.sub(r"(?i)sole discretion", "commercially reasonable discretion", safe_clause)
+            changes.append("Changed unilateral 'sole discretion' to 'commercially reasonable discretion'.")
+        if not changes:
+            safe_clause = f"Except to the extent caused by gross negligence or willful misconduct, {safe_clause}"
+            changes.append("Added carve-out for gross negligence/willful misconduct.")
+
+        return {
+            "original_clause": clause_text,
+            "rewritten_clause": safe_clause,
+            "stance": stance,
+            "key_changes": changes or ["Clarified mutual obligations and standard risk bounds."],
+            "risk_reduction_explanation": f"Rewritten under {stance} posture to prevent uncapped financial exposure and ambiguity."
+        }

@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 from app.models.contract import ContractStatus, RiskLevel
 from datetime import datetime
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Literal
 
 class ContractAnalysisResponse(BaseModel):
     id: int = Field(description="Unique analysis record ID", examples=[1])
@@ -94,3 +94,30 @@ class QuestionRequest(BaseModel):
         description="Natural language question regarding the contract clauses",
         examples=["What is the termination notice period required in clause 8?"]
     )
+
+class ClauseRewriteRequest(BaseModel):
+    clause_text: str = Field(
+        min_length=10,
+        max_length=5000,
+        description="The original legal clause to be rewritten",
+        examples=["The customer shall defend, indemnify, and hold harmless vendor from any and all claims without cap or limitation."]
+    )
+    stance: Literal["neutral", "customer_favorable", "vendor_favorable"] = Field(
+        default="neutral",
+        description="Negotiation stance/bias for the redlined revision",
+        examples=["customer_favorable"]
+    )
+    instructions: Optional[str] = Field(
+        default=None,
+        max_length=1000,
+        description="Optional specific constraints or instructions for the revision",
+        examples=["Add a mutual liability cap equal to 12 months fees paid."]
+    )
+
+class ClauseRewriteResponse(BaseModel):
+    original_clause: str = Field(description="The original input clause")
+    rewritten_clause: str = Field(description="The professionally redlined/rewritten legal clause")
+    stance: str = Field(description="The applied negotiation stance")
+    key_changes: List[str] = Field(description="Bullet points describing the key contractual changes made")
+    risk_reduction_explanation: str = Field(description="Clear explanation of how the rewritten version reduces legal exposure")
+
