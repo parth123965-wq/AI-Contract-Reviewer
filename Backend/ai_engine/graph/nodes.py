@@ -1,4 +1,4 @@
-from ai_engine.services.chunk_service import ChunkService
+﻿from ai_engine.services.chunk_service import ChunkService
 from ai_engine.services.embedding_service import EmbeddingService
 from ai_engine.services.text_extractor import TextExtractor
 from ai_engine.services.vector_store_service import VectorStoreService
@@ -7,7 +7,6 @@ from ai_engine.services.prompt_service import PromptService
 from ai_engine.services.llm_service import LLMService
 from ai_engine.services.parser_service import ParserService
 from ai_engine.services.save_analysis import AnalysisService
-from app.core.config import settings
 from app.models.contract import ContractStatus
 from ai_engine.logger import get_ai_logger
 

@@ -1,6 +1,4 @@
-import logging
-from typing import Optional
-from fastapi import Request, Response, HTTPException, status
+﻿from fastapi import Request, Response, HTTPException, status
 import app.core.redis_setup as redis_setup
 from app.core.logger import get_app_logger
 

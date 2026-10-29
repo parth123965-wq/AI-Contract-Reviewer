@@ -1,4 +1,4 @@
-from fastapi import APIRouter , Depends , UploadFile , File , BackgroundTasks, HTTPException, Response, Query
+﻿from fastapi import APIRouter , Depends , UploadFile , File , BackgroundTasks, HTTPException, Response, Query
 from typing import Annotated 
 from app.database.database import get_db
 from app.dependencies.auth import get_current_user
@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 from app.schemas.contract import ContractResponse , ContractListResponse, QuestionRequest, ClauseRewriteRequest, ClauseRewriteResponse, ContractCompareRequest, ContractCompareResponse
 from app.services.ai_analysis_service import AnalysisService , get_analysis_service
-from pydantic import BaseModel
 from ai_engine.services.text_extractor import TextExtractor
 from ai_engine.services.chunk_service import ChunkService
 from ai_engine.services.embedding_service import EmbeddingService

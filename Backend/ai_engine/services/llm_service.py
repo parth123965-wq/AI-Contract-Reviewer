@@ -1,7 +1,7 @@
-import json
+﻿import json
 import os
 import re
-import requests
+import difflib
 from dotenv import load_dotenv
 from app.core.config import settings
 from ai_engine.services.prompt_service import PromptService
@@ -14,13 +14,7 @@ try:
 except ImportError:
     genai = None
 
-# 2. Legacy google-generativeai SDK
-try:
-    import google.generativeai as legacy_genai
-except ImportError:
-    legacy_genai = None
-
-# 3. LangChain Google GenAI SDK
+# 2. LangChain Google GenAI SDK
 try:
     from langchain_google_genai import ChatGoogleGenerativeAI
 except ImportError:
@@ -48,7 +42,6 @@ class LLMService:
 
         self.model_name = settings.AI_MODEL_NAME or "gemini-1.5-flash"
         self.genai_client = None
-        self.legacy_model = None
         self.llm = None
 
         if self.api_key:
@@ -59,15 +52,7 @@ class LLMService:
                 except Exception as e:
                     print(f"google.genai client note: {e}")
 
-            # 2. legacy google.generativeai
-            if legacy_genai is not None:
-                try:
-                    legacy_genai.configure(api_key=self.api_key)
-                    self.legacy_model = legacy_genai.GenerativeModel(self.model_name)
-                except Exception as e:
-                    print(f"legacy genai configure note: {e}")
-
-            # 3. LangChain SDK
+            # 2. LangChain SDK
             if ChatGoogleGenerativeAI is not None:
                 try:
                     self.llm = ChatGoogleGenerativeAI(
@@ -105,23 +90,7 @@ class LLMService:
                         print(f"google.genai SDK call note ({exc}), attempting legacy SDKs...")
                         break
 
-        # 2. Try legacy google.generativeai
-        if self.legacy_model is not None or legacy_genai is not None:
-            for target_model in candidate_models:
-                try:
-                    g_model = legacy_genai.GenerativeModel(target_model)
-                    res = g_model.generate_content(prompt)
-                    if res and res.text:
-                        return res.text
-                except Exception as exc:
-                    err_str = str(exc)
-                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "Quota" in err_str or "API_KEY" in err_str:
-                        print("Google Gemini API rate limit reached (429). Attempting dynamic fallback...")
-                        return self._analyze_text_dynamically(prompt)
-                    if "404" not in err_str:
-                        break
-
-        # 3. Try LangChain ChatGoogleGenerativeAI
+        # 2. Try LangChain ChatGoogleGenerativeAI
         if ChatGoogleGenerativeAI is not None:
             for target_model in candidate_models:
                 try:
@@ -140,7 +109,7 @@ class LLMService:
                     if "404" not in err_str:
                         break
 
-        # 4. Dynamic Analysis Fallback: Extract insights directly from actual uploaded contract text
+        # 3. Dynamic Analysis Fallback: Extract insights directly from actual uploaded contract text
         return self._analyze_text_dynamically(prompt)
 
     def ask_question(self, question: str, context_chunks: list[str]) -> str:
@@ -165,20 +134,7 @@ class LLMService:
                     if "404" not in err_str:
                         break
 
-        # 2. Try legacy genai SDK
-        if legacy_genai is not None:
-            for target_model in candidate_models:
-                try:
-                    g_model = legacy_genai.GenerativeModel(target_model)
-                    res = g_model.generate_content(prompt)
-                    if res and res.text and len(res.text.strip()) > 3:
-                        return res.text.strip()
-                except Exception as exc:
-                    err_str = str(exc)
-                    if "404" not in err_str:
-                        break
-
-        # 3. Intelligent RAG Search Fallback (when Gemini API rate limit occurs)
+        # 2. Intelligent RAG Search Fallback (when Gemini API rate limit occurs)
         if not valid_chunks:
             return "No document text available to answer your question."
 
@@ -236,25 +192,7 @@ class LLMService:
                     if "404" not in err_str:
                         break
 
-        # 2. Try legacy genai SDK stream
-        if legacy_genai is not None:
-            for target_model in candidate_models:
-                try:
-                    g_model = legacy_genai.GenerativeModel(target_model)
-                    res_stream = g_model.generate_content(prompt, stream=True)
-                    has_yielded = False
-                    for chunk in res_stream:
-                        if chunk and chunk.text:
-                            has_yielded = True
-                            yield chunk.text
-                    if has_yielded:
-                        return
-                except Exception as exc:
-                    err_str = str(exc)
-                    if "404" not in err_str:
-                        break
-
-        # 3. Fallback: call ask_question and stream text chunks
+        # 2. Fallback: call ask_question and stream text chunks
         full_answer = self.ask_question(question=question, context_chunks=context_chunks)
         words = full_answer.split(" ")
         buffer = []
@@ -447,7 +385,6 @@ Do NOT include any commentary outside the JSON object.
         Compares two contract texts (baseline vs target) and identifies material deviations,
         clause additions, deletions, and risk impacts.
         """
-        import difflib
 
         # Cap length to prevent token overflow while preserving substantial context
         base_sample = base_text[:12000].strip()
