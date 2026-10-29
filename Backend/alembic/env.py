@@ -10,6 +10,7 @@ from app.core.config import settings
 from app.database.database import Base
 from app.models.user import User
 from app.models.contract import Contract, ContractAnalysis
+from app.models.playbook import Playbook
 
 # Alembic Config object
 config = context.config

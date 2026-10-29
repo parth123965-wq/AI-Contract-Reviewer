@@ -2,3 +2,4 @@
 .benchmarks
 uploads/contracts
 ai_engine/vector_store
+.vscode/settings.json

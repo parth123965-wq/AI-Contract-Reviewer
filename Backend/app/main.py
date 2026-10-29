@@ -9,6 +9,7 @@ from app.api.auth import auth_router
 from app.api.users import users_router
 from app.api.contracts import contract_router
 from app.api.admin import admin_router
+from app.api.playbooks import playbook_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
@@ -53,7 +54,11 @@ openapi_tags = [
     {
         "name": "Admin",
         "description": "Administrative metrics dashboard, user account management, and contract oversight."
-    }
+    },
+    {
+        "name": "Review Playbooks",
+        "description": "Custom organizational review guidelines, policy rules, and risk preference management."
+    },
 ]
 
 app_description = """
@@ -155,6 +160,7 @@ app.include_router(router=auth_router)
 app.include_router(router=users_router)
 app.include_router(router=contract_router)
 app.include_router(router=admin_router)
+app.include_router(router=playbook_router)
 
 @app.get(
     "/",

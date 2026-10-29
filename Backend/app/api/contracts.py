@@ -5,7 +5,7 @@ from app.dependencies.auth import get_current_user
 from app.services.contract_service import contract_service , ContractService
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
-from app.schemas.contract import ContractResponse , ContractListResponse, QuestionRequest, ClauseRewriteRequest, ClauseRewriteResponse
+from app.schemas.contract import ContractResponse , ContractListResponse, QuestionRequest, ClauseRewriteRequest, ClauseRewriteResponse, ContractCompareRequest, ContractCompareResponse
 from app.services.ai_analysis_service import AnalysisService , get_analysis_service
 from pydantic import BaseModel
 from ai_engine.services.text_extractor import TextExtractor
@@ -275,3 +275,24 @@ async def export_contract_report(
         media_type="text/html",
         headers={"Content-Disposition": f'inline; filename="{filename_base}_audit.html"'}
     )
+
+@contract_router.post(
+    '/compare',
+    response_model=ContractCompareResponse,
+    summary="Compare Two Contracts (Diff & Deviation Analysis)",
+    description="Perform multi-document comparison between a baseline contract and a revised/vendor proposal contract.",
+    dependencies=[Depends(RateLimiter(times=10, seconds=60, prefix="contracts_compare"))]
+)
+async def compare_contracts(
+    body: ContractCompareRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    service: Annotated[ContractService, Depends(contract_service)]
+) -> ContractCompareResponse:
+    result = await service.compare_contracts(
+        db=db,
+        base_contract_id=body.base_contract_id,
+        target_contract_id=body.target_contract_id,
+        current_user=current_user
+    )
+    return ContractCompareResponse(**result)

@@ -437,3 +437,117 @@ Do NOT include any commentary outside the JSON object.
             "key_changes": changes or ["Clarified mutual obligations and standard risk bounds."],
             "risk_reduction_explanation": f"Rewritten under {stance} posture to prevent uncapped financial exposure and ambiguity."
         }
+
+    def compare_contracts(
+        self,
+        base_text: str,
+        target_text: str
+    ) -> dict:
+        """
+        Compares two contract texts (baseline vs target) and identifies material deviations,
+        clause additions, deletions, and risk impacts.
+        """
+        import difflib
+
+        # Cap length to prevent token overflow while preserving substantial context
+        base_sample = base_text[:12000].strip()
+        target_sample = target_text[:12000].strip()
+
+        # Compute baseline similarity ratio
+        matcher = difflib.SequenceMatcher(None, base_sample, target_sample)
+        ratio = round(matcher.ratio(), 2)
+
+        prompt = f"""You are a commercial contract auditor performing a strict multi-document comparison.
+Compare the following two contract documents: BASE CONTRACT (the baseline standard) and TARGET CONTRACT (the revised/vendor draft).
+
+Identify the material contractual differences, altered risks, deleted protections, and newly added obligations.
+
+BASE CONTRACT:
+<base_contract>
+{base_sample}
+</base_contract>
+
+TARGET CONTRACT:
+<target_contract>
+{target_sample}
+</target_contract>
+
+Respond STRICTLY with a valid JSON object matching this schema:
+{{
+  "similarity_score": {ratio},
+  "summary_of_changes": "<concise executive summary comparing the two documents and key negotiation points>",
+  "differences": [
+    {{
+      "clause_title": "<clause or topic name, e.g. Limitation of Liability>",
+      "change_type": "added" | "removed" | "modified",
+      "base_text": "<relevant text from base contract, or null if added>",
+      "target_text": "<relevant text from target contract, or null if removed>",
+      "risk_impact": "favorable" | "unfavorable" | "neutral",
+      "explanation": "<detailed legal explanation of what changed and its risk exposure>"
+    }}
+  ]
+}}
+Do NOT output any markdown backticks or text outside the JSON object.
+"""
+        raw_response = self.generate(prompt)
+
+        try:
+            cleaned = raw_response.strip()
+            if cleaned.startswith("```"):
+                cleaned = re.sub(r"^```[a-zA-Z]*\n", "", cleaned)
+                cleaned = re.sub(r"\n```$", "", cleaned)
+            match = re.search(r"(\{.*\})", cleaned, re.DOTALL)
+            if match:
+                cleaned = match.group(1)
+            parsed = json.loads(cleaned)
+            if "summary_of_changes" in parsed and "differences" in parsed:
+                return {
+                    "similarity_score": float(parsed.get("similarity_score", ratio)),
+                    "summary_of_changes": str(parsed.get("summary_of_changes")),
+                    "differences": list(parsed.get("differences", []))
+                }
+        except Exception as exc:
+            logger.warning("Failed to parse LLM contract comparison: %s. Using heuristic fallback.", exc)
+
+        # Fallback comparison using difflib
+        diff_items = []
+        base_paras = [p.strip() for p in base_sample.split("\n\n") if len(p.strip()) > 20]
+        target_paras = [p.strip() for p in target_sample.split("\n\n") if len(p.strip()) > 20]
+
+        target_set = set(target_paras)
+        base_set = set(base_paras)
+
+        removed = [p for p in base_paras if p not in target_set][:3]
+        added = [p for p in target_paras if p not in base_set][:3]
+
+        for p in removed:
+            diff_items.append({
+                "clause_title": p[:40] + "...",
+                "change_type": "removed",
+                "base_text": p[:200],
+                "target_text": None,
+                "risk_impact": "unfavorable",
+                "explanation": "Standard protective clause present in baseline contract is absent in the target revision."
+            })
+        for p in added:
+            diff_items.append({
+                "clause_title": p[:40] + "...",
+                "change_type": "added",
+                "base_text": None,
+                "target_text": p[:200],
+                "risk_impact": "neutral",
+                "explanation": "New clause introduced in target revision that was not present in baseline contract."
+            })
+
+        return {
+            "similarity_score": ratio,
+            "summary_of_changes": f"Document comparison completed with a calculated textual similarity of {int(ratio*100)}%. Several clause differences were identified between baseline and revised versions.",
+            "differences": diff_items or [{
+                "clause_title": "General Alignment",
+                "change_type": "modified",
+                "base_text": base_sample[:100],
+                "target_text": target_sample[:100],
+                "risk_impact": "neutral",
+                "explanation": "Documents share significant structural alignment with minor wording variations."
+            }]
+        }

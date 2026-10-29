@@ -121,3 +121,30 @@ class ClauseRewriteResponse(BaseModel):
     key_changes: List[str] = Field(description="Bullet points describing the key contractual changes made")
     risk_reduction_explanation: str = Field(description="Clear explanation of how the rewritten version reduces legal exposure")
 
+
+class ContractCompareRequest(BaseModel):
+    base_contract_id: int = Field(
+        description="ID of baseline or standard contract (e.g. your template)",
+        examples=[1]
+    )
+    target_contract_id: int = Field(
+        description="ID of target or vendor counter-proposal contract",
+        examples=[2]
+    )
+
+class ContractDifference(BaseModel):
+    clause_title: str = Field(description="Name or section identifier of the compared clause", examples=["Indemnification"])
+    change_type: Literal["added", "removed", "modified"] = Field(description="Nature of the deviation")
+    base_text: Optional[str] = Field(default=None, description="Original text in baseline contract")
+    target_text: Optional[str] = Field(default=None, description="Altered text in target contract")
+    risk_impact: Literal["favorable", "unfavorable", "neutral"] = Field(description="Commercial or risk impact on the reviewer")
+    explanation: str = Field(description="Detailed legal explanation of the business impact of this difference")
+
+class ContractCompareResponse(BaseModel):
+    base_contract_id: int = Field(description="ID of baseline contract")
+    target_contract_id: int = Field(description="ID of target contract")
+    base_filename: str = Field(description="Original filename of baseline contract")
+    target_filename: str = Field(description="Original filename of target contract")
+    similarity_score: float = Field(description="Estimated structural similarity between 0.0 and 1.0", examples=[0.82])
+    summary_of_changes: str = Field(description="Executive overview of the material deviations between the two documents")
+    differences: List[ContractDifference] = Field(description="List of identified clause-by-clause deviations")

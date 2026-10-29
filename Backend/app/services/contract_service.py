@@ -1,3 +1,5 @@
+from ai_engine.services.text_extractor import TextExtractor
+from ai_engine.services.llm_service import LLMService
 from pathlib import Path
 from uuid import uuid4
 from fastapi import HTTPException , UploadFile , status
@@ -184,6 +186,47 @@ class ContractService:
             status=ContractStatus.PROCESSING
         )
         return contract
+
+    async def compare_contracts(
+        self,
+        db: AsyncSession,
+        base_contract_id: int,
+        target_contract_id: int,
+        current_user: User
+    ) -> dict:
+        base_contract = await self.get_contract_by_id(
+            db=db,
+            contract_id=base_contract_id,
+            current_user=current_user
+        )
+        target_contract = await self.get_contract_by_id(
+            db=db,
+            contract_id=target_contract_id,
+            current_user=current_user
+        )
+
+        extractor = TextExtractor()
+
+        # Download and extract base contract text
+        base_bytes = await self.contract_storage.download(base_contract.file_path)
+        base_text = extractor.extract_text(base_bytes)
+
+        # Download and extract target contract text
+        target_bytes = await self.contract_storage.download(target_contract.file_path)
+        target_text = extractor.extract_text(target_bytes)
+
+        llm = LLMService()
+        result = llm.compare_contracts(base_text=base_text, target_text=target_text)
+
+        return {
+            "base_contract_id": base_contract_id,
+            "target_contract_id": target_contract_id,
+            "base_filename": base_contract.original_filename,
+            "target_filename": target_contract.original_filename,
+            "similarity_score": result.get("similarity_score", 0.0),
+            "summary_of_changes": result.get("summary_of_changes", ""),
+            "differences": result.get("differences", [])
+        }
 
     async def delete_contract(
         self,
