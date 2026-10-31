@@ -60,7 +60,7 @@ class EmbeddingService:
                     response = self.client.models.embed_content(
                         model=model,
                         contents=batch,
-                        config={"task_type": task_type},
+                        config={"task_type": task_type, "output_dimensionality": 768},
                     )
                 except Exception as model_err:
                     if "404" in str(model_err) or "not found" in str(model_err).lower():
@@ -68,7 +68,7 @@ class EmbeddingService:
                         response = self.client.models.embed_content(
                             model="text-embedding-004",
                             contents=batch,
-                            config={"task_type": task_type},
+                            config={"task_type": task_type, "output_dimensionality": 768},
                         )
                     else:
                         raise model_err

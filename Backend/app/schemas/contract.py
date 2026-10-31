@@ -29,6 +29,7 @@ class ContractResponse(BaseModel):
     status: ContractStatus = Field(description="Current processing status (processing, completed, error)")
     created_at: datetime = Field(description="Document upload timestamp")
     analyses: List[ContractAnalysisResponse] = Field(default=[], description="Historical analysis runs for this document")
+    last_error: Optional[str] = Field(default=None, description="Last pipeline error message if status is FAILED")
 
     @computed_field
     @property
