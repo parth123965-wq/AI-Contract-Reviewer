@@ -12,6 +12,8 @@ from ai_engine.graph.graph import ContractGraph
 from ai_engine.schemas.analysis_result import AnalysisResult
 from app.core.logger import get_app_logger
 
+from app.core.config import settings
+
 logger = get_app_logger("services.ai_analysis")
 
 
@@ -24,7 +26,11 @@ def _format_user_error(error_detail: str) -> str:
         return "The uploaded PDF appears unreadable or corrupted. Please verify the document."
     if "timeout" in err_lower or "timed out" in err_lower:
         return "Document processing timed out during analysis. Please click Retry."
-    if "storage" in err_lower or "download" in err_lower:
+    if (
+        "storage" in err_lower
+        or "download" in err_lower
+        or ("object" in err_lower and "not found" in err_lower)
+    ):
         return "Unable to retrieve document from cloud storage. Please try again."
     return f"Analysis failed: {str(error_detail)[:200]}"
 
@@ -126,7 +132,6 @@ class AnalysisService:
                     )
                     raise RuntimeError(err_msg)
 
-                from app.core.config import settings
                 await self.save_analysis(
                     db=db,
                     contract_id=contract.id,

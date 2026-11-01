@@ -3,6 +3,8 @@ from typing import Literal
 
 from app.core.config import settings
 
+from google.genai import types
+
 EmbeddingTaskType = Literal["RETRIEVAL_DOCUMENT", "RETRIEVAL_QUERY"]
 
 
@@ -52,26 +54,16 @@ class EmbeddingService:
         try:
             for start in range(0, len(valid_chunks), self._MAX_BATCH_SIZE):
                 batch = valid_chunks[start : start + self._MAX_BATCH_SIZE]
-                model = settings.EMBEDDING_MODEL
-                if not model or model == "gemini-embedding-001":
-                    model = "text-embedding-004"
-
-                try:
-                    response = self.client.models.embed_content(
-                        model=model,
-                        contents=batch,
-                        config={"task_type": task_type, "output_dimensionality": 768},
-                    )
-                except Exception as model_err:
-                    if "404" in str(model_err) or "not found" in str(model_err).lower():
-                        # Fallback to standard Google embedding model
-                        response = self.client.models.embed_content(
-                            model="text-embedding-004",
-                            contents=batch,
-                            config={"task_type": task_type, "output_dimensionality": 768},
-                        )
-                    else:
-                        raise model_err
+                model = settings.EMBEDDING_MODEL or "gemini-embedding-001"
+                config = types.EmbedContentConfig(
+                    task_type=task_type,
+                    output_dimensionality=768,
+                )
+                response = self.client.models.embed_content(
+                    model=model,
+                    contents=batch,
+                    config=config,
+                )
                 batch_embeddings = response.embeddings
                 if batch_embeddings is None or len(batch_embeddings) != len(batch):
                     raise ValueError(
@@ -82,4 +74,4 @@ class EmbeddingService:
                 )
             return embeddings
         except Exception as exc:
-            raise RuntimeError("Failed to generate embeddings") from exc
+            raise RuntimeError(f"Failed to generate embeddings: {exc}") from exc
