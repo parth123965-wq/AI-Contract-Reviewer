@@ -290,11 +290,15 @@ async def list_contracts(
     search: Optional[str] = Query(default=None)
 ) -> AdminContractListResponse:
     parsed_status = None
-    if status and status.strip() and status.lower() != "all":
+    normalized_status = status.strip().upper() if status else ""
+    if normalized_status and normalized_status != "ALL":
         try:
-            parsed_status = ContractStatus(status.strip().upper())
-        except ValueError:
-            parsed_status = None
+            parsed_status = ContractStatus(normalized_status)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid contract status: {status}",
+            ) from exc
 
     return await service.list_contracts(
         db=db, page=page, limit=limit, status_filter=parsed_status, user_id=user_id, search=search

@@ -95,7 +95,7 @@ class PlaybookService:
         deleted = await self.repository.delete_playbook(
             db=db,
             playbook_id=playbook_id,
-            user_id=playbook.user_id or current_user.id
+            user_id=playbook.user_id
         )
         if not deleted:
             raise HTTPException(

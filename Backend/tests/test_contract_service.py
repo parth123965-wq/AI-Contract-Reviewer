@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from io import BytesIO
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -8,6 +9,7 @@ from starlette.datastructures import Headers
 
 from app.models.contract import Contract, ContractStatus
 from app.models.user import User
+from app.services import contract_service as contract_service_module
 from app.services.contract_service import ContractService
 from app.services.contract_storage import ContractStorage
 
@@ -197,3 +199,50 @@ async def test_delete_contract_soft_deletes_owned_contract(service):
         contract=contract,
     )
     service.contract_storage.remove.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_compare_contracts_returns_each_contract_filename(service, monkeypatch):
+    base_contract = SimpleNamespace(
+        id=4,
+        is_deleted=False,
+        file_path="2/base.pdf",
+        original_filename="base.pdf",
+    )
+    target_contract = SimpleNamespace(
+        id=5,
+        is_deleted=False,
+        file_path="2/target.pdf",
+        original_filename="target.pdf",
+    )
+    service.contract_repository.get_contract_by_id.side_effect = [
+        base_contract,
+        target_contract,
+    ]
+    service.contract_storage.download.side_effect = [b"base", b"target"]
+    monkeypatch.setattr(
+        contract_service_module,
+        "TextExtractor",
+        lambda: SimpleNamespace(extract_text=lambda content: content.decode()),
+    )
+    monkeypatch.setattr(
+        contract_service_module,
+        "LLMService",
+        lambda: SimpleNamespace(
+            compare_contracts=lambda **_: {
+                "similarity_score": 0.8,
+                "summary_of_changes": "Updated terms",
+                "differences": [],
+            }
+        ),
+    )
+
+    result = await service.compare_contracts(
+        db=AsyncMock(),
+        base_contract_id=4,
+        target_contract_id=5,
+        current_user=SimpleNamespace(id=2),
+    )
+
+    assert result["base_filename"] == "base.pdf"
+    assert result["target_filename"] == "target.pdf"

@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 from app.models.contract import Contract, ContractAnalysis, ContractStatus, RiskLevel
 from app.models.user import User
 from app.auth.password import verify_password
+from app.api.admin import list_contracts
 from app.schemas.admin import AdminPasswordChangeRequest
 from app.repositories.contract_repository import ContractRepository
 from app.repositories.user_repository import UserRepository
@@ -45,6 +46,35 @@ class FakeRedis:
                 self.expirations.pop(key, None)
                 removed += 1
         return removed
+
+
+@pytest.mark.asyncio
+async def test_admin_contract_list_rejects_unknown_status():
+    service = AsyncMock()
+    with pytest.raises(HTTPException) as error:
+        await list_contracts(
+            admin=SimpleNamespace(is_admin=True),
+            db=AsyncMock(),
+            service=service,
+            status="unknown",
+        )
+
+    assert error.value.status_code == 400
+    service.list_contracts.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_admin_contract_list_treats_whitespace_padded_all_as_no_filter():
+    service = AsyncMock()
+
+    await list_contracts(
+        admin=SimpleNamespace(is_admin=True),
+        db=AsyncMock(),
+        service=service,
+        status="  ALL  ",
+    )
+
+    assert service.list_contracts.await_args.kwargs["status_filter"] is None
 
 
 @pytest.mark.asyncio
@@ -909,9 +939,9 @@ async def test_admin_permanent_delete_removes_storage_before_database_records():
         "contract_id": 12,
     }
     assert events == [
-        ("database", 12, False),
         ("email", "owner@example.com"),
         ("storage", "7/contract.pdf"),
+        ("database", 12, False),
     ]
     db.commit.assert_awaited_once()
     service.contract_repository.get_contract_by_id.assert_awaited_once_with(
@@ -940,9 +970,7 @@ async def test_admin_permanent_delete_keeps_database_record_when_storage_fails()
         await service.delete_contract(db=db, contract_id=12)
 
     assert error.value.status_code == 502
-    service.contract_repository.permanently_delete_contract.assert_awaited_once_with(
-        db=db, contract_id=12, commit=False
-    )
+    service.contract_repository.permanently_delete_contract.assert_not_awaited()
     db.rollback.assert_awaited_once()
     service.email_service.send_admin_change_notification.assert_awaited_once()
 
@@ -968,9 +996,7 @@ async def test_admin_permanent_delete_skips_storage_when_email_fails():
         await service.delete_contract(db=db, contract_id=12)
 
     assert error.value.status_code == 502
-    service.contract_repository.permanently_delete_contract.assert_awaited_once_with(
-        db=db, contract_id=12, commit=False
-    )
+    service.contract_repository.permanently_delete_contract.assert_not_awaited()
     service.contract_storage.remove.assert_not_awaited()
     db.rollback.assert_awaited_once()
 

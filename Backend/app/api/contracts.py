@@ -248,7 +248,7 @@ async def export_contract_report(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
     service: Annotated[ContractService, Depends(contract_service)],
-    format: str = Query(default="html", regex="^(html|json|md|markdown)$", description="Export format: html, md, or json")
+    format: str = Query(default="html", pattern="^(html|json|md|markdown)$", description="Export format: html, md, or json")
 ):
     contract = await service.get_contract_by_id(
         db=db,

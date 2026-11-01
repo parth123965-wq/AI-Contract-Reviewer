@@ -53,7 +53,7 @@ class PlaybookRepository:
         self,
         db: AsyncSession,
         playbook_id: int,
-        user_id: int
+        user_id: Optional[int]
     ) -> bool:
         stmt = delete(Playbook).where(Playbook.id == playbook_id, Playbook.user_id == user_id)
         result = await db.execute(stmt)
