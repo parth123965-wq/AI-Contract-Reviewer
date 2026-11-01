@@ -55,7 +55,13 @@ class ContractNodes:
         if self._should_skip(state):
             return state
         try:
-            state['embeddings'] = self.embedding_service.create_embeddings(chunks=state.get('chunks', []))
+            output_dimensionality = self.vector_store.get_embedding_dimension(
+                default_dimension=self.embedding_service.DEFAULT_OUTPUT_DIMENSION
+            )
+            state['embeddings'] = self.embedding_service.create_embeddings(
+                chunks=state.get('chunks', []),
+                output_dimensionality=output_dimensionality,
+            )
             if state['embeddings']:
                 state['query_embedding'] = state['embeddings'][0]
             else:

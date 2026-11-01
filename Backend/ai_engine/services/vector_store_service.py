@@ -61,6 +61,19 @@ class VectorStoreService:
     def _index_names(self) -> set[str]:
         return set(self.client.list_indexes().names())
 
+    def get_embedding_dimension(self, default_dimension: int) -> int:
+        if self._index_dimension is not None:
+            return self._index_dimension
+        if settings.PINECONE_INDEX_NAME not in self._index_names():
+            return default_dimension
+        self._get_index()
+        if self._index_dimension is None:
+            raise RuntimeError(
+                f"Could not determine dimension for Pinecone index "
+                f"'{settings.PINECONE_INDEX_NAME}'."
+            )
+        return self._index_dimension
+
     def _get_index(self, dimension: int | None = None):
         index_name = settings.PINECONE_INDEX_NAME
         if self.index is not None:
@@ -148,7 +161,9 @@ class VectorStoreService:
                 "Failed to store embeddings in Pinecone.",
                 extra={"contract_id": contract_id, "user_id": user_id},
             )
-            raise RuntimeError("Failed to store embeddings in Pinecone.") from exc
+            raise RuntimeError(
+                f"Failed to store embeddings in Pinecone: {exc}"
+            ) from exc
 
     def search(
         self,

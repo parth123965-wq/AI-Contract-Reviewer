@@ -19,13 +19,16 @@ def make_embedding_service(monkeypatch, response=None, side_effect=None):
     return service
 
 
-def test_create_embeddings_uses_configured_gemini_model(monkeypatch):
+def test_create_embeddings_uses_configured_model_and_requested_dimension(monkeypatch):
     response = SimpleNamespace(
         embeddings=[SimpleNamespace(values=[0.1, 0.2, 0.3])]
     )
     service = make_embedding_service(monkeypatch, response=response)
 
-    embeddings = service.create_embeddings(["Contract clause."])
+    embeddings = service.create_embeddings(
+        ["Contract clause."],
+        output_dimensionality=1536,
+    )
 
     assert embeddings == [[0.1, 0.2, 0.3]]
     service.client.models.embed_content.assert_called_once()
@@ -34,7 +37,7 @@ def test_create_embeddings_uses_configured_gemini_model(monkeypatch):
     assert call["contents"] == ["Contract clause."]
     assert isinstance(call["config"], types.EmbedContentConfig)
     assert call["config"].task_type == "RETRIEVAL_DOCUMENT"
-    assert call["config"].output_dimensionality == 768
+    assert call["config"].output_dimensionality == 1536
 
 
 def test_create_embeddings_preserves_query_task_type(monkeypatch):

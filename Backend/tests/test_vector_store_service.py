@@ -31,6 +31,7 @@ class FakePineconeClient:
         assert api_key == "test-pinecone-key"
         self.names = set()
         self.created_index = None
+        self.existing_dimension = None
         self.index = FakeIndex()
 
     def list_indexes(self):
@@ -42,9 +43,14 @@ class FakePineconeClient:
 
     def describe_index(self, name):
         assert name == "contracts"
+        dimension = (
+            self.created_index["dimension"]
+            if self.created_index
+            else self.existing_dimension
+        )
         return SimpleNamespace(
             status={"ready": True},
-            dimension=self.created_index["dimension"],
+            dimension=dimension,
         )
 
     def Index(self, name):
@@ -90,6 +96,44 @@ def test_store_embeddings_creates_index_using_actual_embedding_dimension(fake_cl
         "analysis_version": 2,
         "text": "First clause.",
     }
+
+
+def test_get_embedding_dimension_uses_existing_index_dimension(fake_client):
+    fake_client.names.add("contracts")
+    fake_client.existing_dimension = 1536
+    service = VectorStoreService()
+
+    dimension = service.get_embedding_dimension(default_dimension=768)
+
+    assert dimension == 1536
+    assert fake_client.created_index is None
+
+
+def test_get_embedding_dimension_uses_default_when_index_does_not_exist(fake_client):
+    service = VectorStoreService()
+
+    dimension = service.get_embedding_dimension(default_dimension=768)
+
+    assert dimension == 768
+    assert fake_client.created_index is None
+
+
+def test_store_embeddings_reports_existing_index_dimension_mismatch(fake_client):
+    fake_client.names.add("contracts")
+    fake_client.existing_dimension = 1536
+    service = VectorStoreService()
+
+    with pytest.raises(
+        RuntimeError,
+        match="Embedding dimension 768 does not match Pinecone index dimension 1536",
+    ):
+        service.store_embeddings(
+            contract_id=7,
+            user_id=12,
+            chunks=["A clause."],
+            embeddings=[[0.1] * 768],
+            version=1,
+        )
 
 
 def test_search_filters_to_contract_and_owner(fake_client):

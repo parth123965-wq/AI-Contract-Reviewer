@@ -160,7 +160,10 @@ async def ask_question_on_contract(
     try:
         q_embeddings = emb_service.create_embeddings(
             [body.question],
-            task_type="RETRIEVAL_QUERY"
+            task_type="RETRIEVAL_QUERY",
+            output_dimensionality=vector_store.get_embedding_dimension(
+                default_dimension=emb_service.DEFAULT_OUTPUT_DIMENSION
+            ),
         )
         query_emb = q_embeddings[0] if q_embeddings else []
         if query_emb:

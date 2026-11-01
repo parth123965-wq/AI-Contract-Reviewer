@@ -10,6 +10,7 @@ EmbeddingTaskType = Literal["RETRIEVAL_DOCUMENT", "RETRIEVAL_QUERY"]
 
 class EmbeddingService:
     _MAX_BATCH_SIZE = 100
+    DEFAULT_OUTPUT_DIMENSION = 768
 
     def __init__(self):
         self.api_key = (
@@ -43,6 +44,7 @@ class EmbeddingService:
         self,
         chunks: list[str],
         task_type: EmbeddingTaskType = "RETRIEVAL_DOCUMENT",
+        output_dimensionality: int = DEFAULT_OUTPUT_DIMENSION,
     ) -> list[list[float]]:
         valid_chunks = self._validate_chunks(chunks)
         if self.client is None:
@@ -57,7 +59,7 @@ class EmbeddingService:
                 model = settings.EMBEDDING_MODEL or "gemini-embedding-001"
                 config = types.EmbedContentConfig(
                     task_type=task_type,
-                    output_dimensionality=768,
+                    output_dimensionality=output_dimensionality,
                 )
                 response = self.client.models.embed_content(
                     model=model,
