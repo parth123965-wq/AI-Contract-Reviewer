@@ -36,6 +36,20 @@ class PlaybookRepository:
         result = await db.execute(query)
         return list(result.scalars().all())
 
+    async def get_all_playbooks(
+        self,
+        db: AsyncSession,
+        user_id: Optional[int] = None,
+    ) -> List[Playbook]:
+        query = select(Playbook)
+        if user_id is not None:
+            query = query.where(
+                or_(Playbook.user_id == user_id, Playbook.user_id.is_(None))
+            )
+        query = query.order_by(Playbook.user_id.asc(), Playbook.is_default.desc(), Playbook.id.desc())
+        result = await db.execute(query)
+        return list(result.scalars().all())
+
     async def update_playbook(
         self,
         db: AsyncSession,

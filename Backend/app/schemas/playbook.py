@@ -16,6 +16,14 @@ class PlaybookCreate(BaseModel):
     is_default: bool = Field(default=False, description="Whether to make this the default playbook for this user")
 
 
+class AdminPlaybookCreate(PlaybookCreate):
+    user_id: Optional[int] = Field(
+        default=None,
+        ge=1,
+        description="Owner user ID; omit or set null to create a global playbook",
+    )
+
+
 class PlaybookUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=2, max_length=100)
     description: Optional[str] = Field(default=None, max_length=255)

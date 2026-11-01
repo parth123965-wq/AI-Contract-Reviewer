@@ -9,6 +9,12 @@ from app.models.contract import ContractStatus
 from app.services.admin_service import AdminService, get_admin_service
 from app.schemas.user import UserResponse
 from app.schemas.contract import ContractResponse
+from app.schemas.playbook import (
+    AdminPlaybookCreate,
+    PlaybookListResponse,
+    PlaybookResponse,
+    PlaybookUpdate,
+)
 from app.schemas.admin import (
     AdminUserListResponse,
     AdminEmailChangeRequestResponse,
@@ -31,12 +37,108 @@ from app.schemas.user import (
 )
 from app.core.rate_limit import RateLimiter
 from app.services.health_diagnostics import get_log_tail, get_system_diagnostics
+from app.services.playbook_service import PlaybookService, get_playbook_service
 
 
 admin_router = APIRouter(
     prefix="/admin",
     tags=["Admin"]
 )
+
+
+@admin_router.post(
+    "/playbooks",
+    response_model=PlaybookResponse,
+    status_code=201,
+    summary="Create Review Playbook",
+    description="Create a global playbook or assign it to a specific user with user_id.",
+    dependencies=[Depends(RateLimiter(times=15, seconds=60, prefix="admin_playbooks_create"))],
+)
+async def create_admin_playbook(
+    body: AdminPlaybookCreate,
+    admin: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    service: Annotated[PlaybookService, Depends(get_playbook_service)],
+) -> PlaybookResponse:
+    playbook = await service.create_admin_playbook(
+        db=db,
+        data=body,
+        user_id=body.user_id,
+    )
+    return PlaybookResponse.model_validate(playbook)
+
+
+@admin_router.get(
+    "/playbooks",
+    response_model=PlaybookListResponse,
+    summary="List Review Playbooks",
+    description="List all global and user-owned playbooks, or filter to one user's playbooks and global templates.",
+    dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_playbooks_list"))],
+)
+async def list_admin_playbooks(
+    admin: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    service: Annotated[PlaybookService, Depends(get_playbook_service)],
+    user_id: Optional[int] = Query(default=None, ge=1),
+) -> PlaybookListResponse:
+    playbooks = await service.get_admin_playbooks(db=db, user_id=user_id)
+    return PlaybookListResponse(
+        playbooks=[PlaybookResponse.model_validate(playbook) for playbook in playbooks]
+    )
+
+
+@admin_router.get(
+    "/playbooks/{playbook_id}",
+    response_model=PlaybookResponse,
+    summary="Get Review Playbook",
+    description="Retrieve a global or user-owned review playbook by ID.",
+    dependencies=[Depends(RateLimiter(times=30, seconds=60, prefix="admin_playbooks_get"))],
+)
+async def get_admin_playbook(
+    playbook_id: int,
+    admin: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    service: Annotated[PlaybookService, Depends(get_playbook_service)],
+) -> PlaybookResponse:
+    playbook = await service.get_admin_playbook(db=db, playbook_id=playbook_id)
+    return PlaybookResponse.model_validate(playbook)
+
+
+@admin_router.patch(
+    "/playbooks/{playbook_id}",
+    response_model=PlaybookResponse,
+    summary="Update Review Playbook",
+    description="Update a global or user-owned review playbook.",
+    dependencies=[Depends(RateLimiter(times=15, seconds=60, prefix="admin_playbooks_update"))],
+)
+async def update_admin_playbook(
+    playbook_id: int,
+    body: PlaybookUpdate,
+    admin: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    service: Annotated[PlaybookService, Depends(get_playbook_service)],
+) -> PlaybookResponse:
+    playbook = await service.update_admin_playbook(
+        db=db,
+        playbook_id=playbook_id,
+        data=body,
+    )
+    return PlaybookResponse.model_validate(playbook)
+
+
+@admin_router.delete(
+    "/playbooks/{playbook_id}",
+    summary="Delete Review Playbook",
+    description="Delete a global or user-owned review playbook.",
+    dependencies=[Depends(RateLimiter(times=15, seconds=60, prefix="admin_playbooks_delete"))],
+)
+async def delete_admin_playbook(
+    playbook_id: int,
+    admin: Annotated[User, Depends(get_current_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    service: Annotated[PlaybookService, Depends(get_playbook_service)],
+):
+    return await service.delete_admin_playbook(db=db, playbook_id=playbook_id)
 
 
 @admin_router.get(
