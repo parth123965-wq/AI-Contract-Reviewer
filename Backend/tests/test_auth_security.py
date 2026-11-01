@@ -123,6 +123,21 @@ async def test_current_user_rejects_missing_token():
 
 
 @pytest.mark.asyncio
+async def test_current_user_rejects_query_string_token(monkeypatch):
+    decode = Mock()
+    monkeypatch.setattr(auth_dependencies, "decode_access_token", decode)
+
+    with pytest.raises(HTTPException) as error:
+        await auth_dependencies.get_current_user(
+            make_request(query_string=b"token=valid-looking-token"),
+            object(),
+        )
+
+    assert error.value.status_code == 401
+    decode.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_current_user_rejects_invalid_token(monkeypatch):
     monkeypatch.setattr(auth_dependencies, "decode_access_token", lambda **_: None)
 

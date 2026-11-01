@@ -117,7 +117,7 @@ async def enforce_security_headers(request: Request, call_next):
         "HTTP Request Processed",
         extra={
             "method": request.method,
-            "url": str(request.url),
+            "path": request.url.path,
             "status_code": response.status_code,
             "duration_ms": round(process_time, 2),
             "client_ip": request.client.host if request.client else None,
